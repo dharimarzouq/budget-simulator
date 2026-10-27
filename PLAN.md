@@ -1,6 +1,6 @@
 # Milestone 1 plan: income tax, NICs, Universal Credit, Child Benefit
 
-Status: steps 1–3 done (27 October 2026), plus an early household calculator page. Step 4, checking against PolicyEngine UK, is next. I'll check in with results after each step.
+Status: steps 1–4 done (27 October 2026), plus an early household calculator page. Step 4 covered PolicyEngine UK (all 45 test households match; see tools/README.md); checking against gov.uk worked examples is still to do. Step 5, the synthetic population, is next. I'll check in with results after each step.
 
 Tax year: 2026/27, the current year. Every rate and threshold is stored as data with its source and legal basis, not hard-coded. That matters because the rules change. For example, the Universal Credit two-child limit was removed from 6 April 2026 by the Universal Credit (Removal of Two Child Limit) Act 2026.
 
@@ -40,7 +40,7 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
 ## Not in milestone 1 (written down so it isn't forgotten)
 
-Savings and dividend income, council tax and Council Tax Reduction, Local Housing Allowance caps by area, the benefit cap, disability benefits, pensioner benefits, VAT and other indirect taxes, spending departments (layer 4), and reform packs (land value tax comes in milestone 2).
+Savings and dividend income, Marriage Allowance, council tax and Council Tax Reduction, Local Housing Allowance caps by area, the benefit cap, disability benefits, pensioner benefits (Pension Credit, Winter Fuel Payment), Scottish Child Payment, the TV licence, VAT and other indirect taxes, spending departments (layer 4), and reform packs (land value tax comes in milestone 2).
 
 ## Decisions I'll need from you along the way
 
