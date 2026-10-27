@@ -64,6 +64,12 @@ frs_adults_age_employment_2024-25.csv:
   use: calibration (age bands); employment status for checks
   notes:
     - 53.6 million adults. FRS "adults" include 16-17 year-olds who aren't dependent children.
+hbai_income_by_person_type_2024-25.csv:
+  source: dwp-statxplore-hbai
+  table: "HBAI (admin-linked): people, and median and mean equivalised net household income before housing costs, by child / working-age / pensioner"
+  year: 2024-25
+  units: people (column named "households" by the pull script); £ a week, nominal
+  use: check only, held back from calibration
 frs_households_benefits_2024-25.csv:
   source: dwp-statxplore-frs
   table: Households by receipt of Child Benefit, Universal Credit and State Pension

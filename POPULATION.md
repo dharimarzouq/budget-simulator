@@ -118,6 +118,23 @@ What this says, plainly:
 - **Universal Credit is 3–4% short** on both households and spending.
 - **Child Benefit spending is 8% high**, though it isn't a target. It would make a good one.
 
+## The income distribution, against HBAI (held back)
+
+HBAI ("Households below average income") is DWP's official measure of household incomes. Its figures were never calibration targets, so they test whether the population's *spread* of incomes is right, not just its totals. Income is net household income before housing costs, adjusted for household size the way HBAI does it (the modified OECD scale), counted per person. HBAI's 2024-25 figures are uprated to 2026-27 with OBR earnings growth.
+
+| Group | Median, ours | Median, HBAI | Mean, ours | Mean, HBAI | People, ours | People, HBAI |
+|---|---:|---:|---:|---:|---:|---:|
+| Children | £665 | £681 | £762 | £827 | 13.4m | 14.7m |
+| Working-age adults | £828 | £837 | £978 | £984 | 38.8m | 41.4m |
+| Pensioners | £699 | £704 | £801 | £830 | 13.0m | 12.2m |
+
+(£ a week, equivalised.)
+
+- **Typical incomes match closely.** Medians are within 1–2% for all three groups. That's a strong sign the population is realistic in the middle of the distribution.
+- **Two differences roughly cancel, and we can't yet separate them.** HBAI's net income takes off council tax, which we don't model; that makes ours too high. It also adds disability benefits, Carer's Allowance, Pension Credit and others, which we don't model either; that makes ours too low.
+- **Means are lower than HBAI's for children (8%) and pensioners (3%).** Better-off families with children may be too few, and pensioners are missing the benefits above.
+- **Head-counts differ by 6–9%.** HBAI counts 16–19 year-olds in education as children and 16–17 year-olds as working age; ours start adults at 18 and don't have the older children. We have 7% more pensioners than HBAI, partly because our State Pension age is 66 throughout.
+
 ## Rebuilding it
 
 ```
@@ -128,6 +145,9 @@ What this says, plainly:
 node tools\run_population.mjs data\build\seed.json data\build\seed_results.csv
 .venv\Scripts\python.exe -I data\calibrate.py
 .venv\Scripts\python.exe -I data\check_population.py data\build\population.json data\build\seed_results.csv
+.venv\Scripts\python.exe -I data\export_population.py
 ```
+
+The last step writes `public/data/population-2026-27.json`, the file the site loads: 2.4 MB, or 0.6 MB compressed. Money is rounded to whole pounds and weights to one decimal place, which moves totals by well under 0.1%. `test/population.test.ts` checks the shipped file still matches the published totals within the gaps explained here.
 
 The engine results don't change with calibration (only the weights do), so the seed's results file serves for both.

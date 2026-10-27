@@ -48,6 +48,8 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
    Progress, 27 October 2026: 5b is done; see POPULATION.md for the seed, its assumptions and how far it is from the targets before calibration. Found along the way: running the engine over the 34,000 benefit units took about 60 seconds. Fixed: Vite was scanning the Python environments, and number formatting built a new formatter on every call. Now the whole population runs in about 0.3 seconds and a page update takes about 20ms, so no separate fast mode is needed.
 
+   Progress, 27 October 2026: 5d and 5e are done. Held-back check: median household incomes match HBAI within 1–2% for children, working-age adults and pensioners (POPULATION.md). The population ships as public/data/population-2026-27.json. The page has a "whole country" section that runs the engine over it in the browser (about 0.2 seconds) and compares the totals with the published figures. **Step 5 is complete.** Step 6, costing, is next.
+
    Progress, 27 October 2026: 5c first version done; see POPULATION.md. Universal Credit is now within 5% and income tax within the expected gap. National Insurance came out 7–15% high. It now matches the OBR within 1.5% (see POPULATION.md). The fixes were the under-21 zero rate, Employment Allowance and apprentice relief as lump sums, working pensioners, second jobs, and other income for HMRC band placement. The engine now models second jobs.
 
 6. **Costing.** Static cost of any change, then a behavioural version using published estimates of how taxable income responds to rates, shown side by side. Checked against HMRC's ready reckoner; large gaps are explained or fixed.

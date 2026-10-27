@@ -77,6 +77,17 @@ def main() -> None:
     adults = sx.cube(ad, {"adults": "str:count:FRSAD:V_F_FRSAD"}, [ad_f + "YEAR", ad_f + "AGEBAND", ad_f + "EMPSTAT"], sx.only(ad_f + "YEAR", ad_year))
     tables[f"frs_adults_age_employment_{tag}.csv"] = adults.drop(columns=["Financial Year"]).rename(columns={"adults": "households"})
 
+    # HBAI (admin-linked): equivalised net household income before housing costs, by type of person.
+    # Held back from calibration; used only as a check on the whole income distribution.
+    hb, hb_f = "str:database:HBAI_ADMIN", "str:field:HBAI_ADMIN:V_F_HBAI_ADMIN:"
+    hb_label, hb_year = sx.field_items(hb, "str:count:HBAI_ADMIN:V_F_HBAI_ADMIN", hb_f + "YEAR")[-1]
+    hbai = sx.cube(hb, {
+        "households": "str:count:HBAI_ADMIN:V_F_HBAI_ADMIN",  # people, despite the column name used by the summary below
+        "median_bhc_gbp_week": "str:statfn:HBAI_ADMIN:V_F_HBAI_ADMIN:S_OE_BHC_INYR:MEDIAN",
+        "mean_bhc_gbp_week": "str:statfn:HBAI_ADMIN:V_F_HBAI_ADMIN:S_OE_BHC_INYR:MEAN",
+    }, [hb_f + "YEAR", hb_f + "TYPE_AGECAT"], sx.only(hb_f + "YEAR", hb_year))
+    tables[f"hbai_income_by_person_type_{hb_label}.csv"] = hbai.drop(columns=["Financial Year"])
+
     for name, df in tables.items():
         df.to_csv(OUT / name, index=False)
         print(f"{name}: {len(df)} rows, {df['households'].sum():,.0f} households (sum of cells)")

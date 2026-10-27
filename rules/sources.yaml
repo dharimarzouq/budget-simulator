@@ -89,6 +89,13 @@ dwp-statxplore-frs:
   licence: Open Government Licence v3.0
   accessed: 2026-10-27
 
+dwp-statxplore-hbai:
+  title: "Stat-Xplore: Households Below Average Income, data from 2021/22 (admin-linked)"
+  publisher: Department for Work and Pensions
+  url: https://stat-xplore.dwp.gov.uk/
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-27
+
 hmrc-child-benefit-2025:
   title: "Child Benefit statistics: annual release, data at August 2025, main tables"
   publisher: HM Revenue & Customs

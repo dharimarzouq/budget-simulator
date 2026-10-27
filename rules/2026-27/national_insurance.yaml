@@ -80,6 +80,22 @@ parameters:
     legal: National Insurance Contributions Act 2014 s1
     note: Per employer, not per employee. Matters for costing employer NICs, not for a household's own income.
 
+  employment_allowance_cost:
+    label: Cost of the Employment Allowance, taken off population totals as one sum
+    unit: gbp_per_year
+    value: 7400000000
+    source: hmrc-tax-reliefs-2026-01
+    legal: National Insurance Contributions Act 2014 s1
+    note: HMRC's 2025-26 cost estimate. Used because the allowance depends on the employer, not the household. If employer NICs rules change, this stays fixed, which is roughly right because most employers claim the full £10,500.
+
+  apprentice_relief_cost:
+    label: Cost of the employer zero rate for apprentices under 25, taken off population totals as one sum
+    unit: gbp_per_year
+    value: 570000000
+    source: hmrc-tax-reliefs-2026-01
+    legal: Social Security Contributions and Benefits Act 1992 s9B
+    note: HMRC's 2025-26 cost estimate. The population doesn't say who is an apprentice.
+
   class4_lower_profits_limit:
     label: Self-employed National Insurance starts at (lower profits limit)
     unit: gbp_per_year
