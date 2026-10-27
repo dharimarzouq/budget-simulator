@@ -44,7 +44,9 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
    Decided by Ari: build scripts in Python (the site stays TypeScript). Ari will register for a free Stat-Xplore account for the detailed Universal Credit tables.
 
-   Progress, 27 October 2026: 5a is done; see data/targets/targets.yaml. It covers HMRC incomes, UC households (May 2026), FRS households (2024-25, via Stat-Xplore, which also covers people who don't pay tax), Child Benefit (August 2025) and OBR totals (March 2026). ONS tables weren't needed yet, because the FRS is already weighted to ONS population totals. Still to find: OBR earnings growth for uprating, and Northern Ireland Universal Credit, which isn't in Stat-Xplore.
+   Progress, 27 October 2026: 5a is done; see data/targets/targets.yaml. It covers HMRC incomes, UC households (May 2026), FRS households (2024-25, via Stat-Xplore, which also covers people who don't pay tax), Child Benefit (August 2025) and OBR totals (March 2026). ONS tables weren't needed yet, because the FRS is already weighted to ONS population totals. Still to find: Northern Ireland Universal Credit, which isn't in Stat-Xplore.
+
+   Progress, 27 October 2026: 5b is done; see POPULATION.md for the seed, its assumptions and how far it is from the targets before calibration. Found along the way: running the engine over the 34,000 benefit units takes about 60 seconds, which is far too slow for the page. Step 6 needs a fast mode that skips writing the working text.
 
 6. **Costing.** Static cost of any change, then a behavioural version using published estimates of how taxable income responds to rates, shown side by side. Checked against HMRC's ready reckoner; large gaps are explained or fixed.
 

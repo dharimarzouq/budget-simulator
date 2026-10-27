@@ -1,0 +1,249 @@
+"""Build the seed population: made-up households spread across every kind of household the UK has,
+with starting weights. Step 5c then adjusts the weights so totals match the published tables.
+
+Usage: .venv/Scripts/python.exe -I data/build_seed.py   (after build_targets.py and pull_statxplore.py)
+Writes data/build/seed.json. Deterministic: the same inputs give the same households.
+
+The seed only needs to cover the range of real households, not match totals; calibration does that.
+Where it uses a guess rather than a published number, the guess is in ASSUMPTIONS below and is
+reported in POPULATION.md. Money is 2026-27 pounds.
+"""
+
+import json
+import re
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+HERE = Path(__file__).resolve().parent
+TARGETS = HERE / "targets"
+BUILD = HERE / "build"
+
+N_HOUSEHOLDS = 30_000
+MIN_PER_CELL = 40
+SEED = 2026
+
+# Uprating to 2026-27, from the OBR March 2026 EFO detailed forecast tables (economy).
+EARNINGS_2024_25_TO_2026_27 = 169.0 / 156.623  # average weekly earnings index, table 1.6
+RENT_GROWTH = {"Private rented": 1.04 * 1.04, "Social rented": 1.039 * 1.05}  # table 1.18, 2025-26 and 2026-27
+NEW_STATE_PENSION = 241.30 * 52  # full rate 2026-27, DWP benefit and pension rates
+OLD_STATE_PENSION = 184.90 * 52  # basic State Pension 2026-27, same source
+
+ASSUMPTIONS = {
+    "share_employee": 0.72,  # of working-age adults; the rest split below
+    "share_self_employed": 0.10,
+    "share_employee_lone_parent": 0.62,
+    "pay_median": 31_000,  # employees incl. part-time, 2026-27
+    "pay_sigma": 0.65,  # spread of log pay
+    "pay_top_tail_share": 0.04,  # employees drawn from a Pareto tail instead
+    "pay_top_tail_min": 80_000,
+    "pay_top_tail_alpha": 1.6,
+    "profit_median": 14_000,
+    "profit_sigma": 1.0,
+    "share_pensioners_new_state_pension": 0.6,  # rest on the old basic pension
+    "share_pensioners_private_pension": 0.65,
+    "private_pension_median": 7_000,
+    "private_pension_sigma": 0.9,
+    "share_not_working_health": 0.45,  # of working-age adults not working: Universal Credit health element
+    "share_health_protected": 0.9,  # of those: claimed before April 2026, so the higher rate
+    "share_not_working_carer": 0.08,
+    "share_children_disabled": 0.06,
+    "share_disabled_higher": 0.3,
+    "rent_sigma": 0.35,  # spread of rents around the regional mean
+    "share_under5_with_childcare": 0.35,  # households with a child under 5 and all adults working
+    "childcare_median_month": 700,
+    "uc_take_up": 0.85,
+    "cb_opt_out_60k_80k": 0.25,  # families whose higher earner is in the Child Benefit charge range
+    "cb_opt_out_over_80k": 0.6,
+}
+A = ASSUMPTIONS
+
+
+def region_name(label: str) -> str:
+    return re.sub(r"\s*\(.*\)$", "", label)
+
+
+def engine_region(name: str) -> str:
+    return {"London": "london", "Wales": "wales", "Scotland": "scotland", "Northern Ireland": "northern_ireland"}.get(name, "england")
+
+
+def band_bounds(label: str) -> tuple[float, float]:
+    """Lower and upper pounds from an FRS band label such as '£1,500 but less than £3,000'."""
+    nums = [float(n.replace(",", "")) for n in re.findall(r"£([\d,]+)", label)]
+    if not nums:
+        return (0.0, 0.0)  # "No savings" and similar
+    if "less than" in label.lower() and len(nums) == 1:
+        return (0.0, nums[0])
+    if "or more" in label.lower():
+        return (nums[0], nums[0] * 2)
+    return (nums[0], nums[1])
+
+
+class Builder:
+    def __init__(self):
+        self.rng = np.random.default_rng(SEED)
+        cells = pd.read_csv(TARGETS / "frs_households_region_composition_tenure_2024-25.csv")
+        cells.columns = ["region", "kids", "tenure", "households"]
+        self.cells = cells[cells["households"] > 0]
+        comp = pd.read_csv(TARGETS / "frs_households_income_detailed_composition_2024-25.csv")
+        comp = comp.groupby(comp.columns[1])["households"].sum()
+        self.comp_with = comp[comp.index.str.contains("with children")]
+        self.comp_without = comp[comp.index.str.contains("without children")]
+        pen = pd.read_csv(TARGETS / "frs_households_pensioners_composition_2024-25.csv")
+        pen.columns = ["pensioners", "kids", "households"]
+        self.p_pensioner = {
+            kids: g.loc[~g["pensioners"].str.contains("No ", case=False), "households"].sum() / g["households"].sum()
+            for kids, g in pen.groupby("kids")
+        }
+        rents = pd.read_csv(TARGETS / "frs_households_rent_region_tenure_2024-25.csv")
+        rents.columns = ["region", "tenure", "households", "rent_week"]
+        self.rent = {(region_name(r.region), r.tenure): r.rent_week for r in rents.itertuples()}
+        sav = pd.read_csv(TARGETS / "frs_households_savings_composition_2024-25.csv")
+        sav.columns = ["band", "kids", "households"]
+        self.savings = {kids: g for kids, g in sav.groupby("kids")}
+        cbf = pd.read_csv(TARGETS / "hmrc_child_benefit_families_by_size_2025_08.csv").iloc[-1]
+        sizes = {1: "Families: One child", 2: "Families: Two children", 3: "Families: Three children",
+                 4: "Families: Four children", 5: "Families: Five to Nine children [note 3]"}
+        counts = np.array([float(cbf[c]) for c in sizes.values()])
+        self.kids_p = counts / counts.sum()
+
+    # --- people -------------------------------------------------------------------------------
+    def pay(self) -> float:
+        r = self.rng
+        if r.random() < A["pay_top_tail_share"]:
+            return float(A["pay_top_tail_min"] * (1 - r.random()) ** (-1 / A["pay_top_tail_alpha"]))
+        return float(np.exp(np.log(A["pay_median"]) + A["pay_sigma"] * r.standard_normal()))
+
+    def working_age_adult(self, age: int, lone_parent=False) -> dict:
+        r = self.rng
+        p_emp = A["share_employee_lone_parent"] if lone_parent else A["share_employee"]
+        u = r.random()
+        a = {"age": age, "employment": 0.0, "selfEmployment": 0.0, "pension": 0.0, "pensionContributions": 0.0, "health": "none", "carer": False}
+        if u < p_emp:
+            a["employment"] = round(self.pay(), 2)
+        elif u < p_emp + A["share_self_employed"]:
+            a["selfEmployment"] = round(float(np.exp(np.log(A["profit_median"]) + A["profit_sigma"] * r.standard_normal())), 2)
+        elif r.random() < A["share_not_working_health"]:
+            a["health"] = "lcwra_protected" if r.random() < A["share_health_protected"] else "lcwra"
+        elif r.random() < A["share_not_working_carer"]:
+            a["carer"] = True
+        return a
+
+    def pensioner(self, age: int) -> dict:
+        r = self.rng
+        state = NEW_STATE_PENSION if r.random() < A["share_pensioners_new_state_pension"] else OLD_STATE_PENSION
+        private = float(np.exp(np.log(A["private_pension_median"]) + A["private_pension_sigma"] * r.standard_normal())) if r.random() < A["share_pensioners_private_pension"] else 0.0
+        return {"age": age, "employment": 0.0, "selfEmployment": 0.0, "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
+
+    def working_age(self, young=False) -> int:
+        return int(self.rng.integers(18, 25)) if young else int(self.rng.integers(22, 66))
+
+    def pension_age(self) -> int:
+        return int(min(100, 66 + self.rng.exponential(9)))
+
+    # --- households ---------------------------------------------------------------------------
+    def children(self) -> list[dict]:
+        r = self.rng
+        n = int(r.choice([1, 2, 3, 4, 5], p=self.kids_p))
+        kids = []
+        for _ in range(n):
+            age = int(r.integers(0, 18))
+            disability = "none"
+            if r.random() < A["share_children_disabled"]:
+                disability = "higher" if r.random() < A["share_disabled_higher"] else "lower"
+            # Born before 6 April 2017 means aged 9 or more during 2026-27 (approximately).
+            kids.append({"age": age, "bornBefore2017": age >= 10, "disability": disability})
+        return sorted(kids, key=lambda k: -k["age"])
+
+    def rent_month(self, region: str, tenure: str) -> float:
+        if tenure not in RENT_GROWTH:
+            return 0.0
+        mean_week = self.rent[(region, tenure)] * RENT_GROWTH[tenure]
+        s = A["rent_sigma"]
+        week = mean_week * np.exp(s * self.rng.standard_normal() - s * s / 2)  # keeps the mean
+        return round(float(week * 52 / 12), 2)
+
+    def savings_amount(self, kids: str) -> float:
+        g = self.savings[kids]
+        row = g.iloc[self.rng.choice(len(g), p=(g["households"] / g["households"].sum()).to_numpy())]
+        lo, hi = band_bounds(row["band"])
+        return round(float(self.rng.uniform(lo, hi)), 2)
+
+    def benefit_units(self, region: str, kids_label: str, tenure: str) -> tuple[str, list[dict]]:
+        """One FRS household as one or two benefit units (the engine works on benefit units)."""
+        r = self.rng
+        has_kids = "with children" in kids_label and "without" not in kids_label
+        comps = self.comp_with if has_kids else self.comp_without
+        comp = str(r.choice(comps.index, p=(comps / comps.sum()).to_numpy()))
+        pensioner_hh = (not has_kids) and r.random() < self.p_pensioner.get(kids_label, 0)
+        kids = self.children() if has_kids else []
+
+        def adult(lone_parent=False, young=False):
+            return self.pensioner(self.pension_age()) if pensioner_hh else self.working_age_adult(self.working_age(young), lone_parent)
+
+        if "one adult" in comp or "one female" in comp or "one male" in comp:
+            units = [{"adults": [adult(lone_parent=has_kids)], "children": kids}]
+        elif "two adults" in comp:
+            first = adult()
+            partner = {**adult(), "age": max(18, first["age"] + int(r.integers(-4, 5)))}
+            units = [{"adults": [first, partner], "children": kids}]
+        else:
+            # Three or more adults: a couple (with any children) plus one more adult, usually a grown-up child.
+            first = adult()
+            partner = {**adult(), "age": max(18, first["age"] + int(r.integers(-4, 5)))}
+            extra = self.working_age_adult(self.working_age(young=True))
+            units = [{"adults": [first, partner], "children": kids}, {"adults": [extra], "children": []}]
+
+        for i, u in enumerate(units):
+            u["region"] = engine_region(region)
+            u["rentMonthly"] = self.rent_month(region, tenure) if i == 0 else 0.0
+            u["savings"] = self.savings_amount(kids_label) if i == 0 else 0.0
+            working = all(a["employment"] + a["selfEmployment"] > 0 for a in u["adults"])
+            under5 = any(k["age"] < 5 for k in u["children"])
+            u["childcareMonthly"] = (
+                round(float(np.exp(np.log(A["childcare_median_month"]) + 0.5 * r.standard_normal())), 2)
+                if under5 and working and r.random() < A["share_under5_with_childcare"] else 0.0
+            )
+            u["claimsUniversalCredit"] = bool(r.random() < A["uc_take_up"])
+            top = max(a["employment"] + a["selfEmployment"] + a["pension"] for a in u["adults"])
+            opt_out = A["cb_opt_out_over_80k"] if top > 80_000 else A["cb_opt_out_60k_80k"] if top > 60_000 else 0
+            u["claimsChildBenefit"] = bool(r.random() >= opt_out)
+        return comp, units
+
+    def build(self) -> list[dict]:
+        total = self.cells["households"].sum()
+        out = []
+        hh_id = 0
+        for cell in self.cells.itertuples():
+            n = max(MIN_PER_CELL, round(N_HOUSEHOLDS * cell.households / total))
+            weight = cell.households / n
+            region = region_name(cell.region)
+            for _ in range(n):
+                comp, units = self.benefit_units(region, cell.kids, cell.tenure)
+                for j, u in enumerate(units):
+                    out.append({
+                        "id": f"{hh_id}-{j}", "household": hh_id, "unit": j, "weight": weight,
+                        "regionDetail": region, "tenure": cell.tenure, "composition": comp, "data": u,
+                    })
+                hh_id += 1
+        return out
+
+
+def main() -> None:
+    BUILD.mkdir(exist_ok=True)
+    units = Builder().build()
+    payload = {
+        "_about": "Seed population for calibration. Made-up households, not real people. See data/build_seed.py and POPULATION.md.",
+        "year": "2026-27",
+        "assumptions": ASSUMPTIONS,
+        "units": units,
+    }
+    (BUILD / "seed.json").write_text(json.dumps(payload), encoding="utf-8")
+    households = len({u["household"] for u in units})
+    weight = sum(u["weight"] for u in units if u["unit"] == 0)
+    print(f"{households:,} households, {len(units):,} benefit units, standing for {weight:,.0f} households")
+
+
+if __name__ == "__main__":
+    main()
