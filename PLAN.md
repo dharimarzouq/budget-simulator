@@ -28,6 +28,22 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
    Labelled "synthetic" everywhere it's used. The doc will state plainly what it gets right (totals by income band, caseloads) and what it can't (fine combinations of characteristics).
 
+   **Detailed plan for step 5 (proposed 27 October 2026, waiting for go):**
+
+   - **5a. Collect target tables.** Each one goes into `data/targets/` with its source recorded like the rules are. All are Open Government Licence:
+     - HMRC personal incomes statistics 2023-24 (released April 2026): people by income band, by income type, and income tax paid
+     - DWP Universal Credit households by family type, work and housing (Stat-Xplore)
+     - HMRC Child Benefit families by number of children, and Child Benefit charge payers
+     - ONS households by region and type, and population by age
+     - Tenure by region
+     - OBR's forecast totals for income tax, NICs and Universal Credit spending in 2026-27
+   - **5b. Seed households.** About 30,000 made-up households spread over family types, ages, regions, tenures and work patterns. Incomes are drawn from distributions fitted to the HMRC percentiles and uprated to 2026-27 with OBR earnings growth. Rents come from published regional averages.
+   - **5c. Calibrate.** Adjust each household's weight (how many real households it stands for) as little as possible, so the totals match every target at once. This is standard "minimum-change reweighting", the same idea official microsimulation uses.
+   - **5d. Check honestly.** Some published tables are held back from calibration and used only as a test, such as the DWP household income distribution by decile. We then run the engine over the population and compare total income tax, NICs and UC with OBR. The results are written up in `POPULATION.md`, covering what it gets right and what it can't.
+   - **5e. Ship it.** A compact data file the page loads, around 1–2 MB.
+
+   Decisions for Ari: build scripts in TypeScript (one language) or Python (better numerical tools); and whether to register for a free Stat-Xplore account (DWP's statistics tool) for the detailed Universal Credit tables, or use the coarser published tables that need no account.
+
 6. **Costing.** Static cost of any change, then a behavioural version using published estimates of how taxable income responds to rates, shown side by side. Checked against HMRC's ready reckoner; large gaps are explained or fixed.
 
 7. **Economy and debt.** OBR's latest forecast as the baseline, OBR multipliers for GDP effects, borrowing and debt over 5 years, and a pass/fail check against both fiscal rules with the margin shown.
