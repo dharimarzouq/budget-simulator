@@ -1,0 +1,307 @@
+// Works out one household's taxes, benefits and net income for a year under a RuleSet.
+// Every line carries its working, in words, so the page can show how each number was reached.
+//
+// Simplifications (also stated in the rules files):
+// - Everything is annual; real income tax and National Insurance work per pay period, Universal
+//   Credit per monthly assessment period. Steady income through the year gives the same answer.
+// - No rounding to whole pounds or pennies along the way, so results can differ from HMRC and
+//   DWP by a few pence.
+import type { Band } from "../rules/schema";
+import type { Adult, Household } from "./household";
+import type { RuleSet } from "./ruleset";
+
+export interface Line {
+  label: string;
+  /** Pounds a year, or a month where the line is a Universal Credit element. */
+  amount: number;
+  working: string;
+}
+
+export interface AdultResult {
+  totalIncome: number;
+  adjustedNetIncome: number;
+  personalAllowance: number;
+  taxableIncome: number;
+  incomeTax: number;
+  employeeNI: number;
+  selfEmployedNI: number;
+  /** Paid by the employer, so not taken from the household's income; needed for costings. */
+  employerNI: number;
+  lines: Line[];
+}
+
+export interface UniversalCreditResult {
+  /** Monthly figures. */
+  elements: Line[];
+  maximum: number;
+  earnings: number;
+  workAllowance: number;
+  taperDeduction: number;
+  unearnedIncome: number;
+  savingsIncome: number;
+  award: number;
+  /** Why there is no award, when there isn't one for a reason other than income. */
+  notEligible?: string;
+}
+
+export interface Result {
+  adults: AdultResult[];
+  childBenefit: number;
+  childBenefitCharge: number;
+  universalCredit: UniversalCreditResult;
+  grossIncome: number;
+  netIncome: number;
+  /** The household's lines: income, taxes and benefits, a year. */
+  lines: Line[];
+}
+
+const gbp = (n: number) => "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = (r: number) => `${+(r * 100).toFixed(2)}%`;
+
+/** Tax on an amount through a schedule of bands. */
+export function bandTax(amount: number, bands: Band[]): { tax: number; working: string } {
+  let tax = 0;
+  const parts: string[] = [];
+  bands.forEach((band, i) => {
+    const top = bands[i + 1]?.threshold ?? Infinity;
+    const slice = Math.min(amount, top) - band.threshold;
+    if (slice <= 0) return;
+    tax += slice * band.rate;
+    parts.push(`${pct(band.rate)} of ${gbp(slice)}`);
+  });
+  return { tax, working: parts.join(" + ") || "nothing taxable" };
+}
+
+function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
+  const it = r.incomeTax;
+  const ni = r.ni;
+  const lines: Line[] = [];
+
+  const totalIncome = a.employment + a.selfEmployment + a.pension;
+  const adjustedNetIncome = Math.max(0, totalIncome - a.pensionContributions);
+  const allowanceLost = Math.min(it.personalAllowance, it.taperRate * Math.max(0, adjustedNetIncome - it.taperThreshold));
+  const personalAllowance = it.personalAllowance - allowanceLost;
+  const taxableIncome = Math.max(0, adjustedNetIncome - personalAllowance);
+
+  const bands = h.region === "scotland" ? it.bands.scotland : h.region === "wales" ? it.bands.wales : it.bands.ruk;
+  const { tax: incomeTax, working: taxWorking } = bandTax(taxableIncome, bands);
+  lines.push({
+    label: "Income tax",
+    amount: incomeTax,
+    working:
+      `Income ${gbp(totalIncome)}` +
+      (a.pensionContributions ? ` less pension contributions ${gbp(a.pensionContributions)}` : "") +
+      ` less personal allowance ${gbp(personalAllowance)}` +
+      (allowanceLost ? ` (cut by ${gbp(allowanceLost)} because income is over ${gbp(it.taperThreshold)})` : "") +
+      ` leaves ${gbp(taxableIncome)} taxable: ${taxWorking}.`,
+  });
+
+  const overPensionAge = a.age >= ni.statePensionAge;
+  let employeeNI = 0;
+  let selfEmployedNI = 0;
+  if (overPensionAge) {
+    if (a.employment || a.selfEmployment) {
+      lines.push({ label: "National Insurance", amount: 0, working: `None: at or over State Pension age (${ni.statePensionAge}).` });
+    }
+  } else {
+    const main = Math.max(0, Math.min(a.employment, ni.upperEarningsLimit) - ni.primaryThreshold);
+    const above = Math.max(0, a.employment - ni.upperEarningsLimit);
+    employeeNI = main * ni.mainRate + above * ni.additionalRate;
+    if (a.employment) {
+      lines.push({
+        label: "Employee National Insurance",
+        amount: employeeNI,
+        working: `${pct(ni.mainRate)} of ${gbp(main)} (pay between ${gbp(ni.primaryThreshold)} and ${gbp(ni.upperEarningsLimit)})` +
+          (above ? ` + ${pct(ni.additionalRate)} of ${gbp(above)} above that` : "") + ". Pension contributions don't reduce it.",
+      });
+    }
+    const mainP = Math.max(0, Math.min(a.selfEmployment, ni.upperProfitsLimit) - ni.lowerProfitsLimit);
+    const aboveP = Math.max(0, a.selfEmployment - ni.upperProfitsLimit);
+    selfEmployedNI = mainP * ni.class4MainRate + aboveP * ni.class4AdditionalRate;
+    if (a.selfEmployment) {
+      lines.push({
+        label: "Self-employed National Insurance (Class 4)",
+        amount: selfEmployedNI,
+        working: `${pct(ni.class4MainRate)} of ${gbp(mainP)} (profits between ${gbp(ni.lowerProfitsLimit)} and ${gbp(ni.upperProfitsLimit)})` +
+          (aboveP ? ` + ${pct(ni.class4AdditionalRate)} of ${gbp(aboveP)} above that` : "") + ".",
+      });
+    }
+  }
+  const employerNI = Math.max(0, a.employment - ni.secondaryThreshold) * ni.secondaryRate;
+
+  return { totalIncome, adjustedNetIncome, personalAllowance, taxableIncome, incomeTax, employeeNI, selfEmployedNI, employerNI, lines };
+}
+
+function childBenefit(h: Household, r: RuleSet): Line {
+  const n = h.children.length;
+  if (!n || h.claimsChildBenefit === false) return { label: "Child Benefit", amount: 0, working: n ? "Not claimed." : "No children." };
+  const cb = r.childBenefit;
+  const weekly = cb.eldestWeekly + (n - 1) * cb.otherWeekly;
+  return {
+    label: "Child Benefit",
+    amount: weekly * 52,
+    working: `${gbp(cb.eldestWeekly)} a week for the eldest` + (n > 1 ? ` + ${n - 1} × ${gbp(cb.otherWeekly)}` : "") + ` = ${gbp(weekly)} a week, × 52 weeks.`,
+  };
+}
+
+function childBenefitCharge(benefit: number, adults: AdultResult[], r: RuleSet): Line {
+  // Charged on whichever partner has the higher adjusted net income.
+  const top = Math.max(...adults.map((a) => a.adjustedNetIncome));
+  const cb = r.childBenefit;
+  const excess = Math.max(0, top - cb.chargeThreshold);
+  // 1% for every whole £200 (with the 2026-27 width of £20,000), up to 100%.
+  const percent = Math.min(100, Math.floor(excess / (cb.chargeTaperWidth / 100)));
+  const amount = (benefit * percent) / 100;
+  const working = !benefit
+    ? "No Child Benefit received."
+    : excess
+      ? `Higher earner's adjusted net income ${gbp(top)} is ${gbp(excess)} over ${gbp(cb.chargeThreshold)}: ${percent}% of Child Benefit (1% per £${cb.chargeTaperWidth / 100}).`
+      : `Higher earner's adjusted net income ${gbp(top)} is not over ${gbp(cb.chargeThreshold)}.`;
+  return { label: "High Income Child Benefit Charge", amount, working };
+}
+
+function universalCredit(h: Household, adults: AdultResult[], r: RuleSet): UniversalCreditResult {
+  const uc = r.uc;
+  const empty = (notEligible: string): UniversalCreditResult => ({
+    elements: [], maximum: 0, earnings: 0, workAllowance: 0, taperDeduction: 0, unearnedIncome: 0, savingsIncome: 0, award: 0, notEligible,
+  });
+  if (h.claimsUniversalCredit === false) return empty("Not claimed.");
+  if (h.adults.every((a) => a.age >= r.ni.statePensionAge)) {
+    return empty("Over State Pension age: Pension Credit would apply instead, which isn't modelled yet.");
+  }
+  if (h.savings > uc.capitalUpperLimit) return empty(`Savings of ${gbp(h.savings)} are over the ${gbp(uc.capitalUpperLimit)} limit.`);
+
+  const elements: Line[] = [];
+  const couple = h.adults.length === 2;
+  const allUnder25 = h.adults.every((a) => a.age < 25);
+  const standard = couple ? (allUnder25 ? uc.coupleBothUnder25 : uc.couple25Plus) : allUnder25 ? uc.singleUnder25 : uc.single25Plus;
+  elements.push({
+    label: "Standard allowance",
+    amount: standard,
+    working: `${couple ? "Couple" : "Single"}, ${allUnder25 ? (couple ? "both under 25" : "under 25") : couple ? "one or both 25 or over" : "25 or over"}.`,
+  });
+
+  const kids = h.children;
+  if (kids.length) {
+    const pre2017 = kids.filter((c) => c.bornBefore2017).length;
+    // Under the two-child limit, children born before 6 April 2017 always count; later ones only up to two in total.
+    const counted = uc.twoChildLimit ? Math.min(kids.length, Math.max(2, pre2017)) : kids.length;
+    const first = pre2017 ? uc.childFirstPre2017 : uc.child;
+    elements.push({
+      label: "Child element",
+      amount: first + (counted - 1) * uc.child,
+      working:
+        `${pre2017 ? `First child born before April 2017: ${gbp(uc.childFirstPre2017)}` : `${gbp(uc.child)} for the first child`}` +
+        (counted > 1 ? ` + ${counted - 1} × ${gbp(uc.child)}` : "") +
+        (counted < kids.length ? `. ${kids.length - counted} child(ren) not counted under the two-child limit.` : "."),
+    });
+    const lower = kids.filter((c) => c.disability === "lower").length;
+    const higher = kids.filter((c) => c.disability === "higher").length;
+    if (lower || higher) {
+      elements.push({
+        label: "Disabled child addition",
+        amount: lower * uc.disabledChildLower + higher * uc.disabledChildHigher,
+        working: [lower && `${lower} × ${gbp(uc.disabledChildLower)} (lower)`, higher && `${higher} × ${gbp(uc.disabledChildHigher)} (higher)`].filter(Boolean).join(" + ") + ".",
+      });
+    }
+  }
+
+  // One health element per household, even if both partners qualify.
+  const health = h.adults.some((a) => a.health === "lcwra_protected") ? "lcwra_protected" : h.adults.some((a) => a.health === "lcwra") ? "lcwra" : null;
+  if (health) {
+    elements.push({
+      label: "Health element (LCWRA)",
+      amount: health === "lcwra_protected" ? uc.lcwraProtected : uc.lcwra,
+      working: health === "lcwra_protected" ? "Protected rate: claimed before April 2026, severe conditions, or terminally ill." : "Rate for new claims from April 2026.",
+    });
+  }
+  // A carer element for each carer, but not for someone who also gets the health element.
+  const carers = h.adults.filter((a) => a.carer && a.health === "none").length;
+  if (carers) elements.push({ label: "Carer element", amount: carers * uc.carer, working: `${carers} × ${gbp(uc.carer)}.` });
+
+  if (h.rentMonthly > 0) {
+    elements.push({ label: "Housing element", amount: h.rentMonthly, working: "Rent as entered. Local Housing Allowance caps aren't applied yet." });
+  }
+
+  const allWorking = h.adults.every((a) => a.employment + a.selfEmployment > 0);
+  if (kids.length && h.childcareMonthly > 0 && allWorking) {
+    const cap = kids.length > 1 ? uc.childcareMaxTwoPlus : uc.childcareMaxOne;
+    const share = h.childcareMonthly * uc.childcareShare;
+    elements.push({
+      label: "Childcare element",
+      amount: Math.min(share, cap),
+      working: `${pct(uc.childcareShare)} of ${gbp(h.childcareMonthly)} = ${gbp(share)}` + (share > cap ? `, capped at ${gbp(cap)}.` : "."),
+    });
+  }
+
+  const maximum = elements.reduce((s, e) => s + e.amount, 0);
+
+  // Earnings count after income tax, National Insurance and pension contributions. Where someone also
+  // has pension income, income tax is split between earnings and pension in proportion (a simplification).
+  const earnings = h.adults.reduce((sum, a, i) => {
+    const res = adults[i]!;
+    const earned = a.employment + a.selfEmployment - a.pensionContributions;
+    const taxShare = res.adjustedNetIncome > 0 ? Math.max(0, earned) / res.adjustedNetIncome : 0;
+    return sum + (earned - res.incomeTax * taxShare - res.employeeNI - res.selfEmployedNI) / 12;
+  }, 0);
+  // Pension income counts in full, before tax (DWP Advice for Decision Making H5004).
+  const unearnedIncome = h.adults.reduce((s, a) => s + a.pension, 0) / 12;
+  const savingsIncome = h.savings > uc.capitalDisregard ? Math.ceil((h.savings - uc.capitalDisregard) / 250) * uc.tariffPer250 : 0;
+
+  const getsWorkAllowance = kids.length > 0 || health !== null;
+  const workAllowance = getsWorkAllowance ? (h.rentMonthly > 0 ? uc.workAllowanceLower : uc.workAllowanceHigher) : 0;
+  const taperDeduction = uc.taperRate * Math.max(0, earnings - workAllowance);
+  let award = Math.max(0, maximum - taperDeduction - unearnedIncome - savingsIncome);
+  if (award < 0.01) award = 0;
+
+  return { elements, maximum, earnings, workAllowance, taperDeduction, unearnedIncome, savingsIncome, award };
+}
+
+export function calculate(h: Household, r: RuleSet): Result {
+  const adults = h.adults.map((a) => adultTax(a, h, r));
+  const cb = childBenefit(h, r);
+  const charge = childBenefitCharge(cb.amount, adults, r);
+  const uc = universalCredit(h, adults, r);
+  const ucYear = uc.award * 12;
+
+  const grossIncome = h.adults.reduce((s, a) => s + a.employment + a.selfEmployment + a.pension, 0);
+  const sum = (f: (a: AdultResult) => number) => adults.reduce((s, a) => s + f(a), 0);
+  const incomeTax = sum((a) => a.incomeTax);
+  const ni = sum((a) => a.employeeNI + a.selfEmployedNI);
+  const pensionContributions = h.adults.reduce((s, a) => s + a.pensionContributions, 0);
+
+  const netIncome = grossIncome + cb.amount + ucYear - incomeTax - ni - charge.amount - pensionContributions;
+
+  const lines: Line[] = [
+    { label: "Gross income", amount: grossIncome, working: "Earnings, self-employment profits and pensions, before tax." },
+    { label: "Income tax", amount: -incomeTax, working: "See each adult." },
+    { label: "National Insurance", amount: -ni, working: "See each adult." },
+  ];
+  if (pensionContributions) lines.push({ label: "Pension contributions", amount: -pensionContributions, working: "Paid into a pension, so not available to spend now." });
+  if (cb.amount) lines.push(cb);
+  if (charge.amount) lines.push({ ...charge, amount: -charge.amount });
+  lines.push({
+    label: "Universal Credit",
+    amount: ucYear,
+    working: uc.notEligible ??
+      `Maximum ${gbp(uc.maximum)} a month, less ${pct(r.uc.taperRate)} of earnings over the work allowance (${gbp(uc.taperDeduction)})` +
+      (uc.unearnedIncome ? `, less pension income ${gbp(uc.unearnedIncome)}` : "") +
+      (uc.savingsIncome ? `, less assumed income from savings ${gbp(uc.savingsIncome)}` : "") +
+      ` = ${gbp(uc.award)} a month, × 12.`,
+  });
+
+  return { adults, childBenefit: cb.amount, childBenefitCharge: charge.amount, universalCredit: uc, grossIncome, netIncome, lines };
+}
+
+/**
+ * Share of an extra amount of pay that the household loses to tax and withdrawn benefits.
+ * Measured over a step (default £1,000) because some rules move in whole steps, such as
+ * the Child Benefit charge per £200. Any multiple of £200 gives a steady figure from any
+ * starting point; smaller steps would flicker between 0 and a spike.
+ */
+export function marginalRate(h: Household, r: RuleSet, adultIndex = 0, step = 1000, kind: "employment" | "selfEmployment" = "employment"): number {
+  const base = calculate(h, r).netIncome;
+  const adults = h.adults.map((a, i) => (i === adultIndex ? { ...a, [kind]: a[kind] + step } : a)) as Household["adults"];
+  const more = calculate({ ...h, adults }, r).netIncome;
+  return 1 - (more - base) / step;
+}

@@ -6,6 +6,7 @@ export type Unit =
   | "gbp_per_year"
   | "gbp_per_month"
   | "gbp_per_week"
+  | "years"
   | "rate" // a fraction, 0.2 means 20%
   | "flag"; // true or false
 

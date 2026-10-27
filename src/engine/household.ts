@@ -1,0 +1,47 @@
+// What the engine needs to know about a household. Money is in pounds a year unless the
+// name says monthly.
+
+export type Region = "england" | "wales" | "scotland" | "northern_ireland";
+
+export interface Adult {
+  age: number;
+  employment: number; // gross pay
+  selfEmployment: number; // taxable profits
+  pension: number; // State Pension plus private and workplace pensions being paid out
+  /** Employee pension contributions under a net pay arrangement: no income tax, but still National Insurance. */
+  pensionContributions: number;
+  /** Universal Credit health element: none, the new-claim rate, or the protected rate. */
+  health: "none" | "lcwra" | "lcwra_protected";
+  /** Cares for someone at least 35 hours a week. */
+  carer: boolean;
+}
+
+export interface Child {
+  age: number;
+  bornBefore2017: boolean; // born before 6 April 2017
+  disability: "none" | "lower" | "higher";
+}
+
+export interface Household {
+  region: Region;
+  adults: [Adult] | [Adult, Adult];
+  children: Child[];
+  rentMonthly: number;
+  childcareMonthly: number;
+  savings: number;
+  /** Whether the household claims the benefits it's entitled to. Defaults to yes. */
+  claimsUniversalCredit?: boolean;
+  claimsChildBenefit?: boolean;
+}
+
+export function adult(overrides: Partial<Adult> = {}): Adult {
+  return { age: 35, employment: 0, selfEmployment: 0, pension: 0, pensionContributions: 0, health: "none", carer: false, ...overrides };
+}
+
+export function child(overrides: Partial<Child> = {}): Child {
+  return { age: 5, bornBefore2017: false, disability: "none", ...overrides };
+}
+
+export function household(overrides: Partial<Household> = {}): Household {
+  return { region: "england", adults: [adult()], children: [], rentMonthly: 0, childcareMonthly: 0, savings: 0, ...overrides };
+}

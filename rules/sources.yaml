@@ -39,6 +39,20 @@ govuk-hicbc:
   licence: Open Government Licence v3.0
   accessed: 2026-10-27
 
+govuk-state-pension-age:
+  title: Check your State Pension age
+  publisher: Department for Work and Pensions (GOV.UK)
+  url: https://www.gov.uk/state-pension-age
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-27
+
+dwp-adm-h5:
+  title: "Advice for Decision Making, Chapter H5: Other unearned income"
+  publisher: Department for Work and Pensions
+  url: https://assets.publishing.service.gov.uk/media/69e8dd8e08ecdb5c6f34ae1e/admh5.pdf
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-27
+
 ukpga-2026-13:
   title: Universal Credit (Removal of Two Child Limit) Act 2026
   publisher: legislation.gov.uk

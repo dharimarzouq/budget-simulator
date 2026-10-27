@@ -12,7 +12,7 @@ for (const [path, file] of Object.entries(files)) {
   rules[`${year}/${name}`] = file;
 }
 
-const UNITS: Unit[] = ["gbp", "gbp_per_year", "gbp_per_month", "gbp_per_week", "rate", "flag"];
+const UNITS: Unit[] = ["gbp", "gbp_per_year", "gbp_per_month", "gbp_per_week", "years", "rate", "flag"];
 
 /** Every problem found in the rules files; empty when all is well. */
 export function checkRules(all = rules, known = sources): string[] {

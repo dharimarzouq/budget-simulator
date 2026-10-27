@@ -6,6 +6,14 @@ limits:
   - Only the standard category A (employee) and the standard employer rate. Reduced employer rates (under 21s, apprentices, veterans, freeports) come later.
   - Ignores people over State Pension age, who pay no employee or Class 4 contributions; the engine handles that by age.
 parameters:
+  state_pension_age:
+    label: State Pension age (no employee or self-employed National Insurance from here)
+    unit: years
+    value: 66
+    source: govuk-state-pension-age
+    legal: Pensions Act 1995 Schedule 4, as amended by the Pensions Act 2014 s26
+    note: Rising from 66 to 67 for people born on or after 6 April 1960, a month at a time, between 2026 and 2028. Treated as 66 for the whole of 2026-27, which is slightly early for some people.
+
   class1_primary_threshold:
     label: Employee National Insurance starts at (primary threshold)
     unit: gbp_per_year

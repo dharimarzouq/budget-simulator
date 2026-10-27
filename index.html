@@ -3,28 +3,62 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Budget simulator: rules</title>
+    <title>Budget simulator</title>
     <style>
-      body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 960px; padding: 16px; color: #1a1a1a; background: #fff; }
-      h2 { margin-top: 2em; }
-      table { border-collapse: collapse; width: 100%; }
-      td, th { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid #ddd; }
-      td.value { white-space: nowrap; font-variant-numeric: tabular-nums; }
-      .small { color: #555; font-size: 13px; }
-      .limits { background: #f6f4ee; padding: 8px 12px 8px 28px; }
-      @media (prefers-color-scheme: dark) {
-        body { color: #eee; background: #161616; }
-        td, th { border-color: #333; }
-        .small { color: #aaa; }
-        .limits { background: #24221d; }
-        a { color: #8ab4f8; }
+      :root {
+        --surface: #fcfcfb; --surface-2: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #dddcd6;
+        --grid: #ebeae5; --series: #2a78d6; --link: #1c5cab;
       }
+      @media (prefers-color-scheme: dark) {
+        :root { --surface: #1a1a19; --surface-2: #252523; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3a3a37;
+          --grid: #2c2c2a; --series: #3987e5; --link: #86b6ef; }
+      }
+      * { box-sizing: border-box; }
+      body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 1040px; padding: 16px; color: var(--ink); background: var(--surface); }
+      a { color: var(--link); }
+      h1 { margin-bottom: 0; }
+      h2 { margin-top: 2em; }
+      .small { color: var(--ink-2); font-size: 13px; }
+      table { border-collapse: collapse; width: 100%; }
+      td, th { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--rule); }
+      td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      td.value { white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .limits { background: var(--surface-2); padding: 8px 12px 8px 28px; }
+      .calc { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 24px; align-items: start; }
+      @media (max-width: 760px) { .calc { grid-template-columns: minmax(0, 1fr); } }
+      fieldset { border: 1px solid var(--rule); border-radius: 6px; margin: 0 0 12px; padding: 8px 12px 12px; }
+      legend { font-weight: 600; padding: 0 4px; }
+      label { display: grid; grid-template-columns: 1fr 120px; gap: 8px; align-items: center; margin: 6px 0; font-size: 14px; }
+      label.check { grid-template-columns: auto 1fr; justify-content: start; }
+      input, select { font: inherit; width: 100%; padding: 3px 6px; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; }
+      input[type="checkbox"] { width: auto; }
+      .headline { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 12px; }
+      .headline div { font-size: 13px; color: var(--ink-2); }
+      .headline strong { display: block; font-size: 26px; color: var(--ink); font-variant-numeric: tabular-nums; }
+      tr.total td { font-weight: 600; border-top: 2px solid var(--ink-2); }
+      .working { color: var(--ink-2); font-size: 13px; }
+      .chart { position: relative; }
+      .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+      .chart text { fill: var(--ink-2); font-size: 12px; }
+      .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 4px;
+        padding: 4px 8px; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 0.12); display: none; }
+      details { margin-top: 8px; }
     </style>
   </head>
   <body>
-    <h1>Rules, 2026-27</h1>
-    <p class="small">Every rate and threshold the simulator uses, with where it comes from. Work in progress: nothing is calculated yet.</p>
-    <div id="app"></div>
+    <h1>Budget simulator</h1>
+    <p class="small">Work in progress. UK rules for 2026-27. Not yet checked against an independent model; that's the next step.</p>
+
+    <h2>Household calculator</h2>
+    <div class="calc">
+      <form id="form"></form>
+      <div id="result"></div>
+    </div>
+
+    <h2>Rules, 2026-27</h2>
+    <p class="small">Every rate and threshold the calculator uses, with where it comes from.</p>
+    <div id="rules"></div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
