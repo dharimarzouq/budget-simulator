@@ -1,75 +1,79 @@
-"""Pull Universal Credit tables from DWP Stat-Xplore into data/targets/.
+"""Pull tables from DWP Stat-Xplore into data/targets/: Universal Credit households (administrative
+data) and Family Resources Survey households (the official household survey, weighted to the UK).
 
 Usage: .venv/Scripts/python.exe -I data/pull_statxplore.py
 Needs a Stat-Xplore API key (see data/statxplore.py). Data is Open Government Licence.
 """
 
-import itertools
 import sys
 from pathlib import Path
-
-import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import statxplore as sx  # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "targets"
-MONTH = "202605"  # May 2026, the latest month published at the time of writing
 
-DB = "str:database:UC_Households"
-COUNT = "str:count:UC_Households:V_F_UC_HOUSEHOLDS"
-PAYMENT = "str:statfn:UC_Households:V_F_UC_HOUSEHOLDS:HNTOTAL_PAYMENT_AMOUNT:MEAN"  # only the mean is offered
-F = "str:field:UC_Households:V_F_UC_HOUSEHOLDS:"
-MONTH_FIELD = "str:field:UC_Households:F_UC_HH_DATE:DATE_NAME"
-MONTH_VALUE = f"str:value:UC_Households:F_UC_HH_DATE:DATE_NAME:C_UC_HH_DATE:{MONTH}"
-REGION_VALUESET = "str:valueset:UC_Households:V_F_UC_HOUSEHOLDS:COA_CODE:V_C_MASTERGEOG21_REGION_TO_COUNTRY"
+# Universal Credit households
+UC_MONTH = "202605"  # May 2026, the latest month published at the time of writing
+UC = "str:database:UC_Households"
+UC_F = "str:field:UC_Households:V_F_UC_HOUSEHOLDS:"
+UC_MEASURES = {
+    "households": "str:count:UC_Households:V_F_UC_HOUSEHOLDS",
+    "mean_award_gbp_month": "str:statfn:UC_Households:V_F_UC_HOUSEHOLDS:HNTOTAL_PAYMENT_AMOUNT:MEAN",  # only the mean is offered
+}
+UC_MONTH_FIELD = "str:field:UC_Households:F_UC_HH_DATE:DATE_NAME"
 
-
-def tidy(result: dict) -> pd.DataFrame:
-    """Stat-Xplore's cube response as one row per cell."""
-    fields = result["fields"]
-    labels = [f["label"] for f in fields]
-    axes = [[i["labels"][0] for i in f["items"]] for f in fields]
-    rows = []
-    for measure_uri, cube in result["cubes"].items():
-        name = "households" if measure_uri == COUNT else "mean_award_gbp_month"
-        values = cube["values"]
-        for idx in itertools.product(*[range(len(a)) for a in axes]):
-            v = values
-            for i in idx:
-                v = v[i]
-            rows.append({**{labels[k]: axes[k][i] for k, i in enumerate(idx)}, "measure": name, "value": v})
-    df = pd.DataFrame(rows)
-    return df.pivot_table(index=labels, columns="measure", values="value", aggfunc="first").reset_index()
+# Family Resources Survey households
+FRS = "str:database:FRSHH"
+FRS_F = "str:field:FRSHH:V_F_FRSHH:"
+FRS_COUNT = "str:count:FRSHH:V_F_FRSHH"
 
 
-def pull(fields: list[str], recodes: dict | None = None) -> pd.DataFrame:
-    recodes = {MONTH_FIELD: {"map": [[MONTH_VALUE]], "total": False}, **(recodes or {})}
-    result = sx.table(DB, [COUNT, PAYMENT], [[MONTH_FIELD], *[[f] for f in fields]], recodes)
-    df = tidy(result).drop(columns=["Month"])
+def uc(fields: list[str], recodes: dict | None = None):
+    month = f"str:value:UC_Households:F_UC_HH_DATE:DATE_NAME:C_UC_HH_DATE:{UC_MONTH}"
+    df = sx.cube(UC, UC_MEASURES, [UC_MONTH_FIELD, *fields], {**sx.only(UC_MONTH_FIELD, month), **(recodes or {})})
     df["mean_award_gbp_month"] = df["mean_award_gbp_month"].round(2)
-    return df
+    return df.drop(columns=["Month"])
+
+
+def frs(year_uri: str, fields: list[str], measures: dict[str, str] | None = None):
+    df = sx.cube(FRS, {"households": FRS_COUNT, **(measures or {})}, [FRS_F + "YEAR", *fields], sx.only(FRS_F + "YEAR", year_uri))
+    return df.drop(columns=["Financial Year"])
 
 
 def main() -> None:
     OUT.mkdir(exist_ok=True)
-    regions = [v["id"] for v in sx.call(f"schema/{REGION_VALUESET}")["children"]]
-    region_recode = {F + "COA_CODE": {"map": [[r] for r in regions], "total": True}}
-    # The tenure field defaults to "has a housing entitlement, yes/no"; this valueset gives the tenure itself.
-    tenures = [v["id"] for v in sx.call("schema/str:valueset:UC_Households:V_F_UC_HOUSEHOLDS:TENURE:C_UC_HOUSING_TENURE")["children"]]
-    tenure_recode = {F + "TENURE": {"map": [[t] for t in tenures], "total": False}}
 
+    regions = [v["id"] for v in sx.values("str:valueset:UC_Households:V_F_UC_HOUSEHOLDS:COA_CODE:V_C_MASTERGEOG21_REGION_TO_COUNTRY")]
+    # The tenure field defaults to "has a housing entitlement, yes/no"; this valueset gives the tenure itself.
+    tenures = [v["id"] for v in sx.values("str:valueset:UC_Households:V_F_UC_HOUSEHOLDS:TENURE:C_UC_HOUSING_TENURE")]
     tables = {
-        "uc_households_region_family_2026_05.csv": pull([F + "COA_CODE", F + "hnfamily_type"], region_recode),
-        "uc_households_family_children_2026_05.csv": pull([F + "hnfamily_type", F + "NUMBER_OF_CHILDREN"]),
-        "uc_households_family_tenure_2026_05.csv": pull([F + "hnfamily_type", F + "TENURE"], tenure_recode),
-        "uc_households_family_health_carer_2026_05.csv": pull([F + "hnfamily_type", F + "HCLCW_ENTITLEMENT", F + "HCCARER_ENTITLEMENT"]),
-        "uc_households_disabled_child_2026_05.csv": pull([F + "hnfamily_type", F + "HCDISABLED_CHILD_ENTITLEMENT"]),
+        "uc_households_region_family_2026_05.csv": uc([UC_F + "COA_CODE", UC_F + "hnfamily_type"],
+                                                      {UC_F + "COA_CODE": {"map": [[r] for r in regions], "total": True}}),
+        "uc_households_family_children_2026_05.csv": uc([UC_F + "hnfamily_type", UC_F + "NUMBER_OF_CHILDREN"]),
+        "uc_households_family_tenure_2026_05.csv": uc([UC_F + "hnfamily_type", UC_F + "TENURE"], sx.only(UC_F + "TENURE", *tenures)),
+        "uc_households_family_health_carer_2026_05.csv": uc([UC_F + "hnfamily_type", UC_F + "HCLCW_ENTITLEMENT", UC_F + "HCCARER_ENTITLEMENT"]),
+        "uc_households_disabled_child_2026_05.csv": uc([UC_F + "hnfamily_type", UC_F + "HCDISABLED_CHILD_ENTITLEMENT"]),
     }
+
+    years = sx.field_items(FRS, FRS_COUNT, FRS_F + "YEAR")
+    year_label, year_uri = years[-1]
+    tag = year_label.replace("/", "_").replace(" ", "")
+    print(f"FRS latest year: {year_label}")
+    rent = {"mean_rent_mortgage_gbp_week": "str:statfn:FRSHH:V_F_FRSHH:HH_MORTRENT_INYR:MEAN"}
+    tables |= {
+        f"frs_households_region_composition_tenure_{tag}.csv": frs(year_uri, [FRS_F + "REGION", FRS_F + "COMPOS_KID", FRS_F + "TENURE"]),
+        f"frs_households_income_composition_{tag}.csv": frs(year_uri, [FRS_F + "INC_BAND200_INYR", FRS_F + "COMPOS_KID"]),
+        f"frs_households_income_detailed_composition_{tag}.csv": frs(year_uri, [FRS_F + "INC_BAND200_INYR", FRS_F + "COMPOS"]),
+        f"frs_households_pensioners_composition_{tag}.csv": frs(year_uri, [FRS_F + "PEN", FRS_F + "COMPOS_KID"]),
+        f"frs_households_rent_region_tenure_{tag}.csv": frs(year_uri, [FRS_F + "REGION", FRS_F + "TENURE"], rent),
+        f"frs_households_savings_composition_{tag}.csv": frs(year_uri, [FRS_F + "savings_band_inyr_new", FRS_F + "COMPOS_KID"]),
+        f"frs_households_benefits_{tag}.csv": frs(year_uri, [FRS_F + "REC_CHB", FRS_F + "REC_UC", FRS_F + "REC_RP"]),
+    }
+
     for name, df in tables.items():
         df.to_csv(OUT / name, index=False)
-        total = df["households"].sum() if "Total" not in df.iloc[:, 0].astype(str).values else None
-        print(f"{name}: {len(df)} rows" + (f", {total:,.0f} households" if total else ""))
+        print(f"{name}: {len(df)} rows, {df['households'].sum():,.0f} households (sum of cells)")
 
 
 if __name__ == "__main__":

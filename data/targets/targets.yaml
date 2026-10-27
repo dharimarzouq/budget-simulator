@@ -14,6 +14,104 @@ hmrc_income_by_region_band_2023_24.csv:
     - Figures are for 2023-24 and need uprating to 2026-27 (OBR earnings and pensions growth) before use.
     - Survey-based (the Survey of Personal Incomes, a sample of tax records), so small cells carry sampling error.
 
+# Family Resources Survey households, 2024-25, pulled by data/pull_statxplore.py. All share these notes:
+#   - The official household survey (about 16,000 UK households a year), weighted by DWP to UK population
+#     totals: 28.97 million households. Survey answers, so benefit receipt and top incomes are under-reported;
+#     use for the shape of the population (household types, tenure, income spread), not for benefit totals.
+#   - Incomes are weekly, gross, in 2024-25 prices; they need uprating to 2026-27.
+#   - "households" are weighted counts. Stat-Xplore rounds and perturbs small cells.
+frs_households_region_composition_tenure_2024-25.csv:
+  source: dwp-statxplore-frs
+  table: Households by region, with or without children, and tenure
+  year: 2024-25
+  units: households
+  use: calibration
+frs_households_income_composition_2024-25.csv:
+  source: dwp-statxplore-frs
+  table: Households by gross weekly income band (£200 bands) and with or without children
+  year: 2024-25
+  units: households
+  use: calibration
+frs_households_income_detailed_composition_2024-25.csv:
+  source: dwp-statxplore-frs
+  table: Households by gross weekly income band and household composition (adults, children)
+  year: 2024-25
+  units: households
+  use: calibration
+frs_households_pensioners_composition_2024-25.csv:
+  source: dwp-statxplore-frs
+  table: Households by number of adults over State Pension age and with or without children
+  year: 2024-25
+  units: households
+  use: calibration
+frs_households_rent_region_tenure_2024-25.csv:
+  source: dwp-statxplore-frs
+  table: Households by region and tenure, with mean weekly rent or mortgage payment
+  year: 2024-25
+  units: households; £ a week (mean; mortgage payments for owners with a mortgage)
+  use: seed (rent levels by region and tenure)
+frs_households_savings_composition_2024-25.csv:
+  source: dwp-statxplore-frs
+  table: Households by savings band and with or without children
+  year: 2024-25
+  units: households
+  use: seed and check
+frs_households_benefits_2024-25.csv:
+  source: dwp-statxplore-frs
+  table: Households by receipt of Child Benefit, Universal Credit and State Pension
+  year: 2024-25
+  units: households
+  use: check only (survey under-reports benefit receipt; administrative tables are the targets)
+
+# Child Benefit, August 2025, built by data/build_targets.py.
+hmrc_child_benefit_families_by_size_2025_08.csv:
+  source: hmrc-child-benefit-2025
+  table: "Table 2: families in receipt of Child Benefit payments, by number of children, 2011 to 2025"
+  year: August 2025
+  units: families; children
+  use: calibration (August 2025 row)
+  notes:
+    - Families being paid only. Families who opted out because of the High Income Child Benefit Charge are in the opted-out table.
+hmrc_child_benefit_children_by_age_region_2025_08.csv:
+  source: hmrc-child-benefit-2025
+  table: "Table 4: children in paid families, by single year of age and region"
+  year: August 2025
+  units: children
+  use: calibration
+hmrc_child_benefit_opted_out_children_by_age_region_2025_08.csv:
+  source: hmrc-child-benefit-2025
+  table: "Table 10: children in families who opted out of payment, by age and region"
+  year: August 2025
+  units: children
+  use: calibration (opting out is mostly higher earners avoiding the charge)
+hmrc_hicbc_liability_by_year.csv:
+  source: hmrc-child-benefit-2025
+  table: "Table 16: Self Assessment taxpayers with a High Income Child Benefit Charge liability, and revenue"
+  year: 2012-13 to 2024-25
+  units: people; £
+  use: check
+  notes:
+    - The 2024-25 figure is HMRC's provisional estimate (310,000 people, £360m), lower after the threshold rose to £60,000.
+
+# OBR forecasts, March 2026, built by data/build_targets.py.
+obr_income_tax_nics_2026_03.csv:
+  source: obr-efo-2026-03
+  table: "3.4: Income tax and NICs forecast, detailed breakdown"
+  year: 2024-25 outturn, 2025-26 to 2030-31 forecast
+  units: £ billion
+  use: check (2026-27 totals for the engine run over the population)
+  notes:
+    - 2026-27 income tax £359.6bn and NICs £211.6bn. These include things we don't model yet (savings and dividend tax, company-paid tax), so our totals should come in somewhat lower, by an amount we'll explain.
+obr_welfare_2026_03.csv:
+  source: obr-efo-2026-03
+  table: "4.9: Post-measures breakdown of welfare spending"
+  year: 2024-25 outturn, 2025-26 to 2030-31 forecast
+  units: £ billion
+  use: check
+  notes:
+    - Universal Credit 2026-27 is split in two (£71.7bn inside the welfare cap, £15.9bn outside); together £87.6bn, matching the Stat-Xplore tables.
+    - Child Benefit 2026-27 £13.7bn.
+
 # Universal Credit households, May 2026, pulled by data/pull_statxplore.py. All five share these notes:
 #   - Great Britain only. Northern Ireland runs its own Universal Credit and isn't in Stat-Xplore.
 #   - Administrative counts, not a survey. Stat-Xplore adds small random adjustments to protect

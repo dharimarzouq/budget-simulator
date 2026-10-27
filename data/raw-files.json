@@ -2,5 +2,21 @@
  "hmrc_spi_2324_tables_3_1_to_3_11.ods": {
   "url": "https://assets.publishing.service.gov.uk/media/69f1f12d2fae53a03709682f/Collated_Tables_3_1_to_3_11_2324.ods",
   "sha256": "ad063b06b2bdeef8600dbbb09d48153337a4966f8c7eea50df7a2e0304ebd73e"
+ },
+ "hmrc_child_benefit_aug_2025_main_tables.ods": {
+  "url": "https://assets.publishing.service.gov.uk/media/6a8d696901bbff0bf8f97903/Child_Benefit_August_2025_Main_Tables.ods",
+  "sha256": "c610f9509901f21efc28b76d24fae01c43d281b6867a14f28b6847d0e16cc69d"
+ },
+ "obr_efo_2026_03_receipts.xlsx": {
+  "url": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-receipts/",
+  "sha256": "f65b6cb7f96931d4abd85940794eb60f6f65afca8bbf16c74a4548bf92766a28"
+ },
+ "obr_efo_2026_03_expenditure.xlsx": {
+  "url": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-expenditure/",
+  "sha256": "700bfd700c872794e5fe8cf164086cd38a63850db26427b9d4b2e363d177d9a1"
+ },
+ "obr_efo_2026_03_economy.xlsx": {
+  "url": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-economy/",
+  "sha256": "fde1de4bc5424dcf16c7b5c42eb75a35198e347f54db47690e95ede7541db510"
  }
 }

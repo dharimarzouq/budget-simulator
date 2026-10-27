@@ -82,6 +82,29 @@ dwp-statxplore-uc-households:
   licence: Open Government Licence v3.0
   accessed: 2026-10-27
 
+dwp-statxplore-frs:
+  title: "Stat-Xplore: Family Resources Survey, household dataset"
+  publisher: Department for Work and Pensions
+  url: https://stat-xplore.dwp.gov.uk/
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-27
+
+hmrc-child-benefit-2025:
+  title: "Child Benefit statistics: annual release, data at August 2025, main tables"
+  publisher: HM Revenue & Customs
+  url: https://www.gov.uk/government/statistics/child-benefit-statistics-with-small-area-statistics-2025
+  licence: Open Government Licence v3.0
+  published: 2026-04-23
+  accessed: 2026-10-27
+
+obr-efo-2026-03:
+  title: "Economic and fiscal outlook, March 2026: detailed forecast tables"
+  publisher: Office for Budget Responsibility
+  url: https://obr.uk/efo/economic-and-fiscal-outlook-march-2026/
+  licence: Open Government Licence v3.0
+  published: 2026-03-03
+  accessed: 2026-10-27
+
 ukpga-2026-13:
   title: Universal Credit (Removal of Two Child Limit) Act 2026
   publisher: legislation.gov.uk

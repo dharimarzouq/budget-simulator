@@ -5,10 +5,14 @@ The API key is read from the STATXPLORE_API_KEY environment variable, or from da
 """
 
 import gzip
+import itertools
 import json
 import os
+import urllib.error
 import urllib.request
 from pathlib import Path
+
+import pandas as pd
 
 BASE = "https://stat-xplore.dwp.gov.uk/webapi/rest/v1"
 KEY_FILE = Path(__file__).resolve().parent / "statxplore.key"
@@ -38,5 +42,34 @@ def call(path: str, body: dict | None = None) -> dict:
         raise SystemExit(f"Stat-Xplore {e.code} on {path}: {body.decode(errors='replace')[:500]}") from None
 
 
-def table(database: str, measures: list[str], dimensions: list[list[str]], recodes: dict | None = None) -> dict:
-    return call("table", {"database": database, "measures": measures, "dimensions": dimensions, "recodes": recodes or {}})
+def values(valueset: str) -> list[dict]:
+    """The values in a valueset. Note the schema endpoint lists at most 100; use field_items for longer ones."""
+    return call(f"schema/{valueset}")["children"]
+
+
+def field_items(database: str, count: str, field: str) -> list[tuple[str, str]]:
+    """(label, uri) for every value of a field, found by asking for a one-way table (no 100-item limit)."""
+    r = call("table", {"database": database, "measures": [count], "dimensions": [[field]]})
+    return [(i["labels"][0], i["uris"][0]) for i in r["fields"][0]["items"]]
+
+
+def cube(database: str, measures: dict[str, str], fields: list[str], recodes: dict | None = None) -> pd.DataFrame:
+    """A cross-table as one row per cell. measures maps our column name to the Stat-Xplore measure URI."""
+    r = call("table", {"database": database, "measures": list(measures.values()), "dimensions": [[f] for f in fields], "recodes": recodes or {}})
+    labels = [f["label"] for f in r["fields"]]
+    axes = [[i["labels"][0] for i in f["items"]] for f in r["fields"]]
+    by_uri = {uri: name for name, uri in measures.items()}
+    rows: dict[tuple, dict] = {}
+    for uri, c in r["cubes"].items():
+        for idx in itertools.product(*[range(len(a)) for a in axes]):
+            v = c["values"]
+            for i in idx:
+                v = v[i]
+            key = tuple(axes[k][i] for k, i in enumerate(idx))
+            rows.setdefault(key, dict(zip(labels, key)))[by_uri[uri]] = v
+    return pd.DataFrame(list(rows.values()))
+
+
+def only(field: str, *value_uris: str) -> dict:
+    """A recode that keeps just these values of a field, with no total."""
+    return {field: {"map": [[v] for v in value_uris], "total": False}}

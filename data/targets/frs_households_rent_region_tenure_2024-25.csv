@@ -1,0 +1,49 @@
+Region of the Household in the United Kingdom,Tenure type of the Household,households,mean_rent_mortgage_gbp_week
+North East (E12000001),Social rented,269816,105.95237010080218
+North East (E12000001),Private rented,160245,150.7218871309407
+North East (E12000001),Owned outright,441475,0.0
+North East (E12000001),Buying with a mortgage,326175,173.39539366431683
+North West (E12000002),Social rented,536517,114.69483952361136
+North West (E12000002),Private rented,538751,165.58719042713355
+North West (E12000002),Owned outright,1294218,0.0
+North West (E12000002),Buying with a mortgage,866074,185.00631364675743
+Yorkshire and The Humber (E12000003),Social rented,419075,102.79312167789249
+Yorkshire and The Humber (E12000003),Private rented,410796,154.2140813117138
+Yorkshire and The Humber (E12000003),Owned outright,881938,0.0
+Yorkshire and The Humber (E12000003),Buying with a mortgage,672807,170.82572283104565
+East Midlands (E12000004),Social rented,310483,101.67704718123096
+East Midlands (E12000004),Private rented,370309,181.9894525438534
+East Midlands (E12000004),Owned outright,768072,0.0
+East Midlands (E12000004),Buying with a mortgage,664426,188.3692693266129
+West Midlands (E12000005),Social rented,454023,109.81182876435889
+West Midlands (E12000005),Private rented,504654,170.70685217580763
+West Midlands (E12000005),Owned outright,953051,0.0
+West Midlands (E12000005),Buying with a mortgage,609096,191.07183701948748
+East (E12000006),Social rented,415685,128.87049589915176
+East (E12000006),Private rented,473476,218.75185002289598
+East (E12000006),Owned outright,1019514,0.0
+East (E12000006),Buying with a mortgage,767259,245.64084603654481
+London (E12000007),Social rented,743645,167.35113945536227
+London (E12000007),Private rented,1092263,356.6270880023679
+London (E12000007),Owned outright,910533,0.0
+London (E12000007),Buying with a mortgage,920008,368.1388831567913
+South East (E12000008),Social rented,513152,143.4253861751372
+South East (E12000008),Private rented,707318,229.52893635261427
+South East (E12000008),Owned outright,1459994,0.0
+South East (E12000008),Buying with a mortgage,1237510,274.86269537405593
+South West (E12000009),Social rented,307413,116.96072189311445
+South West (E12000009),Private rented,442027,201.22978491949615
+South West (E12000009),Owned outright,1025924,0.0
+South West (E12000009),Buying with a mortgage,760907,198.44944156306653
+Wales (W92000004),Social rented,228411,118.28329574879307
+Wales (W92000004),Private rented,193343,146.5865231293878
+Wales (W92000004),Owned outright,627994,0.0
+Wales (W92000004),Buying with a mortgage,349627,188.4143399338939
+Scotland (S92000003),Social rented,582590,100.0866224611063
+Scotland (S92000003),Private rented,346946,156.78233192177643
+Scotland (S92000003),Owned outright,933209,0.0
+Scotland (S92000003),Buying with a mortgage,701357,178.92912485046728
+Northern Ireland (N92000002),Social rented,93236,100.35812963196886
+Northern Ireland (N92000002),Private rented,127562,134.54283754150902
+Northern Ireland (N92000002),Owned outright,315292,0.0
+Northern Ireland (N92000002),Buying with a mortgage,224237,153.84860512745877
