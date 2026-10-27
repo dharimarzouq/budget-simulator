@@ -29,7 +29,7 @@ export function renderForm(form: HTMLFormElement) {
   form.innerHTML = `
     <fieldset><legend>Where</legend>
       <label>Nation<select name="region">
-        <option value="england">England</option><option value="wales">Wales</option>
+        <option value="england">England outside London</option><option value="london">London</option><option value="wales">Wales</option>
         <option value="scotland">Scotland</option><option value="northern_ireland">Northern Ireland</option>
       </select></label>
     </fieldset>
@@ -107,6 +107,7 @@ export function renderResult(el: HTMLElement, h: Household, r: RuleSet) {
     html += row("Taper deduction", -uc.taperDeduction, `${pct(r.uc.taperRate)} of earnings above the work allowance.`);
     if (uc.unearnedIncome) html += row("Pension income", -uc.unearnedIncome, "Counted in full, before tax.");
     if (uc.savingsIncome) html += row("Assumed income from savings", -uc.savingsIncome, "");
+    html += row("Benefit cap", -uc.benefitCap.reduction, uc.benefitCap.working);
     html += row("Universal Credit", uc.award, "", "total") + `</table>`;
   }
 

@@ -4,7 +4,8 @@ label: Universal Credit
 limits:
   - Monthly amounts for assessment periods starting on or after 6 April 2026.
   - Housing costs are taken as the rent entered, with no Local Housing Allowance cap by area yet.
-  - Leaves out the benefit cap, transitional protection, the limited capability for work amount (closed to new claims since 2017) and sanctions and deductions.
+  - Leaves out transitional protection, the limited capability for work amount (closed to new claims since 2017) and sanctions and deductions.
+  - Benefit cap - counts Universal Credit and Child Benefit as the capped benefits. Treats a disabled child as getting Disability Living Allowance or similar, which exempts the household. Leaves out the 9-month grace period after leaving work.
 parameters:
   standard_allowance_single_under_25:
     label: Standard allowance, single, under 25
@@ -149,6 +150,52 @@ parameters:
     value: 16000
     source: dwp-benefit-rates-2026-27
     legal: Universal Credit Regulations 2013 reg 18
+
+  benefit_cap_london_family:
+    label: Benefit cap, Greater London, couples or anyone with children
+    unit: gbp_per_year
+    value: 25323
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 80A
+    note: Unchanged since 2023-24; the cap isn't uprated every year.
+
+  benefit_cap_london_single:
+    label: Benefit cap, Greater London, single adults without children
+    unit: gbp_per_year
+    value: 16967
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 80A
+
+  benefit_cap_family:
+    label: Benefit cap, rest of Great Britain, couples or anyone with children
+    unit: gbp_per_year
+    value: 22020
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 80A
+
+  benefit_cap_single:
+    label: Benefit cap, rest of Great Britain, single adults without children
+    unit: gbp_per_year
+    value: 14753
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 80A
+    note: Northern Ireland has its own cap legislation with the same amounts; treated as rest of Great Britain here.
+
+  benefit_cap_earnings_hours:
+    label: Benefit cap doesn't apply with earnings of at least this many hours a week at the National Living Wage
+    unit: hours_per_week
+    value: 16
+    source: uksi-2013-376
+    legal: Universal Credit Regulations 2013 reg 82(1)(a)
+    note: Measured on earnings after tax and National Insurance, for the claimant or couple combined.
+
+  national_living_wage:
+    label: National Living Wage, 21 and over
+    unit: gbp_per_hour
+    value: 12.71
+    source: govuk-minimum-wage-rates
+    legal: National Minimum Wage Regulations 2015 reg 4
+    note: From 1 April 2026. With 16 hours, the cap earnings threshold is £881.23 a month.
 
   capital_tariff_income:
     label: Assumed monthly income per £250 of savings between the two limits

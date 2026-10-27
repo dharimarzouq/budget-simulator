@@ -5,7 +5,7 @@ import { readForm, renderForm, renderResult } from "./calculator";
 
 const gbp = (n: number) => "£" + n.toLocaleString("en-GB", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 const pct = (n: number) => `${+(n * 100).toFixed(2)}%`;
-const PER = { gbp: "", gbp_per_year: " a year", gbp_per_month: " a month", gbp_per_week: " a week" } as const;
+const PER = { gbp: "", gbp_per_year: " a year", gbp_per_month: " a month", gbp_per_week: " a week", gbp_per_hour: " an hour" } as const;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function show(p: Parameter): string {
@@ -13,6 +13,7 @@ function show(p: Parameter): string {
   if (p.unit === "flag") return p.value ? "Yes" : "No";
   if (p.unit === "rate") return pct(p.value as number);
   if (p.unit === "years") return `${p.value} years`;
+  if (p.unit === "hours_per_week") return `${p.value} hours a week`;
   return gbp(p.value as number) + PER[p.unit];
 }
 

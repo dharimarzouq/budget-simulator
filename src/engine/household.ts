@@ -1,7 +1,8 @@
 // What the engine needs to know about a household. Money is in pounds a year unless the
 // name says monthly.
 
-export type Region = "england" | "wales" | "scotland" | "northern_ireland";
+/** London is separate from the rest of England because some rules, like the benefit cap, differ there. */
+export type Region = "london" | "england" | "wales" | "scotland" | "northern_ireland";
 
 export interface Adult {
   age: number;
@@ -19,6 +20,7 @@ export interface Adult {
 export interface Child {
   age: number;
   bornBefore2017: boolean; // born before 6 April 2017
+  /** Universal Credit disabled child addition. Either rate means the child gets a disability benefit such as DLA. */
   disability: "none" | "lower" | "higher";
 }
 

@@ -53,6 +53,13 @@ export interface RuleSet {
     capitalDisregard: number;
     capitalUpperLimit: number;
     tariffPer250: number;
+    // Benefit cap: yearly amounts, and the earnings that exempt a household
+    capLondonFamily: number;
+    capLondonSingle: number;
+    capFamily: number;
+    capSingle: number;
+    capEarningsHours: number;
+    nationalLivingWage: number;
   };
 }
 
@@ -118,6 +125,12 @@ export function ruleSet(year: string): RuleSet {
       capitalDisregard: n("universal_credit", "capital_disregard"),
       capitalUpperLimit: n("universal_credit", "capital_upper_limit"),
       tariffPer250: n("universal_credit", "capital_tariff_income"),
+      capLondonFamily: n("universal_credit", "benefit_cap_london_family"),
+      capLondonSingle: n("universal_credit", "benefit_cap_london_single"),
+      capFamily: n("universal_credit", "benefit_cap_family"),
+      capSingle: n("universal_credit", "benefit_cap_single"),
+      capEarningsHours: n("universal_credit", "benefit_cap_earnings_hours"),
+      nationalLivingWage: n("universal_credit", "national_living_wage"),
     },
   };
 }

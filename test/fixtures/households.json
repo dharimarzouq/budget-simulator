@@ -45,6 +45,11 @@
     { "id": "uc-pre2017", "about": "Lone parent, eldest born before April 2017, £700 rent", "adults": [{}], "children": [{ "age": 11, "bornBefore2017": true }, { "age": 6 }], "rentMonthly": 700 },
     { "id": "uc-disabled-child", "about": "Lone parent, child with higher disability addition, £700 rent", "adults": [{}], "children": [{ "age": 6, "disability": "higher" }], "rentMonthly": 700 },
     { "id": "uc-pension-income", "about": "Single, 60, £6,000 private pension, £500 rent", "adults": [{ "age": 60, "pension": 6000 }], "rentMonthly": 500 },
-    { "id": "uc-scot-lone-parent", "about": "Scotland, lone parent, £15,000 pay, £700 rent", "region": "scotland", "adults": [{ "employment": 15000 }], "children": [{ "age": 6 }], "rentMonthly": 700 }
+    { "id": "uc-scot-lone-parent", "about": "Scotland, lone parent, £15,000 pay, £700 rent", "region": "scotland", "adults": [{ "employment": 15000 }], "children": [{ "age": 6 }], "rentMonthly": 700 },
+    { "id": "cap-london", "about": "Benefit cap: lone parent, two children, not working, £700 rent, in London (under the London cap)", "region": "london", "adults": [{ "age": 30 }], "children": [{ "age": 4 }, { "age": 8 }], "rentMonthly": 700 },
+    { "id": "cap-london-high-rent", "about": "Benefit cap: lone parent, two children, not working, £1,600 rent, in London", "region": "london", "adults": [{ "age": 30 }], "children": [{ "age": 4 }, { "age": 8 }], "rentMonthly": 1600 },
+    { "id": "cap-earnings-exempt", "about": "Benefit cap: lone parent earning £12,000 (over the earnings threshold), £1,400 rent", "adults": [{ "employment": 12000 }], "children": [{ "age": 4 }, { "age": 8 }], "rentMonthly": 1400 },
+    { "id": "cap-childcare", "about": "Benefit cap: lone parent earning £5,000, £500 childcare, £1,200 rent", "adults": [{ "employment": 5000 }], "children": [{ "age": 2 }, { "age": 4 }], "rentMonthly": 1200, "childcareMonthly": 500 },
+    { "id": "cap-single", "about": "Benefit cap: single, not working, £1,100 rent", "adults": [{}], "rentMonthly": 1100 }
   ]
 }

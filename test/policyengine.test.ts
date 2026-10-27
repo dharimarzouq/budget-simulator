@@ -34,14 +34,14 @@ const LINES: { name: string; tolerance: number; ours: (res: ReturnType<typeof ca
   { name: "Child Benefit charge", tolerance: 1, ours: (s) => s.childBenefitCharge, theirs: (p) => p.CB_HITC! },
   { name: "Universal Credit", tolerance: 1, ours: (s) => s.universalCredit.award * 12, theirs: (p) => p.universal_credit! },
   { name: "UC maximum", tolerance: 1, ours: (s) => s.universalCredit.maximum * 12, theirs: (p) => p.uc_maximum_amount! },
-  // PolicyEngine's net income also takes off the TV licence and adds Scottish Child Payment and the Winter Fuel
-  // Payment, none of which we model yet. The tolerance allows for PolicyEngine using weekly NI thresholds
-  // (£12,584 a year rather than £12,570).
+  // PolicyEngine's net income also takes off the TV licence and adds Scottish Child Payment, the Winter Fuel
+  // Payment and DLA, none of which we model yet. The tolerance allows for PolicyEngine using weekly NI
+  // thresholds (£12,584 a year rather than £12,570).
   {
     name: "net income",
     tolerance: 3,
     ours: (s) => s.netIncome,
-    theirs: (p) => p.household_net_income! + p.tv_licence! - p.scottish_child_payment! - p.winter_fuel_allowance!,
+    theirs: (p) => p.household_net_income! + p.tv_licence! - p.scottish_child_payment! - p.winter_fuel_allowance! - p.dla!,
   },
 ];
 

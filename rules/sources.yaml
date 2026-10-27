@@ -53,6 +53,20 @@ dwp-adm-h5:
   licence: Open Government Licence v3.0
   accessed: 2026-10-27
 
+govuk-minimum-wage-rates:
+  title: National Minimum Wage and National Living Wage rates
+  publisher: GOV.UK
+  url: https://www.gov.uk/national-minimum-wage-rates
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-27
+
+uksi-2013-376:
+  title: The Universal Credit Regulations 2013
+  publisher: legislation.gov.uk
+  url: https://www.legislation.gov.uk/uksi/2013/376
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-27
+
 ukpga-2026-13:
   title: Universal Credit (Removal of Two Child Limit) Act 2026
   publisher: legislation.gov.uk

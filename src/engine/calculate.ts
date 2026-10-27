@@ -39,9 +39,21 @@ export interface UniversalCreditResult {
   taperDeduction: number;
   unearnedIncome: number;
   savingsIncome: number;
+  benefitCap: BenefitCapResult;
   award: number;
   /** Why there is no award, when there isn't one for a reason other than income. */
   notEligible?: string;
+}
+
+/** Monthly figures. */
+export interface BenefitCapResult {
+  cap: number;
+  /** Capped benefits before the cap: Universal Credit and Child Benefit. */
+  benefits: number;
+  reduction: number;
+  /** Why the cap doesn't apply, if it doesn't. */
+  exemption?: string;
+  working: string;
 }
 
 export interface Result {
@@ -160,10 +172,12 @@ function childBenefitCharge(benefit: number, adults: AdultResult[], r: RuleSet):
   return { label: "High Income Child Benefit Charge", amount, working };
 }
 
-function universalCredit(h: Household, adults: AdultResult[], r: RuleSet): UniversalCreditResult {
+function universalCredit(h: Household, adults: AdultResult[], childBenefitYear: number, r: RuleSet): UniversalCreditResult {
   const uc = r.uc;
   const empty = (notEligible: string): UniversalCreditResult => ({
-    elements: [], maximum: 0, earnings: 0, workAllowance: 0, taperDeduction: 0, unearnedIncome: 0, savingsIncome: 0, award: 0, notEligible,
+    elements: [], maximum: 0, earnings: 0, workAllowance: 0, taperDeduction: 0, unearnedIncome: 0, savingsIncome: 0,
+    benefitCap: { cap: 0, benefits: 0, reduction: 0, exemption: "No Universal Credit.", working: "No Universal Credit, so nothing to cap." },
+    award: 0, notEligible,
   });
   if (h.claimsUniversalCredit === false) return empty("Not claimed.");
   if (h.adults.every((a) => a.age >= r.ni.statePensionAge)) {
@@ -252,16 +266,54 @@ function universalCredit(h: Household, adults: AdultResult[], r: RuleSet): Unive
   const workAllowance = getsWorkAllowance ? (h.rentMonthly > 0 ? uc.workAllowanceLower : uc.workAllowanceHigher) : 0;
   const taperDeduction = uc.taperRate * Math.max(0, earnings - workAllowance);
   let award = Math.max(0, maximum - taperDeduction - unearnedIncome - savingsIncome);
+  const childcare = elements.find((e) => e.label === "Childcare element")?.amount ?? 0;
+  const benefitCap = applyBenefitCap(h, r, { award, childBenefitMonthly: childBenefitYear / 12, earnings, health: health !== null, carers, childcare });
+  award = Math.max(0, award - benefitCap.reduction);
   if (award < 0.01) award = 0;
 
-  return { elements, maximum, earnings, workAllowance, taperDeduction, unearnedIncome, savingsIncome, award };
+  return { elements, maximum, earnings, workAllowance, taperDeduction, unearnedIncome, savingsIncome, benefitCap, award };
+}
+
+/** Universal Credit Regulations 2013 regs 79 to 83. Monthly amounts. */
+function applyBenefitCap(
+  h: Household,
+  r: RuleSet,
+  x: { award: number; childBenefitMonthly: number; earnings: number; health: boolean; carers: number; childcare: number },
+): BenefitCapResult {
+  const uc = r.uc;
+  const family = h.adults.length === 2 || h.children.length > 0;
+  const london = h.region === "london";
+  const cap = (london ? (family ? uc.capLondonFamily : uc.capLondonSingle) : family ? uc.capFamily : uc.capSingle) / 12;
+  const benefits = x.award + x.childBenefitMonthly;
+  const earningsThreshold = (uc.capEarningsHours * uc.nationalLivingWage * 52) / 12;
+
+  const exemption = x.health
+    ? "Doesn't apply: the award includes the health element."
+    : x.carers
+      ? "Doesn't apply: the award includes the carer element."
+      : h.children.some((c) => c.disability !== "none")
+        ? "Doesn't apply: a child gets a disability benefit (needed for the disabled child addition)."
+        : x.earnings >= earningsThreshold
+          ? `Doesn't apply: earnings after tax of ${gbp(x.earnings)} a month are at least ${uc.capEarningsHours} hours a week at the National Living Wage (${gbp(earningsThreshold)}).`
+          : undefined;
+  const capName = `${london ? "London" : "outside London"}, ${family ? "couple or with children" : "single, no children"}`;
+  if (exemption) return { cap, benefits, reduction: 0, exemption, working: exemption };
+
+  const excess = Math.max(0, benefits - cap);
+  // The childcare element is protected: it comes off the reduction.
+  const reduction = Math.min(x.award, Math.max(0, excess - x.childcare));
+  const working = excess
+    ? `Universal Credit plus Child Benefit is ${gbp(benefits)} a month, ${gbp(excess)} over the cap of ${gbp(cap)} (${capName})` +
+      (x.childcare ? `, less the childcare element of ${gbp(x.childcare)}, which is protected` : "") + "."
+    : `Universal Credit plus Child Benefit is ${gbp(benefits)} a month, within the cap of ${gbp(cap)} (${capName}).`;
+  return { cap, benefits, reduction, working };
 }
 
 export function calculate(h: Household, r: RuleSet): Result {
   const adults = h.adults.map((a) => adultTax(a, h, r));
   const cb = childBenefit(h, r);
   const charge = childBenefitCharge(cb.amount, adults, r);
-  const uc = universalCredit(h, adults, r);
+  const uc = universalCredit(h, adults, cb.amount, r);
   const ucYear = uc.award * 12;
 
   const grossIncome = h.adults.reduce((s, a) => s + a.employment + a.selfEmployment + a.pension, 0);
@@ -287,6 +339,7 @@ export function calculate(h: Household, r: RuleSet): Result {
       `Maximum ${gbp(uc.maximum)} a month, less ${pct(r.uc.taperRate)} of earnings over the work allowance (${gbp(uc.taperDeduction)})` +
       (uc.unearnedIncome ? `, less pension income ${gbp(uc.unearnedIncome)}` : "") +
       (uc.savingsIncome ? `, less assumed income from savings ${gbp(uc.savingsIncome)}` : "") +
+      (uc.benefitCap.reduction ? `, less ${gbp(uc.benefitCap.reduction)} for the benefit cap` : "") +
       ` = ${gbp(uc.award)} a month, × 12.`,
   });
 

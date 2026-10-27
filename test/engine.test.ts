@@ -166,6 +166,56 @@ describe("Universal Credit", () => {
   });
 });
 
+describe("benefit cap", () => {
+  // Lone parent, two children, not working, £700 rent, outside London.
+  // UC before the cap: 424.90 + 2 × 303.94 + 700 = 1,732.78. Child Benefit: 2,337.40 / 12 = 194.7833.
+  // Together 1,927.5633, which is 92.5633 over the £1,835 monthly cap (£22,020 a year).
+  const capped = household({ adults: [adult()], children: [child({ age: 4 }), child({ age: 8 })], rentMonthly: 700 });
+
+  it("takes the excess off Universal Credit", () => {
+    const uc = calculate(capped, r).universalCredit;
+    expect(uc.benefitCap.reduction).toBeCloseTo(92.5633, 3);
+    expect(uc.award).toBeCloseTo(1640.2167, 3);
+  });
+
+  it("is higher in London, so this household isn't capped there", () => {
+    expect(calculate({ ...capped, region: "london" }, r).universalCredit.benefitCap.reduction).toBe(0);
+  });
+
+  it("doesn't apply with earnings of 16 hours at the National Living Wage (£881.23 a month after tax)", () => {
+    // £12,000 a year: no tax or NI, so £1,000 a month.
+    const res = calculate({ ...capped, adults: [adult({ employment: 12000 })], rentMonthly: 1400 }, r).universalCredit;
+    expect(res.benefitCap.reduction).toBe(0);
+    expect(res.benefitCap.exemption).toMatch(/National Living Wage/);
+  });
+
+  it("doesn't apply with a health element, carer element or disabled child", () => {
+    for (const h of [
+      { ...capped, adults: [adult({ health: "lcwra" as const })] as [ReturnType<typeof adult>] },
+      { ...capped, adults: [adult({ carer: true })] as [ReturnType<typeof adult>] },
+      { ...capped, children: [child({ disability: "lower" }), child()] },
+    ]) {
+      expect(calculate(h, r).universalCredit.benefitCap.reduction).toBe(0);
+    }
+  });
+
+  it("protects the childcare element", () => {
+    // £5,000 pay (£416.67 a month, under the work allowance, so no taper), childcare £500 (element 85% = 425),
+    // rent £1,200. Maximum 424.90 + 607.88 + 1,200 + 425 = 2,657.78. Plus Child Benefit 194.7833 = 2,852.5633,
+    // 1,017.5633 over the cap. Less the 425 childcare element: reduction 592.5633.
+    const h = { ...capped, adults: [adult({ employment: 5000 })] as [ReturnType<typeof adult>], rentMonthly: 1200, childcareMonthly: 500 };
+    const uc = calculate(h, r).universalCredit;
+    expect(uc.benefitCap.reduction).toBeCloseTo(592.5633, 3);
+    expect(uc.award).toBeCloseTo(2657.78 - 592.5633, 3);
+  });
+
+  it("single adults without children have the lower cap", () => {
+    // 424.90 + 1,100 rent = 1,524.90, over the £1,229.42 single cap by 295.48.
+    const uc = calculate(household({ adults: [adult()], rentMonthly: 1100 }), r).universalCredit;
+    expect(uc.benefitCap.reduction).toBeCloseTo(1524.9 - 14753 / 12, 3);
+  });
+});
+
 describe("marginal rates", () => {
   it("62% between £100,000 and £125,140: 40% tax, 20% from the lost allowance, 2% NI", () => {
     expect(marginalRate(household({ adults: [adult({ employment: 110000 })] }), r)).toBeCloseTo(0.62, 6);

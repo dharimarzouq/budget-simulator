@@ -1,17 +1,4 @@
 {
   "_about": "Differences from PolicyEngine UK that we understand and accept, by household id (or * for all) and line. Each needs a reason.",
-  "differences": {
-    "uc-lone-parent-0": {
-      "Universal Credit": "Benefit cap (£22,020 a year outside London): we don't apply it yet. Our UC plus Child Benefit is £23,130.76, and PolicyEngine's UC is lower by exactly the £1,110.76 excess.",
-      "net income": "Benefit cap, as above."
-    },
-    "uc-pre2017": {
-      "Universal Credit": "Benefit cap, as for uc-lone-parent-0: PolicyEngine's UC is lower by exactly the £1,686.04 over the cap.",
-      "net income": "Benefit cap, as above."
-    },
-    "uc-disabled-child": {
-      "Universal Credit": "Benefit cap: PolicyEngine caps this household by exactly the £2,709.20 excess. In reality a child getting the higher disability addition usually gets Disability Living Allowance, which exempts the family from the cap; our test input doesn't tell PolicyEngine about DLA.",
-      "net income": "Benefit cap, as above."
-    }
-  }
+  "differences": {}
 }

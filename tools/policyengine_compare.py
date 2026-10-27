@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 YEAR = 2026  # PolicyEngine's 2026 is the 2026-27 tax year
 
 REGIONS = {
+    "london": "LONDON",
     "england": "NORTH_WEST",  # outside London, so the lower benefit cap applies
     "wales": "WALES",
     "scotland": "SCOTLAND",
@@ -60,6 +61,8 @@ def situation(h: dict) -> dict:
             "age": {YEAR: age},
             "is_disabled_for_benefits": {YEAR: c["disability"] != "none"},
             "meets_uc_higher_disabled_child_condition": {YEAR: c["disability"] == "higher"},
+            # The disabled child addition needs a disability benefit; DLA care component stands in for it.
+            "dla_sc_category": {YEAR: {"none": "NONE", "lower": "LOWER", "higher": "HIGHER"}[c["disability"]]},
             "childcare_expenses": {YEAR: childcare if i == 0 else 0},
             "would_claim_scp": {YEAR: True},
         }
@@ -95,7 +98,7 @@ def situation(h: dict) -> dict:
     }
 
 
-PERSON_SUMS = ["income_tax", "ni_employee", "ni_self_employed", "ni_class_1_employer", "CB_HITC", "scottish_child_payment", "winter_fuel_allowance"]
+PERSON_SUMS = ["income_tax", "ni_employee", "ni_self_employed", "ni_class_1_employer", "CB_HITC", "scottish_child_payment", "winter_fuel_allowance", "dla"]
 BENUNIT = [
     "child_benefit", "universal_credit", "uc_maximum_amount", "uc_standard_allowance", "uc_child_element",
     "uc_disability_elements", "uc_LCWRA_element", "uc_carer_element", "uc_housing_costs_element",
