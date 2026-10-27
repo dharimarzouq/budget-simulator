@@ -41,21 +41,28 @@ ASSUMPTIONS = {
     "pay_top_tail_alpha": 1.6,
     "profit_median": 14_000,
     "profit_sigma": 1.0,
+    "profit_top_tail_share": 0.04,  # self-employed drawn from a Pareto tail, so very high profits exist
+    "profit_top_tail_min": 80_000,
+    "profit_top_tail_alpha": 1.3,
     "share_pensioners_new_state_pension": 0.6,  # rest on the old basic pension
     "share_pensioners_private_pension": 0.65,
     "private_pension_median": 7_000,
     "private_pension_sigma": 0.9,
+    "private_pension_top_tail_share": 0.03,
+    "private_pension_top_tail_min": 50_000,
+    "private_pension_top_tail_alpha": 1.8,
     "share_not_working_health": 0.45,  # of working-age adults not working: Universal Credit health element
     "share_health_protected": 0.9,  # of those: claimed before April 2026, so the higher rate
-    "share_not_working_carer": 0.08,
-    "share_children_disabled": 0.06,
+    "share_not_working_carer": 0.25,
+    "share_working_carer": 0.03,  # carers can work and still get the carer element
+    "share_children_disabled": 0.12,  # DWP shows 19% of lone parents on UC have a disabled child
     "share_disabled_higher": 0.3,
     "rent_sigma": 0.35,  # spread of rents around the regional mean
     "share_under5_with_childcare": 0.35,  # households with a child under 5 and all adults working
     "childcare_median_month": 700,
     "uc_take_up": 0.85,
-    "cb_opt_out_60k_80k": 0.25,  # families whose higher earner is in the Child Benefit charge range
-    "cb_opt_out_over_80k": 0.6,
+    "cb_opt_out_60k_80k": 0.4,  # families whose higher earner is in the Child Benefit charge range
+    "cb_opt_out_over_80k": 0.8,
 }
 A = ASSUMPTIONS
 
@@ -109,11 +116,12 @@ class Builder:
         self.kids_p = counts / counts.sum()
 
     # --- people -------------------------------------------------------------------------------
-    def pay(self) -> float:
+    def draw(self, kind: str) -> float:
+        """Lognormal body with a Pareto top tail, so the seed has people in every income band."""
         r = self.rng
-        if r.random() < A["pay_top_tail_share"]:
-            return float(A["pay_top_tail_min"] * (1 - r.random()) ** (-1 / A["pay_top_tail_alpha"]))
-        return float(np.exp(np.log(A["pay_median"]) + A["pay_sigma"] * r.standard_normal()))
+        if r.random() < A[f"{kind}_top_tail_share"]:
+            return float(A[f"{kind}_top_tail_min"] * (1 - r.random()) ** (-1 / A[f"{kind}_top_tail_alpha"]))
+        return float(np.exp(np.log(A[f"{kind}_median"]) + A[f"{kind}_sigma"] * r.standard_normal()))
 
     def working_age_adult(self, age: int, lone_parent=False) -> dict:
         r = self.rng
@@ -121,9 +129,11 @@ class Builder:
         u = r.random()
         a = {"age": age, "employment": 0.0, "selfEmployment": 0.0, "pension": 0.0, "pensionContributions": 0.0, "health": "none", "carer": False}
         if u < p_emp:
-            a["employment"] = round(self.pay(), 2)
+            a["employment"] = round(self.draw("pay"), 2)
+            a["carer"] = bool(r.random() < A["share_working_carer"])
         elif u < p_emp + A["share_self_employed"]:
-            a["selfEmployment"] = round(float(np.exp(np.log(A["profit_median"]) + A["profit_sigma"] * r.standard_normal())), 2)
+            a["selfEmployment"] = round(self.draw("profit"), 2)
+            a["carer"] = bool(r.random() < A["share_working_carer"])
         elif r.random() < A["share_not_working_health"]:
             a["health"] = "lcwra_protected" if r.random() < A["share_health_protected"] else "lcwra"
         elif r.random() < A["share_not_working_carer"]:
@@ -133,7 +143,7 @@ class Builder:
     def pensioner(self, age: int) -> dict:
         r = self.rng
         state = NEW_STATE_PENSION if r.random() < A["share_pensioners_new_state_pension"] else OLD_STATE_PENSION
-        private = float(np.exp(np.log(A["private_pension_median"]) + A["private_pension_sigma"] * r.standard_normal())) if r.random() < A["share_pensioners_private_pension"] else 0.0
+        private = self.draw("private_pension") if r.random() < A["share_pensioners_private_pension"] else 0.0
         return {"age": age, "employment": 0.0, "selfEmployment": 0.0, "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
 
     def working_age(self, young=False) -> int:
