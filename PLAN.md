@@ -1,6 +1,6 @@
 # Milestone 1 plan: income tax, NICs, Universal Credit, Child Benefit
 
-Status: waiting for Ari's go. I'll check in with results after each step.
+Status: steps 1–2 done (27 October 2026). Step 3, the engine, is next. I'll check in with results after each step.
 
 Tax year: 2026/27, the current year. Every rate and threshold is stored as data with its source and legal basis, not hard-coded. That matters because the rules change. For example, the Universal Credit two-child limit was removed from 6 April 2026 by the Universal Credit (Removal of Two Child Limit) Act 2026.
 
