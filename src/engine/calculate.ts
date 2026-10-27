@@ -68,7 +68,9 @@ export interface Result {
   lines: Line[];
 }
 
-const gbp = (n: number) => "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// One formatter, made once: toLocaleString builds a new one on every call, which made the engine slow.
+const money = new Intl.NumberFormat("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const gbp = (n: number) => "£" + money.format(n);
 const pct = (r: number) => `${+(r * 100).toFixed(2)}%`;
 
 /** Tax on an amount through a schedule of bands. */
@@ -127,6 +129,7 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
       const main = Math.max(0, Math.min(p, ni.upperEarningsLimit) - ni.primaryThreshold);
       const above = Math.max(0, p - ni.upperEarningsLimit);
       employeeNI += main * ni.mainRate + above * ni.additionalRate;
+      if (!main) return jobName(i) + `nothing, as pay is under ${gbp(ni.primaryThreshold)}`;
       return jobName(i) + `${pct(ni.mainRate)} of ${gbp(main)} (pay between ${gbp(ni.primaryThreshold)} and ${gbp(ni.upperEarningsLimit)})` +
         (above ? ` + ${pct(ni.additionalRate)} of ${gbp(above)} above that` : "");
     });
