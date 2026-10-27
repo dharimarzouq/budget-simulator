@@ -1,0 +1,48 @@
+# Every source a rules file can cite. Dates are ISO (YYYY-MM-DD).
+
+hmrc-employer-rates-2026-27:
+  title: Rates and thresholds for employers 2026 to 2027
+  publisher: HM Revenue & Customs
+  url: https://www.gov.uk/guidance/rates-and-thresholds-for-employers-2026-to-2027
+  licence: Open Government Licence v3.0
+  published: 2026-01-30
+  updated: 2026-09-01
+  accessed: 2026-10-27
+
+hmrc-nics-rates-allowances:
+  title: "Rates and allowances: National Insurance contributions"
+  publisher: HM Revenue & Customs
+  url: https://www.gov.uk/government/publications/rates-and-allowances-national-insurance-contributions/rates-and-allowances-national-insurance-contributions
+  licence: Open Government Licence v3.0
+  updated: 2026-04-06
+  accessed: 2026-10-27
+
+dwp-benefit-rates-2026-27:
+  title: Benefit and pension rates 2026 to 2027
+  publisher: Department for Work and Pensions
+  url: https://assets.publishing.service.gov.uk/media/69931706ceeaa48d377f6bd5/Benefit-and-pension-rates-2026-2027.pdf
+  licence: Open Government Licence v3.0
+  updated: 2026-02-16
+  accessed: 2026-10-27
+
+govuk-child-benefit-rates:
+  title: "Child Benefit: what you'll get"
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/child-benefit/what-youll-get
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-27
+
+govuk-hicbc:
+  title: High Income Child Benefit Charge
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/child-benefit-tax-charge
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-27
+
+ukpga-2026-13:
+  title: Universal Credit (Removal of Two Child Limit) Act 2026
+  publisher: legislation.gov.uk
+  url: https://www.legislation.gov.uk/ukpga/2026/13
+  licence: Open Government Licence v3.0
+  published: 2026-03-18
+  accessed: 2026-10-27

@@ -1,0 +1,21 @@
+{
+  "name": "budget-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UK budget simulator: specific policies, their costings, who wins and loses, and the effect on the economy and debt, with every number sourced.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@rollup/plugin-yaml": "^5.0.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5",
+    "yaml": "^2.9.1"
+  }
+}

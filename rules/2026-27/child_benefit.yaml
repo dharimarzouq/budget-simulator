@@ -1,0 +1,35 @@
+year: 2026-27
+area: child_benefit
+label: Child Benefit and the High Income Child Benefit Charge
+limits:
+  - Leaves out Guardian's Allowance.
+parameters:
+  eldest_child_weekly:
+    label: Child Benefit, eldest or only child
+    unit: gbp_per_week
+    value: 27.05
+    source: govuk-child-benefit-rates
+    legal: Child Benefit (Rates) Regulations 2006 reg 2
+
+  other_child_weekly:
+    label: Child Benefit, each other child
+    unit: gbp_per_week
+    value: 17.90
+    source: govuk-child-benefit-rates
+    legal: Child Benefit (Rates) Regulations 2006 reg 2
+
+  hicbc_threshold:
+    label: High Income Child Benefit Charge starts at
+    unit: gbp_per_year
+    value: 60000
+    source: govuk-hicbc
+    legal: Income Tax (Earnings and Pensions) Act 2003 s681C, as amended by Finance Act 2024
+    note: Tested on the higher earner's adjusted net income, not household income.
+
+  hicbc_taper_width:
+    label: Income range over which the charge rises from 0% to 100% of Child Benefit
+    unit: gbp_per_year
+    value: 20000
+    source: govuk-hicbc
+    legal: Income Tax (Earnings and Pensions) Act 2003 s681C
+    note: 1% of Child Benefit for every £200 above the threshold, so all of it is repaid at £80,000.

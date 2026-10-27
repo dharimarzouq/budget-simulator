@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# Restricted microdata (e.g. FRS under the UK Data Service licence) must never be committed.
+data/restricted/

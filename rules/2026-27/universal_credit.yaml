@@ -1,0 +1,158 @@
+year: 2026-27
+area: universal_credit
+label: Universal Credit
+limits:
+  - Monthly amounts for assessment periods starting on or after 6 April 2026.
+  - Housing costs are taken as the rent entered, with no Local Housing Allowance cap by area yet.
+  - Leaves out the benefit cap, transitional protection, the limited capability for work amount (closed to new claims since 2017) and sanctions and deductions.
+parameters:
+  standard_allowance_single_under_25:
+    label: Standard allowance, single, under 25
+    unit: gbp_per_month
+    value: 338.58
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+
+  standard_allowance_single_25_plus:
+    label: Standard allowance, single, 25 or over
+    unit: gbp_per_month
+    value: 424.90
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+    note: Rose faster than inflation in 2026-27 under the Universal Credit Act 2025.
+
+  standard_allowance_couple_both_under_25:
+    label: Standard allowance, couple, both under 25
+    unit: gbp_per_month
+    value: 528.34
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+
+  standard_allowance_couple_25_plus:
+    label: Standard allowance, couple, one or both 25 or over
+    unit: gbp_per_month
+    value: 666.97
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+
+  child_element_first_pre_2017:
+    label: Child element, first child born before 6 April 2017
+    unit: gbp_per_month
+    value: 351.88
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+
+  child_element:
+    label: Child element, every other child
+    unit: gbp_per_month
+    value: 303.94
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+
+  two_child_limit:
+    label: Child element limited to two children
+    unit: flag
+    value: false
+    source: ukpga-2026-13
+    legal: Welfare Reform Act 2012 s10(1A), repealed by the Universal Credit (Removal of Two Child Limit) Act 2026
+    note: Removed for assessment periods starting on or after 6 April 2026. Kept as a switch so it can be brought back as a policy choice.
+
+  disabled_child_lower:
+    label: Disabled child addition, lower rate
+    unit: gbp_per_month
+    value: 164.79
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+
+  disabled_child_higher:
+    label: Disabled child addition, higher rate
+    unit: gbp_per_month
+    value: 514.71
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+
+  lcwra_element:
+    label: Health element (LCWRA), new claimants from 6 April 2026
+    unit: gbp_per_month
+    value: 217.26
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36, as amended under the Universal Credit Act 2025
+
+  lcwra_element_protected:
+    label: Health element (LCWRA), claimants from before April 2026, severe conditions or terminally ill
+    unit: gbp_per_month
+    value: 429.80
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36, as amended under the Universal Credit Act 2025
+
+  carer_element:
+    label: Carer element
+    unit: gbp_per_month
+    value: 209.34
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 36
+    note: Can't be paid to the same person as the health element.
+
+  childcare_share:
+    label: Share of childcare costs covered
+    unit: rate
+    value: 0.85
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 34
+
+  childcare_max_one_child:
+    label: Childcare element maximum, one child
+    unit: gbp_per_month
+    value: 1071.09
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 34 and reg 36
+
+  childcare_max_two_plus:
+    label: Childcare element maximum, two or more children
+    unit: gbp_per_month
+    value: 1836.16
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 34 and reg 36
+
+  work_allowance_higher:
+    label: Work allowance, no housing element (with children or limited capability for work)
+    unit: gbp_per_month
+    value: 710.00
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 22
+
+  work_allowance_lower:
+    label: Work allowance, with housing element (with children or limited capability for work)
+    unit: gbp_per_month
+    value: 427.00
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 22
+
+  taper_rate:
+    label: Taper (Universal Credit lost per £1 of net earnings above the work allowance)
+    unit: rate
+    value: 0.55
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 22(1)(b), 55% since November 2021
+    note: Applies to earnings after income tax, National Insurance and pension contributions.
+
+  capital_disregard:
+    label: Savings ignored
+    unit: gbp
+    value: 6000
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 72
+
+  capital_upper_limit:
+    label: Savings above which there is no entitlement
+    unit: gbp
+    value: 16000
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 18
+
+  capital_tariff_income:
+    label: Assumed monthly income per £250 of savings between the two limits
+    unit: gbp_per_month
+    value: 4.35
+    source: dwp-benefit-rates-2026-27
+    legal: Universal Credit Regulations 2013 reg 72

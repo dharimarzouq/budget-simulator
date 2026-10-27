@@ -1,0 +1,64 @@
+year: 2026-27
+area: income_tax
+label: Income tax
+limits:
+  - Covers earnings, self-employment profits and pension income ("non-savings, non-dividend" income) only. Savings and dividend rates come later.
+  - Ignores the marriage allowance, blind person's allowance and reliefs other than those stated.
+parameters:
+  personal_allowance:
+    label: Personal allowance
+    unit: gbp_per_year
+    value: 12570
+    source: hmrc-employer-rates-2026-27
+    legal: Income Tax Act 2007 s35
+
+  personal_allowance_taper_threshold:
+    label: Income above which the personal allowance is withdrawn
+    unit: gbp_per_year
+    value: 100000
+    source: hmrc-employer-rates-2026-27
+    legal: Income Tax Act 2007 s35(2)
+    note: Measured on adjusted net income. The allowance is fully gone at £125,140.
+
+  personal_allowance_taper_rate:
+    label: Personal allowance lost per £1 of income above the threshold
+    unit: rate
+    value: 0.5
+    source: hmrc-employer-rates-2026-27
+    legal: Income Tax Act 2007 s35(2) (reduced by half the excess)
+
+  bands_ruk:
+    label: Income tax bands, England and Northern Ireland
+    unit: gbp_per_year
+    bands:
+      - { threshold: 0, rate: 0.20 }
+      - { threshold: 37700, rate: 0.40 }
+      - { threshold: 125140, rate: 0.45 }
+    source: hmrc-employer-rates-2026-27
+    legal: Income Tax Act 2007 s6 and s10; rates set by the annual Finance Act
+    note: Thresholds are on taxable income, after the personal allowance.
+
+  bands_wales:
+    label: Income tax bands, Wales
+    unit: gbp_per_year
+    bands:
+      - { threshold: 0, rate: 0.20 }
+      - { threshold: 37700, rate: 0.40 }
+      - { threshold: 125140, rate: 0.45 }
+    source: hmrc-employer-rates-2026-27
+    legal: Income Tax Act 2007 s6B; Welsh rates set by the Senedd
+    note: Same as England for 2026-27. Kept separate so the Senedd's rates can be changed on their own.
+
+  bands_scotland:
+    label: Income tax bands, Scotland
+    unit: gbp_per_year
+    bands:
+      - { threshold: 0, rate: 0.19 }
+      - { threshold: 3967, rate: 0.20 }
+      - { threshold: 16956, rate: 0.21 }
+      - { threshold: 31092, rate: 0.42 }
+      - { threshold: 62430, rate: 0.45 }
+      - { threshold: 125140, rate: 0.48 }
+    source: hmrc-employer-rates-2026-27
+    legal: Income Tax Act 2007 s6C and s11A; rates and bands set by the Scottish Rate Resolution
+    note: Thresholds are on taxable income, after the personal allowance. With the full allowance, the higher rate starts at £43,663 of income and the advanced rate at £75,001. Applies to non-savings, non-dividend income only.

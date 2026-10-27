@@ -1,0 +1,107 @@
+year: 2026-27
+area: national_insurance
+label: National Insurance contributions
+limits:
+  - Class 1 is really worked out per pay period. Here it is on an annual basis, which matches when pay is steady through the year.
+  - Only the standard category A (employee) and the standard employer rate. Reduced employer rates (under 21s, apprentices, veterans, freeports) come later.
+  - Ignores people over State Pension age, who pay no employee or Class 4 contributions; the engine handles that by age.
+parameters:
+  class1_primary_threshold:
+    label: Employee National Insurance starts at (primary threshold)
+    unit: gbp_per_year
+    value: 12570
+    source: hmrc-employer-rates-2026-27
+    legal: Social Security (Contributions) Regulations 2001 reg 10
+
+  class1_upper_earnings_limit:
+    label: Upper earnings limit
+    unit: gbp_per_year
+    value: 50270
+    source: hmrc-employer-rates-2026-27
+    legal: Social Security (Contributions) Regulations 2001 reg 10
+
+  class1_lower_earnings_limit:
+    label: Lower earnings limit (counts for State Pension, nothing paid)
+    unit: gbp_per_year
+    value: 6708
+    source: hmrc-employer-rates-2026-27
+    legal: Social Security Contributions and Benefits Act 1992 s5
+
+  class1_main_rate:
+    label: Employee rate between the primary threshold and upper earnings limit
+    unit: rate
+    value: 0.08
+    source: hmrc-employer-rates-2026-27
+    legal: Social Security Contributions and Benefits Act 1992 s8
+
+  class1_additional_rate:
+    label: Employee rate above the upper earnings limit
+    unit: rate
+    value: 0.02
+    source: hmrc-employer-rates-2026-27
+    legal: Social Security Contributions and Benefits Act 1992 s8
+
+  class1_secondary_threshold:
+    label: Employer National Insurance starts at (secondary threshold)
+    unit: gbp_per_year
+    value: 5000
+    source: hmrc-employer-rates-2026-27
+    legal: Social Security (Contributions) Regulations 2001 reg 10
+
+  class1_secondary_rate:
+    label: Employer rate above the secondary threshold
+    unit: rate
+    value: 0.15
+    source: hmrc-employer-rates-2026-27
+    legal: Social Security Contributions and Benefits Act 1992 s9
+
+  employment_allowance:
+    label: Employment Allowance (cut to each employer's yearly bill)
+    unit: gbp_per_year
+    value: 10500
+    source: hmrc-employer-rates-2026-27
+    legal: National Insurance Contributions Act 2014 s1
+    note: Per employer, not per employee. Matters for costing employer NICs, not for a household's own income.
+
+  class4_lower_profits_limit:
+    label: Self-employed National Insurance starts at (lower profits limit)
+    unit: gbp_per_year
+    value: 12570
+    source: hmrc-nics-rates-allowances
+    legal: Social Security Contributions and Benefits Act 1992 s15
+
+  class4_upper_profits_limit:
+    label: Upper profits limit
+    unit: gbp_per_year
+    value: 50270
+    source: hmrc-nics-rates-allowances
+    legal: Social Security Contributions and Benefits Act 1992 s15
+
+  class4_main_rate:
+    label: Self-employed rate between the profits limits
+    unit: rate
+    value: 0.06
+    source: hmrc-nics-rates-allowances
+    legal: Social Security Contributions and Benefits Act 1992 s15
+
+  class4_additional_rate:
+    label: Self-employed rate above the upper profits limit
+    unit: rate
+    value: 0.02
+    source: hmrc-nics-rates-allowances
+    legal: Social Security Contributions and Benefits Act 1992 s15
+
+  class2_small_profits_threshold:
+    label: Small profits threshold (Class 2 treated as paid above this)
+    unit: gbp_per_year
+    value: 7105
+    source: hmrc-nics-rates-allowances
+    legal: Social Security Contributions and Benefits Act 1992 s11
+    note: Since April 2024 nobody has to pay Class 2. Above this threshold it counts as paid; below it, people can choose to pay.
+
+  class2_voluntary_weekly_rate:
+    label: Voluntary Class 2 rate
+    unit: gbp_per_week
+    value: 3.65
+    source: hmrc-nics-rates-allowances
+    legal: Social Security Contributions and Benefits Act 1992 s11

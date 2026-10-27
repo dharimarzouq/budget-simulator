@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Budget simulator: rules</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 960px; padding: 16px; color: #1a1a1a; background: #fff; }
+      h2 { margin-top: 2em; }
+      table { border-collapse: collapse; width: 100%; }
+      td, th { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid #ddd; }
+      td.value { white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .small { color: #555; font-size: 13px; }
+      .limits { background: #f6f4ee; padding: 8px 12px 8px 28px; }
+      @media (prefers-color-scheme: dark) {
+        body { color: #eee; background: #161616; }
+        td, th { border-color: #333; }
+        .small { color: #aaa; }
+        .limits { background: #24221d; }
+        a { color: #8ab4f8; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Rules, 2026-27</h1>
+    <p class="small">Every rate and threshold the simulator uses, with where it comes from. Work in progress: nothing is calculated yet.</p>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
