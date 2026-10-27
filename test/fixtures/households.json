@@ -28,6 +28,8 @@
     { "id": "pension-contrib-110k", "about": "£110,000 pay, £10,000 pension contributions", "adults": [{ "employment": 110000, "pensionContributions": 10000 }] },
     { "id": "pensioner-25k", "about": "Single pensioner, 70, £25,000 pension", "adults": [{ "age": 70, "pension": 25000 }] },
     { "id": "worker-over-spa", "about": "Worker aged 67, £30,000 pay", "adults": [{ "age": 67, "employment": 30000 }] },
+    { "id": "worker-under-21", "about": "Worker aged 19, £30,000 pay (employer zero rate)", "adults": [{ "age": 19, "employment": 30000 }] },
+    { "id": "worker-under-21-high", "about": "Worker aged 20, £60,000 pay", "adults": [{ "age": 20, "employment": 60000 }] },
     { "id": "cb-65k-2kids", "about": "Single earner £65,000, two children", "adults": [{ "employment": 65000 }], "children": [{}, {}] },
     { "id": "cb-85k-1kid", "about": "Single earner £85,000, one child", "adults": [{ "employment": 85000 }], "children": [{}] },
     { "id": "cb-couple-70k-30k-3kids", "about": "Couple on £70,000 and £30,000, three children", "adults": [{ "employment": 70000 }, { "employment": 30000 }], "children": [{}, {}, {}] },

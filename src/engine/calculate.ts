@@ -27,6 +27,7 @@ export interface AdultResult {
   selfEmployedNI: number;
   /** Paid by the employer, so not taken from the household's income; needed for costings. */
   employerNI: number;
+  employerNIWorking: string;
   lines: Line[];
 }
 
@@ -139,9 +140,15 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
       });
     }
   }
-  const employerNI = Math.max(0, a.employment - ni.secondaryThreshold) * ni.secondaryRate;
+  // Employers pay nothing on under-21s' pay up to the upper secondary threshold.
+  const employerFrom = a.age < 21 ? Math.max(ni.secondaryThreshold, ni.under21UpperSecondaryThreshold) : ni.secondaryThreshold;
+  const employerNI = Math.max(0, a.employment - employerFrom) * ni.secondaryRate;
+  const employerNIWorking =
+    `${pct(ni.secondaryRate)} of pay above ${gbp(employerFrom)}` +
+    (a.age < 21 ? " (the zero rate for employees under 21 covers pay up to that)" : "") +
+    ". Not taken from pay, but part of what the job costs.";
 
-  return { totalIncome, adjustedNetIncome, personalAllowance, taxableIncome, incomeTax, employeeNI, selfEmployedNI, employerNI, lines };
+  return { totalIncome, adjustedNetIncome, personalAllowance, taxableIncome, incomeTax, employeeNI, selfEmployedNI, employerNI, employerNIWorking, lines };
 }
 
 function childBenefit(h: Household, r: RuleSet): Line {

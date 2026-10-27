@@ -69,6 +69,14 @@ describe("income tax and National Insurance", () => {
     expect(res.universalCredit.notEligible).toMatch(/Pension Credit/);
   });
 
+  it("employers pay nothing for under-21s up to £50,270, then 15%", () => {
+    // £30,000 at 19: no employer NI. £60,000 at 20: 15% × 9,730 = 1,459.50. Employee NI is unchanged.
+    expect(calculate(household({ adults: [adult({ age: 19, employment: 30000 })] }), r).adults[0]!.employerNI).toBe(0);
+    const res = calculate(household({ adults: [adult({ age: 20, employment: 60000 })] }), r).adults[0]!;
+    expect(res.employerNI).toBeCloseTo(1459.5, 2);
+    expect(res.employeeNI).toBeCloseTo(3210.6, 2);
+  });
+
   it("a worker over State Pension age pays no employee NI, but the employer still pays", () => {
     const res = calculate(household({ adults: [adult({ age: 67, employment: 30000 })] }), r);
     expect(res.adults[0]!.employeeNI).toBe(0);

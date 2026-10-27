@@ -93,7 +93,7 @@ export function renderResult(el: HTMLElement, h: Household, r: RuleSet) {
   res.adults.forEach((a, i) => {
     html += `<h3>${res.adults.length > 1 ? (i === 0 ? "You" : "Partner") : "Tax working"}</h3><table>`;
     for (const line of a.lines) html += row(line.label, line.amount, line.working);
-    if (a.employerNI) html += row("Employer National Insurance (paid on top of pay)", a.employerNI, "15% of pay above £5,000. Not taken from pay, but part of what the job costs.");
+    if (a.employerNI) html += row("Employer National Insurance (paid on top of pay)", a.employerNI, a.employerNIWorking);
     html += `</table>`;
   });
 

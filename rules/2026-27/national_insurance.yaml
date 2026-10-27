@@ -3,7 +3,8 @@ area: national_insurance
 label: National Insurance contributions
 limits:
   - Class 1 is really worked out per pay period. Here it is on an annual basis, which matches when pay is steady through the year.
-  - Only the standard category A (employee) and the standard employer rate. Reduced employer rates (under 21s, apprentices, veterans, freeports) come later.
+  - Employer rates - the standard rate and the under-21 zero rate. Apprentice, veteran and freeport reliefs aren't modelled.
+  - The Employment Allowance is per employer, so it can't be given to a household. Population totals take it off as one figure (HMRC tax relief statistics).
   - Ignores people over State Pension age, who pay no employee or Class 4 contributions; the engine handles that by age.
 parameters:
   state_pension_age:
@@ -62,6 +63,14 @@ parameters:
     value: 0.15
     source: hmrc-employer-rates-2026-27
     legal: Social Security Contributions and Benefits Act 1992 s9
+
+  class1_secondary_under21_upper_threshold:
+    label: Employer National Insurance for employees under 21 starts above (upper secondary threshold)
+    unit: gbp_per_year
+    value: 50270
+    source: hmrc-employer-rates-2026-27
+    legal: Social Security Contributions and Benefits Act 1992 s9A
+    note: Employers pay 0% on under-21s' pay up to this, then the normal rate. The same relief for apprentices under 25 isn't modelled, because the population doesn't say who is an apprentice. HMRC puts its cost at £0.57bn in 2025-26.
 
   employment_allowance:
     label: Employment Allowance (cut to each employer's yearly bill)

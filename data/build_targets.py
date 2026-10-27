@@ -6,6 +6,7 @@ Every CSV is listed in data/targets/targets.yaml with its source, table, year an
 Cells the publisher suppressed ("[Not available]") are left empty, never filled in.
 """
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -105,7 +106,20 @@ def obr_table(file: str, sheet: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def nics_reliefs() -> pd.DataFrame:
+    """HMRC's cost estimates for National Insurance reliefs (tax relief statistics, January 2026, Table 2)."""
+    t = simple_table(RAW / "hmrc_tax_relief_statistics_2026_01.ods", "Table_2")
+    t.columns = [str(c).replace("\n", " ").strip() for c in t.columns]
+    t = t[t.iloc[:, 2].astype(str).str.strip() == "NICs"]
+    years = [c for c in t.columns if re.match(r"^20\d\d to 20\d\d", c)]
+    keep = t[[t.columns[0], t.columns[1], *years]].rename(columns={t.columns[0]: "relief", t.columns[1]: "reference"})
+    return keep.melt(id_vars=["relief", "reference"], var_name="year", value_name="cost_gbp_m")
+
+
 def main() -> None:
+    reliefs = nics_reliefs()
+    reliefs.to_csv(OUT / "hmrc_nics_reliefs_2026_01.csv", index=False)
+    print("NICs reliefs:", reliefs[reliefs["year"].str.startswith("2025")][["relief", "cost_gbp_m"]].to_string(index=False))
     for name, (file, sheet) in {
         "obr_income_tax_nics_2026_03.csv": ("obr_efo_2026_03_receipts.xlsx", "3.4"),
         "obr_welfare_2026_03.csv": ("obr_efo_2026_03_expenditure.xlsx", "4.9"),

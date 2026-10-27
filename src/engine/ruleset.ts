@@ -19,6 +19,7 @@ export interface RuleSet {
     additionalRate: number;
     secondaryThreshold: number;
     secondaryRate: number;
+    under21UpperSecondaryThreshold: number;
     lowerProfitsLimit: number;
     upperProfitsLimit: number;
     class4MainRate: number;
@@ -92,6 +93,7 @@ export function ruleSet(year: string): RuleSet {
       additionalRate: n("national_insurance", "class1_additional_rate"),
       secondaryThreshold: n("national_insurance", "class1_secondary_threshold"),
       secondaryRate: n("national_insurance", "class1_secondary_rate"),
+      under21UpperSecondaryThreshold: n("national_insurance", "class1_secondary_under21_upper_threshold"),
       lowerProfitsLimit: n("national_insurance", "class4_lower_profits_limit"),
       upperProfitsLimit: n("national_insurance", "class4_upper_profits_limit"),
       class4MainRate: n("national_insurance", "class4_main_rate"),

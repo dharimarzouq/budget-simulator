@@ -19,6 +19,7 @@ FILES = {
     "obr_efo_2026_03_receipts.xlsx": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-receipts/",
     "obr_efo_2026_03_expenditure.xlsx": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-expenditure/",
     "obr_efo_2026_03_economy.xlsx": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-economy/",
+    "hmrc_tax_relief_statistics_2026_01.ods": "https://assets.publishing.service.gov.uk/media/69a0194e3e672177d0bc76e6/tax_relief_statistics_january_2026.ods",
     "hmrc_child_benefit_aug_2025_main_tables.ods": "https://assets.publishing.service.gov.uk/media/6a8d696901bbff0bf8f97903/Child_Benefit_August_2025_Main_Tables.ods",
 }
 

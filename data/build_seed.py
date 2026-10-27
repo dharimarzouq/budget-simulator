@@ -45,6 +45,9 @@ ASSUMPTIONS = {
     "profit_top_tail_min": 80_000,
     "profit_top_tail_alpha": 1.3,
     "share_pensioners_new_state_pension": 0.6,  # rest on the old basic pension
+    "share_pensioners_working": 0.12,  # pensioners under 75 with a job; ONS puts employment at 65+ at about 12%
+    "pensioner_pay_median": 13_000,  # lowered from £18,000 so their NICs exemption matches HMRC's £1.2bn cost
+    "pensioner_pay_sigma": 0.9,
     "share_pensioners_private_pension": 0.65,
     "private_pension_median": 7_000,
     "private_pension_sigma": 0.9,
@@ -144,10 +147,12 @@ class Builder:
         r = self.rng
         state = NEW_STATE_PENSION if r.random() < A["share_pensioners_new_state_pension"] else OLD_STATE_PENSION
         private = self.draw("private_pension") if r.random() < A["share_pensioners_private_pension"] else 0.0
-        return {"age": age, "employment": 0.0, "selfEmployment": 0.0, "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
+        working = age < 75 and r.random() < A["share_pensioners_working"]
+        pay = float(np.exp(np.log(A["pensioner_pay_median"]) + A["pensioner_pay_sigma"] * r.standard_normal())) if working else 0.0
+        return {"age": age, "employment": round(pay, 2), "selfEmployment": 0.0, "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
 
     def working_age(self, young=False) -> int:
-        return int(self.rng.integers(18, 25)) if young else int(self.rng.integers(22, 66))
+        return int(self.rng.integers(18, 25)) if young else int(self.rng.integers(18, 66))
 
     def pension_age(self) -> int:
         return int(min(100, 66 + self.rng.exponential(9)))

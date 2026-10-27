@@ -117,6 +117,9 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
             if pd.notna(amount):
                 targets.append(Target(g, f"{label} {col}", amount * 1e6 * EARNINGS_2023_24,
                                       household_row(adults, inb * adults[col].to_numpy(), n), 1, 2e9))
+    # OBR: employees in 2026-27 (EFO March 2026, table 1.6), any age 16+, including those past State Pension age.
+    targets.append(Target("OBR employees", "employees 2026-27", 29.825e6,
+                          household_row(adults, (adults["employment"] > 0).astype(float).to_numpy(), n), 1, 1e6))
     regional = spi[(spi["band_lower"] == "all") & (spi["region"] != "United Kingdom") & ~spi["region"].isin(["England"])]
     taxpayer = (adults["total"] >= 12_570).to_numpy()
     for r in regional.itertuples():

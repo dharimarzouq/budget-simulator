@@ -112,6 +112,15 @@ obr_welfare_2026_03.csv:
     - Universal Credit 2026-27 is split in two (£71.7bn inside the welfare cap, £15.9bn outside); together £87.6bn, matching the Stat-Xplore tables.
     - Child Benefit 2026-27 £13.7bn.
 
+hmrc_nics_reliefs_2026_01.csv:
+  source: hmrc-tax-reliefs-2026-01
+  table: "Table 2: six-year cost estimates, National Insurance reliefs"
+  year: 2020-21 to 2025-26 (2025-26 is a forecast)
+  units: £ million
+  use: lump-sum adjustments (Employment Allowance, apprentice relief) and checks (exemption over State Pension age)
+  notes:
+    - Costs are measured against a world without the relief, so they aren't exactly the revenue a population model should subtract. Close enough for a check.
+
 # Universal Credit households, May 2026, pulled by data/pull_statxplore.py. All five share these notes:
 #   - Great Britain only. Northern Ireland runs its own Universal Credit and isn't in Stat-Xplore.
 #   - Administrative counts, not a survey. Stat-Xplore adds small random adjustments to protect
