@@ -13,3 +13,40 @@ hmrc_income_by_region_band_2023_24.csv:
     - Some regions merge the top income bands, so they have fewer rows.
     - Figures are for 2023-24 and need uprating to 2026-27 (OBR earnings and pensions growth) before use.
     - Survey-based (the Survey of Personal Incomes, a sample of tax records), so small cells carry sampling error.
+
+# Universal Credit households, May 2026, pulled by data/pull_statxplore.py. All five share these notes:
+#   - Great Britain only. Northern Ireland runs its own Universal Credit and isn't in Stat-Xplore.
+#   - Administrative counts, not a survey. Stat-Xplore adds small random adjustments to protect
+#     privacy, so tables can differ from each other by a few households.
+#   - mean_award_gbp_month is the average monthly payment after all deductions (the only form offered).
+#     The tables imply about £87.6bn a year of Universal Credit (households × mean award × 12).
+uc_households_region_family_2026_05.csv:
+  source: dwp-statxplore-uc-households
+  table: Households on Universal Credit, by region and family type
+  year: May 2026
+  units: households; £ a month
+  use: calibration
+uc_households_family_children_2026_05.csv:
+  source: dwp-statxplore-uc-households
+  table: Households on Universal Credit, by family type and number of children
+  year: May 2026
+  units: households; £ a month
+  use: calibration
+uc_households_family_tenure_2026_05.csv:
+  source: dwp-statxplore-uc-households
+  table: Households on Universal Credit, by family type and housing tenure
+  year: May 2026
+  units: households; £ a month
+  use: calibration
+uc_households_family_health_carer_2026_05.csv:
+  source: dwp-statxplore-uc-households
+  table: Households on Universal Credit, by family type, health condition entitlement and carer entitlement
+  year: May 2026
+  units: households; £ a month
+  use: calibration
+uc_households_disabled_child_2026_05.csv:
+  source: dwp-statxplore-uc-households
+  table: Households on Universal Credit, by family type and disabled child entitlement
+  year: May 2026
+  units: households; £ a month
+  use: calibration

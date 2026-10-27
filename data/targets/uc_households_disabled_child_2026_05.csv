@@ -1,0 +1,11 @@
+Family Type,Disabled Child Entitlement,households,mean_award_gbp_month
+"Couple, no children",No,303573.0,913.8
+"Couple, no children",Yes,0.0,0.0
+"Couple, with children",No,660303.0,1224.91
+"Couple, with children",Yes,209729.0,1835.84
+"Single, no children",No,3758961.0,757.36
+"Single, no children",Yes,0.0,0.0
+"Single, with children",No,1810407.0,1193.47
+"Single, with children",Yes,412350.0,1991.15
+Unknown or missing family type,No,1702.0,1043.0
+Unknown or missing family type,Yes,207.0,1430.96

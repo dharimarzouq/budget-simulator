@@ -1,0 +1,21 @@
+Family Type,Housing Entitlement - Tenure,households,mean_award_gbp_month
+"Couple, no children",No Housing Entitlement,76239.0,552.38
+"Couple, no children",Other or unknown,5453.0,875.42
+"Couple, no children",Private Rented Sector,71624.0,1031.16
+"Couple, no children",Social Rented Sector,150253.0,1042.64
+"Couple, with children",No Housing Entitlement,225652.0,869.82
+"Couple, with children",Other or unknown,18429.0,1174.73
+"Couple, with children",Private Rented Sector,284043.0,1541.74
+"Couple, with children",Social Rented Sector,341896.0,1573.5
+"Single, no children",No Housing Entitlement,1808762.0,479.23
+"Single, no children",Other or unknown,59639.0,897.44
+"Single, no children",Private Rented Sector,730364.0,979.85
+"Single, no children",Social Rented Sector,1160194.0,1043.69
+"Single, with children",No Housing Entitlement,561136.0,773.0
+"Single, with children",Other or unknown,47360.0,1288.45
+"Single, with children",Private Rented Sector,617745.0,1557.89
+"Single, with children",Social Rented Sector,996516.0,1529.89
+Unknown or missing family type,No Housing Entitlement,717.0,697.07
+Unknown or missing family type,Other or unknown,68.0,1356.89
+Unknown or missing family type,Private Rented Sector,484.0,1319.25
+Unknown or missing family type,Social Rented Sector,641.0,1313.97

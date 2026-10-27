@@ -1,0 +1,41 @@
+Family Type,Number of Children,households,mean_award_gbp_month
+"Couple, no children",0,303573.0,913.8
+"Couple, no children",1,0.0,0.0
+"Couple, no children",2,0.0,0.0
+"Couple, no children",3,0.0,0.0
+"Couple, no children",4,0.0,0.0
+"Couple, no children",5 or more,0.0,0.0
+"Couple, no children",Not available prior to April 2019,0.0,0.0
+"Couple, no children",Unknown or missing,0.0,0.0
+"Couple, with children",0,0.0,0.0
+"Couple, with children",1,240718.0,1023.59
+"Couple, with children",2,323044.0,1197.63
+"Couple, with children",3,188810.0,1576.69
+"Couple, with children",4,77817.0,1982.45
+"Couple, with children",5 or more,39631.0,2739.52
+"Couple, with children",Not available prior to April 2019,0.0,0.0
+"Couple, with children",Unknown or missing,0.0,0.0
+"Single, no children",0,3758961.0,757.36
+"Single, no children",1,0.0,0.0
+"Single, no children",2,0.0,0.0
+"Single, no children",3,0.0,0.0
+"Single, no children",4,0.0,0.0
+"Single, no children",5 or more,0.0,0.0
+"Single, no children",Not available prior to April 2019,0.0,0.0
+"Single, no children",Unknown or missing,0.0,0.0
+"Single, with children",0,0.0,0.0
+"Single, with children",1,1033732.0,1045.88
+"Single, with children",2,762044.0,1401.85
+"Single, with children",3,297605.0,1799.17
+"Single, with children",4,92994.0,2159.27
+"Single, with children",5 or more,36384.0,2639.68
+"Single, with children",Not available prior to April 2019,0.0,0.0
+"Single, with children",Unknown or missing,0.0,0.0
+Unknown or missing family type,0,0.0,0.0
+Unknown or missing family type,1,0.0,0.0
+Unknown or missing family type,2,0.0,0.0
+Unknown or missing family type,3,0.0,0.0
+Unknown or missing family type,4,0.0,0.0
+Unknown or missing family type,5 or more,0.0,0.0
+Unknown or missing family type,Not available prior to April 2019,0.0,0.0
+Unknown or missing family type,Unknown or missing,1907.0,1085.29

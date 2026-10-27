@@ -2,6 +2,8 @@ node_modules/
 dist/
 .venv-pe/
 .venv/
+# Personal API keys: never committed.
+*.key
 # Downloaded source tables; data/fetch.py gets them again and checks their hashes.
 data/raw/
 __pycache__/

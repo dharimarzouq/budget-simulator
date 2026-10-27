@@ -1,0 +1,41 @@
+Family Type,Limited Capability for Work Entitlement,Carer Entitlement,households,mean_award_gbp_month
+"Couple, no children",LCW,No,988.0,859.09
+"Couple, no children",LCW,Yes,1884.0,1041.15
+"Couple, no children",LCW or LCWRA,No,0.0,0.0
+"Couple, no children",LCW or LCWRA,Yes,0.0,0.0
+"Couple, no children",LCWRA,No,75762.0,1021.93
+"Couple, no children",LCWRA,Yes,143996.0,1089.57
+"Couple, no children",None,No,57172.0,448.99
+"Couple, no children",None,Yes,23770.0,614.56
+"Couple, with children",LCW,No,1015.0,1258.67
+"Couple, with children",LCW,Yes,1797.0,1916.34
+"Couple, with children",LCW or LCWRA,No,0.0,0.0
+"Couple, with children",LCW or LCWRA,Yes,0.0,0.0
+"Couple, with children",LCWRA,No,88040.0,1660.93
+"Couple, with children",LCWRA,Yes,142489.0,2099.64
+"Couple, with children",None,No,437343.0,1001.52
+"Couple, with children",None,Yes,199342.0,1533.53
+"Single, no children",LCW,No,50293.0,1000.28
+"Single, no children",LCW,Yes,0.0,0.0
+"Single, no children",LCW or LCWRA,No,0.0,0.0
+"Single, no children",LCW or LCWRA,Yes,0.0,0.0
+"Single, no children",LCWRA,No,1889382.0,1038.0
+"Single, no children",LCWRA,Yes,0.0,0.0
+"Single, no children",None,No,1577415.0,447.79
+"Single, no children",None,Yes,241870.0,533.54
+"Single, with children",LCW,No,6528.0,1468.34
+"Single, with children",LCW,Yes,0.0,0.0
+"Single, with children",LCW or LCWRA,No,0.0,0.0
+"Single, with children",LCW or LCWRA,Yes,0.0,0.0
+"Single, with children",LCWRA,No,394224.0,1814.0
+"Single, with children",LCWRA,Yes,0.0,0.0
+"Single, with children",None,No,1361573.0,1062.75
+"Single, with children",None,Yes,460436.0,1759.19
+Unknown or missing family type,LCW,No,11.0,1570.97
+Unknown or missing family type,LCW,Yes,0.0,0.0
+Unknown or missing family type,LCW or LCWRA,No,0.0,0.0
+Unknown or missing family type,LCW or LCWRA,Yes,0.0,0.0
+Unknown or missing family type,LCWRA,No,341.0,1641.68
+Unknown or missing family type,LCWRA,Yes,35.0,1589.88
+Unknown or missing family type,None,No,1265.0,885.9
+Unknown or missing family type,None,Yes,253.0,1236.28
