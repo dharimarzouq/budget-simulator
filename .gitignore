@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .venv-pe/
+.venv/
+# Downloaded source tables; data/fetch.py gets them again and checks their hashes.
+data/raw/
 __pycache__/
 # Restricted microdata (e.g. FRS under the UK Data Service licence) must never be committed.
 data/restricted/

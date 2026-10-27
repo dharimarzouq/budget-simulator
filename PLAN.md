@@ -42,7 +42,7 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
    - **5d. Check honestly.** Some published tables are held back from calibration and used only as a test, such as the DWP household income distribution by decile. We then run the engine over the population and compare total income tax, NICs and UC with OBR. The results are written up in `POPULATION.md`, covering what it gets right and what it can't.
    - **5e. Ship it.** A compact data file the page loads, around 1–2 MB.
 
-   Decisions for Ari: build scripts in TypeScript (one language) or Python (better numerical tools); and whether to register for a free Stat-Xplore account (DWP's statistics tool) for the detailed Universal Credit tables, or use the coarser published tables that need no account.
+   Decided by Ari: build scripts in Python (the site stays TypeScript). Ari will register for a free Stat-Xplore account for the detailed Universal Credit tables.
 
 6. **Costing.** Static cost of any change, then a behavioural version using published estimates of how taxable income responds to rates, shown side by side. Checked against HMRC's ready reckoner; large gaps are explained or fixed.
 

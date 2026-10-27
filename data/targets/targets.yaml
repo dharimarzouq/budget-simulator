@@ -1,0 +1,15 @@
+# Published totals the synthetic population is calibrated to (or checked against).
+# Sources are keys into rules/sources.yaml. Built by data/build_targets.py from data/raw/.
+
+hmrc_income_by_region_band_2023_24.csv:
+  source: hmrc-spi-2023-24
+  table: "3.11: Income and tax, by sex, region and country"
+  year: 2023-24
+  population: UK income taxpayers only. People below the personal allowance aren't in it, so other sources are needed for low incomes.
+  units: "*_people_k in thousands of people; *_gbp_m in £ million a year; band_lower is the lower limit of total income in £"
+  use: calibration
+  notes:
+    - Rows for "All" people only; HMRC's male and female splits are left out for now.
+    - Some regions merge the top income bands, so they have fewer rows.
+    - Figures are for 2023-24 and need uprating to 2026-27 (OBR earnings and pensions growth) before use.
+    - Survey-based (the Survey of Personal Incomes, a sample of tax records), so small cells carry sampling error.
