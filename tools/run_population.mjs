@@ -30,7 +30,7 @@ try {
     const row = [
       u.id,
       res.grossIncome,
-      h.adults.reduce((s, a) => s + a.employment, 0),
+      h.adults.reduce((s, a) => s + a.employment + (a.secondJob ?? 0), 0),
       h.adults.reduce((s, a) => s + a.selfEmployment, 0),
       h.adults.reduce((s, a) => s + a.pension, 0),
       sum((a) => a.incomeTax),

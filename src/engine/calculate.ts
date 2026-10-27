@@ -85,12 +85,15 @@ export function bandTax(amount: number, bands: Band[]): { tax: number; working: 
   return { tax, working: parts.join(" + ") || "nothing taxable" };
 }
 
+/** Pay from all jobs. */
+const pay = (a: Adult) => a.employment + (a.secondJob ?? 0);
+
 function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
   const it = r.incomeTax;
   const ni = r.ni;
   const lines: Line[] = [];
 
-  const totalIncome = a.employment + a.selfEmployment + a.pension;
+  const totalIncome = pay(a) + a.selfEmployment + a.pension;
   const adjustedNetIncome = Math.max(0, totalIncome - a.pensionContributions);
   const allowanceLost = Math.min(it.personalAllowance, it.taperRate * Math.max(0, adjustedNetIncome - it.taperThreshold));
   const personalAllowance = it.personalAllowance - allowanceLost;
@@ -112,21 +115,23 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
   const overPensionAge = a.age >= ni.statePensionAge;
   let employeeNI = 0;
   let selfEmployedNI = 0;
+  // Class 1 is worked out on each job separately, each with its own thresholds.
+  const jobs = [a.employment, a.secondJob].filter((p) => p > 0);
+  const jobName = (i: number) => (jobs.length > 1 ? (i === 0 ? "main job: " : "second job: ") : "");
   if (overPensionAge) {
-    if (a.employment || a.selfEmployment) {
+    if (pay(a) || a.selfEmployment) {
       lines.push({ label: "National Insurance", amount: 0, working: `None: at or over State Pension age (${ni.statePensionAge}).` });
     }
   } else {
-    const main = Math.max(0, Math.min(a.employment, ni.upperEarningsLimit) - ni.primaryThreshold);
-    const above = Math.max(0, a.employment - ni.upperEarningsLimit);
-    employeeNI = main * ni.mainRate + above * ni.additionalRate;
-    if (a.employment) {
-      lines.push({
-        label: "Employee National Insurance",
-        amount: employeeNI,
-        working: `${pct(ni.mainRate)} of ${gbp(main)} (pay between ${gbp(ni.primaryThreshold)} and ${gbp(ni.upperEarningsLimit)})` +
-          (above ? ` + ${pct(ni.additionalRate)} of ${gbp(above)} above that` : "") + ". Pension contributions don't reduce it.",
-      });
+    const parts = jobs.map((p, i) => {
+      const main = Math.max(0, Math.min(p, ni.upperEarningsLimit) - ni.primaryThreshold);
+      const above = Math.max(0, p - ni.upperEarningsLimit);
+      employeeNI += main * ni.mainRate + above * ni.additionalRate;
+      return jobName(i) + `${pct(ni.mainRate)} of ${gbp(main)} (pay between ${gbp(ni.primaryThreshold)} and ${gbp(ni.upperEarningsLimit)})` +
+        (above ? ` + ${pct(ni.additionalRate)} of ${gbp(above)} above that` : "");
+    });
+    if (jobs.length) {
+      lines.push({ label: "Employee National Insurance", amount: employeeNI, working: parts.join("; ") + ". Pension contributions don't reduce it." });
     }
     const mainP = Math.max(0, Math.min(a.selfEmployment, ni.upperProfitsLimit) - ni.lowerProfitsLimit);
     const aboveP = Math.max(0, a.selfEmployment - ni.upperProfitsLimit);
@@ -142,9 +147,9 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
   }
   // Employers pay nothing on under-21s' pay up to the upper secondary threshold.
   const employerFrom = a.age < 21 ? Math.max(ni.secondaryThreshold, ni.under21UpperSecondaryThreshold) : ni.secondaryThreshold;
-  const employerNI = Math.max(0, a.employment - employerFrom) * ni.secondaryRate;
+  const employerNI = jobs.reduce((s, p) => s + Math.max(0, p - employerFrom) * ni.secondaryRate, 0);
   const employerNIWorking =
-    `${pct(ni.secondaryRate)} of pay above ${gbp(employerFrom)}` +
+    `${pct(ni.secondaryRate)} of pay above ${gbp(employerFrom)}` + (jobs.length > 1 ? " in each job" : "") +
     (a.age < 21 ? " (the zero rate for employees under 21 covers pay up to that)" : "") +
     ". Not taken from pay, but part of what the job costs.";
 
@@ -244,7 +249,7 @@ function universalCredit(h: Household, adults: AdultResult[], childBenefitYear: 
     elements.push({ label: "Housing element", amount: h.rentMonthly, working: "Rent as entered. Local Housing Allowance caps aren't applied yet." });
   }
 
-  const allWorking = h.adults.every((a) => a.employment + a.selfEmployment > 0);
+  const allWorking = h.adults.every((a) => pay(a) + a.selfEmployment > 0);
   if (kids.length && h.childcareMonthly > 0 && allWorking) {
     const cap = kids.length > 1 ? uc.childcareMaxTwoPlus : uc.childcareMaxOne;
     const share = h.childcareMonthly * uc.childcareShare;
@@ -261,7 +266,7 @@ function universalCredit(h: Household, adults: AdultResult[], childBenefitYear: 
   // has pension income, income tax is split between earnings and pension in proportion (a simplification).
   const earnings = h.adults.reduce((sum, a, i) => {
     const res = adults[i]!;
-    const earned = a.employment + a.selfEmployment - a.pensionContributions;
+    const earned = pay(a) + a.selfEmployment - a.pensionContributions;
     const taxShare = res.adjustedNetIncome > 0 ? Math.max(0, earned) / res.adjustedNetIncome : 0;
     return sum + (earned - res.incomeTax * taxShare - res.employeeNI - res.selfEmployedNI) / 12;
   }, 0);
@@ -323,7 +328,7 @@ export function calculate(h: Household, r: RuleSet): Result {
   const uc = universalCredit(h, adults, cb.amount, r);
   const ucYear = uc.award * 12;
 
-  const grossIncome = h.adults.reduce((s, a) => s + a.employment + a.selfEmployment + a.pension, 0);
+  const grossIncome = h.adults.reduce((s, a) => s + pay(a) + a.selfEmployment + a.pension, 0);
   const sum = (f: (a: AdultResult) => number) => adults.reduce((s, a) => s + f(a), 0);
   const incomeTax = sum((a) => a.incomeTax);
   const ni = sum((a) => a.employeeNI + a.selfEmployedNI);

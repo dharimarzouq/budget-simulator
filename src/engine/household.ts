@@ -6,7 +6,9 @@ export type Region = "london" | "england" | "wales" | "scotland" | "northern_ire
 
 export interface Adult {
   age: number;
-  employment: number; // gross pay
+  employment: number; // gross pay from the main job
+  /** Gross pay from a second job. National Insurance thresholds apply to each job separately. */
+  secondJob: number;
   selfEmployment: number; // taxable profits
   pension: number; // State Pension plus private and workplace pensions being paid out
   /** Employee pension contributions under a net pay arrangement: no income tax, but still National Insurance. */
@@ -37,7 +39,7 @@ export interface Household {
 }
 
 export function adult(overrides: Partial<Adult> = {}): Adult {
-  return { age: 35, employment: 0, selfEmployment: 0, pension: 0, pensionContributions: 0, health: "none", carer: false, ...overrides };
+  return { age: 35, employment: 0, secondJob: 0, selfEmployment: 0, pension: 0, pensionContributions: 0, health: "none", carer: false, ...overrides };
 }
 
 export function child(overrides: Partial<Child> = {}): Child {

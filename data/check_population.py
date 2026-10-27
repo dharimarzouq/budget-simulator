@@ -35,11 +35,15 @@ def main(population: str, results: str) -> None:
     pop = json.loads(Path(population).read_text())["units"]
     units = pd.DataFrame([{"id": u["id"], "weight": u["weight"], "unit": u["unit"]} for u in pop])
     # Employee NICs that people over State Pension age would pay if they weren't exempt.
-    over_spa = sum(
-        u["weight"] * (max(0.0, min(a["employment"], 50_270) - 12_570) * 0.08 + max(0.0, a["employment"] - 50_270) * 0.02)
-        for u in pop for a in u["data"]["adults"] if a["age"] >= 66
-    ) / 1e9
-    employees = sum(u["weight"] for u in pop for a in u["data"]["adults"] if a["employment"] > 0) / 1e6
+    def ni(job: float) -> float:
+        return max(0.0, min(job, 50_270) - 12_570) * 0.08 + max(0.0, job - 50_270) * 0.02
+
+    adults = [(u["weight"], a, [a["employment"], a.get("secondJob", 0.0)]) for u in pop for a in u["data"]["adults"]]
+    over_spa = sum(w * sum(ni(j) for j in jobs) for w, a, jobs in adults if a["age"] >= 66) / 1e9
+    employees = sum(w for w, a, jobs in adults if a["employment"] > 0) / 1e6
+    second_jobs = sum(w for w, a, jobs in adults if jobs[1] > 0) / 1e6
+    pt_cost = sum(w * 0.08 * sum(min(j, 12_570) for j in jobs) for w, a, jobs in adults if a["age"] < 66) / 1e9
+    st_cost = sum(w * 0.15 * sum(min(j, 5_000) for j in jobs) for w, a, jobs in adults) / 1e9
     lump_sums = nics_relief("Employment Allowance") + nics_relief("Relief on employer National Insurance contributions for apprentices")
     res = pd.read_csv(results)
     d = units.merge(res, on="id")
@@ -61,6 +65,9 @@ def main(population: str, results: str) -> None:
         ("Employer NICs", (w * d["employer_ni"]).sum() / 1e9 - lump_sums, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employer"), "£bn", "OBR March 2026",
          f"less £{lump_sums:.1f}bn Employment Allowance and apprentice relief (HMRC 2025-26 costs, not per household)"),
         ("Employees", employees, 29.825, "m", "OBR March 2026 (table 1.6)", ""),
+        ("People with a second job", second_jobs, 1.29, "m", "ONS Labour Force Survey, mid-2026 (via secondary reports)", "ONS figure includes second self-employed jobs"),
+        ("Cost of the NICs primary threshold", pt_cost, nics_relief("Primary Threshold"), "£bn", "HMRC tax relief statistics 2025-26", ""),
+        ("Cost of the NICs secondary threshold", st_cost, nics_relief("Secondary Threshold"), "£bn", "HMRC tax relief statistics 2025-26", ""),
         ("Employee NICs exemption over State Pension age", over_spa, nics_relief("Exemption for individuals over State Pension Age"), "£bn", "HMRC tax relief statistics 2025-26", ""),
         ("Self-employed NICs", (w * d["self_employed_ni"]).sum() / 1e9, obr("obr_income_tax_nics_2026_03.csv", "Class 4"), "£bn", "OBR March 2026", ""),
         ("Child Benefit", (w * d["child_benefit"]).sum() / 1e9, obr("obr_welfare_2026_03.csv", "Child benefit"), "£bn", "OBR March 2026", ""),

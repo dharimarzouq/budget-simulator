@@ -70,6 +70,12 @@ def main() -> None:
         f"frs_households_savings_composition_{tag}.csv": frs(year_uri, [FRS_F + "savings_band_inyr_new", FRS_F + "COMPOS_KID"]),
         f"frs_households_benefits_{tag}.csv": frs(year_uri, [FRS_F + "REC_CHB", FRS_F + "REC_UC", FRS_F + "REC_RP"]),
     }
+    # FRS adults: how many adults there are, by age and employment status.
+    ad = "str:database:FRSAD"
+    ad_f = "str:field:FRSAD:V_F_FRSAD:"
+    ad_year = dict(sx.field_items(ad, "str:count:FRSAD:V_F_FRSAD", ad_f + "YEAR"))[year_label]
+    adults = sx.cube(ad, {"adults": "str:count:FRSAD:V_F_FRSAD"}, [ad_f + "YEAR", ad_f + "AGEBAND", ad_f + "EMPSTAT"], sx.only(ad_f + "YEAR", ad_year))
+    tables[f"frs_adults_age_employment_{tag}.csv"] = adults.drop(columns=["Financial Year"]).rename(columns={"adults": "households"})
 
     for name, df in tables.items():
         df.to_csv(OUT / name, index=False)

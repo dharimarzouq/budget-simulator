@@ -14,6 +14,7 @@ function adultFields(i: number, defaults: { age: number; employment: number }) {
   return `
     ${num(`a${i}_age`, "Age", defaults.age, 1)}
     ${num(`a${i}_employment`, "Pay from employment, a year", defaults.employment, 500)}
+    ${num(`a${i}_secondJob`, "Pay from a second job, a year", 0, 500)}
     ${num(`a${i}_selfEmployment`, "Self-employment profits, a year", 0, 500)}
     ${num(`a${i}_pension`, "Pension income, a year", 0, 500)}
     ${num(`a${i}_pensionContributions`, "Own pension contributions, a year", 0, 100)}
@@ -54,6 +55,7 @@ export function readForm(form: HTMLFormElement): Household {
     adult({
       age: n(`a${i}_age`),
       employment: n(`a${i}_employment`),
+      secondJob: n(`a${i}_secondJob`),
       selfEmployment: n(`a${i}_selfEmployment`),
       pension: n(`a${i}_pension`),
       pensionContributions: n(`a${i}_pensionContributions`),

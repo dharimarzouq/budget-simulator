@@ -39,6 +39,9 @@ ASSUMPTIONS = {
     "pay_top_tail_share": 0.04,  # employees drawn from a Pareto tail instead
     "pay_top_tail_min": 80_000,
     "pay_top_tail_alpha": 1.6,
+    "share_employees_second_job": 0.06,  # ONS: about 1.29m people (3.7% of the employed) had a second job in 2026
+    "second_job_median": 5_000,
+    "second_job_sigma": 0.9,
     "profit_median": 14_000,
     "profit_sigma": 1.0,
     "profit_top_tail_share": 0.04,  # self-employed drawn from a Pareto tail, so very high profits exist
@@ -63,6 +66,13 @@ ASSUMPTIONS = {
     "rent_sigma": 0.35,  # spread of rents around the regional mean
     "share_under5_with_childcare": 0.35,  # households with a child under 5 and all adults working
     "childcare_median_month": 700,
+    # Property, savings interest and dividend income. Not taxed by the engine yet, but it decides which HMRC
+    # income band a person falls in. HMRC: 22.4m of 36.7m taxpayers have some, £125bn in all (2023-24).
+    "share_with_other_income": 0.6,
+    "other_income_share_of_income": 0.05,  # median, as a share of the person's other income
+    "other_income_sigma": 1.6,
+    "share_large_households_two_extra": 0.4,  # households of 3+ adults with 4+ adults
+    "share_extra_adults_older": 0.25,  # extra adults who are older relatives rather than grown-up children
     "uc_take_up": 0.85,
     "cb_opt_out_60k_80k": 0.4,  # families whose higher earner is in the Child Benefit charge range
     "cb_opt_out_over_80k": 0.8,
@@ -130,9 +140,11 @@ class Builder:
         r = self.rng
         p_emp = A["share_employee_lone_parent"] if lone_parent else A["share_employee"]
         u = r.random()
-        a = {"age": age, "employment": 0.0, "selfEmployment": 0.0, "pension": 0.0, "pensionContributions": 0.0, "health": "none", "carer": False}
+        a = {"age": age, "employment": 0.0, "secondJob": 0.0, "selfEmployment": 0.0, "pension": 0.0, "pensionContributions": 0.0, "health": "none", "carer": False}
         if u < p_emp:
             a["employment"] = round(self.draw("pay"), 2)
+            if r.random() < A["share_employees_second_job"]:
+                a["secondJob"] = round(float(np.exp(np.log(A["second_job_median"]) + A["second_job_sigma"] * r.standard_normal())), 2)
             a["carer"] = bool(r.random() < A["share_working_carer"])
         elif u < p_emp + A["share_self_employed"]:
             a["selfEmployment"] = round(self.draw("profit"), 2)
@@ -149,7 +161,7 @@ class Builder:
         private = self.draw("private_pension") if r.random() < A["share_pensioners_private_pension"] else 0.0
         working = age < 75 and r.random() < A["share_pensioners_working"]
         pay = float(np.exp(np.log(A["pensioner_pay_median"]) + A["pensioner_pay_sigma"] * r.standard_normal())) if working else 0.0
-        return {"age": age, "employment": round(pay, 2), "selfEmployment": 0.0, "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
+        return {"age": age, "employment": round(pay, 2), "secondJob": 0.0, "selfEmployment": 0.0, "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
 
     def working_age(self, young=False) -> int:
         return int(self.rng.integers(18, 25)) if young else int(self.rng.integers(18, 66))
@@ -204,24 +216,38 @@ class Builder:
             partner = {**adult(), "age": max(18, first["age"] + int(r.integers(-4, 5)))}
             units = [{"adults": [first, partner], "children": kids}]
         else:
-            # Three or more adults: a couple (with any children) plus one more adult, usually a grown-up child.
+            # Three or more adults: a couple (with any children) plus one or two more adults, each their own
+            # benefit unit. Mostly grown-up children; some older relatives.
             first = adult()
             partner = {**adult(), "age": max(18, first["age"] + int(r.integers(-4, 5)))}
-            extra = self.working_age_adult(self.working_age(young=True))
-            units = [{"adults": [first, partner], "children": kids}, {"adults": [extra], "children": []}]
+            units = [{"adults": [first, partner], "children": kids}]
+            for _ in range(1 if r.random() >= A["share_large_households_two_extra"] else 2):
+                if r.random() < A["share_extra_adults_older"]:
+                    age = int(r.integers(55, 90))
+                    extra = self.pensioner(age) if age >= 66 else self.working_age_adult(age)
+                else:
+                    extra = self.working_age_adult(int(r.integers(18, 31)))
+                units.append({"adults": [extra], "children": []})
 
         for i, u in enumerate(units):
+            # Kept outside the engine's household data, because the engine doesn't model it yet.
+            u["otherIncome"] = [
+                round(float(np.exp(np.log(max(300.0, A["other_income_share_of_income"] * (a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"])))
+                                   + A["other_income_sigma"] * r.standard_normal())), 2)
+                if r.random() < A["share_with_other_income"] else 0.0
+                for a in u["adults"]
+            ]
             u["region"] = engine_region(region)
             u["rentMonthly"] = self.rent_month(region, tenure) if i == 0 else 0.0
             u["savings"] = self.savings_amount(kids_label) if i == 0 else 0.0
-            working = all(a["employment"] + a["selfEmployment"] > 0 for a in u["adults"])
+            working = all(a["employment"] + a["secondJob"] + a["selfEmployment"] > 0 for a in u["adults"])
             under5 = any(k["age"] < 5 for k in u["children"])
             u["childcareMonthly"] = (
                 round(float(np.exp(np.log(A["childcare_median_month"]) + 0.5 * r.standard_normal())), 2)
                 if under5 and working and r.random() < A["share_under5_with_childcare"] else 0.0
             )
             u["claimsUniversalCredit"] = bool(r.random() < A["uc_take_up"])
-            top = max(a["employment"] + a["selfEmployment"] + a["pension"] for a in u["adults"])
+            top = max(a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"] for a in u["adults"])
             opt_out = A["cb_opt_out_over_80k"] if top > 80_000 else A["cb_opt_out_60k_80k"] if top > 60_000 else 0
             u["claimsChildBenefit"] = bool(r.random() >= opt_out)
         return comp, units
@@ -237,9 +263,11 @@ class Builder:
             for _ in range(n):
                 comp, units = self.benefit_units(region, cell.kids, cell.tenure)
                 for j, u in enumerate(units):
+                    other = u.pop("otherIncome")
                     out.append({
                         "id": f"{hh_id}-{j}", "household": hh_id, "unit": j, "weight": weight,
-                        "regionDetail": region, "tenure": cell.tenure, "composition": comp, "data": u,
+                        "regionDetail": region, "tenure": cell.tenure, "composition": comp,
+                        "otherIncome": other, "data": u,
                     })
                 hh_id += 1
         return out

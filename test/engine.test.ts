@@ -69,6 +69,17 @@ describe("income tax and National Insurance", () => {
     expect(res.universalCredit.notEligible).toMatch(/Pension Credit/);
   });
 
+  it("a second job gets its own National Insurance thresholds, but income tax is on the total", () => {
+    // Main job £30,000, second job £8,000. Income tax on £38,000: 25,430 × 20% = 5,086.
+    // Employee NI: 17,430 × 8% = 1,394.40 on the main job; nothing on the second (under £12,570).
+    // As one £38,000 job it would be 25,430 × 8% = 2,034.40.
+    // Employer NI: 15% × 25,000 + 15% × 3,000 = 4,200.
+    const res = calculate(household({ adults: [adult({ employment: 30000, secondJob: 8000 })] }), r).adults[0]!;
+    expect(res.incomeTax).toBeCloseTo(5086, 2);
+    expect(res.employeeNI).toBeCloseTo(1394.4, 2);
+    expect(res.employerNI).toBeCloseTo(4200, 2);
+  });
+
   it("employers pay nothing for under-21s up to £50,270, then 15%", () => {
     // £30,000 at 19: no employer NI. £60,000 at 20: 15% × 9,730 = 1,459.50. Employee NI is unchanged.
     expect(calculate(household({ adults: [adult({ age: 19, employment: 30000 })] }), r).adults[0]!.employerNI).toBe(0);

@@ -56,6 +56,14 @@ frs_households_savings_composition_2024-25.csv:
   year: 2024-25
   units: households
   use: seed and check
+frs_adults_age_employment_2024-25.csv:
+  source: dwp-statxplore-frs
+  table: Adults by age band and employment status (FRS adult dataset)
+  year: 2024-25
+  units: adults (the column is named "households" by the pull script; it counts adults)
+  use: calibration (age bands); employment status for checks
+  notes:
+    - 53.6 million adults. FRS "adults" include 16-17 year-olds who aren't dependent children.
 frs_households_benefits_2024-25.csv:
   source: dwp-statxplore-frs
   table: Households by receipt of Child Benefit, Universal Credit and State Pension
