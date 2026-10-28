@@ -117,11 +117,13 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         inb = ((adults["total"] >= r.lo * EARNINGS_2023_24) & (adults["total"] < hi * EARNINGS_2023_24)).to_numpy()
         label = f"£{int(r.lo):,}+"
         g = "HMRC people and income by income band"
-        targets.append(Target(g, f"{label} people", r.taxpayers_k * 1e3, household_row(adults, inb.astype(float), n), 1, 50_000))
+        # Low weight: uprating 2023-24 band edges with earnings ignores frozen thresholds pulling people into tax.
+        # HMRC's own 2026-27 projections by band (below) take priority.
+        targets.append(Target(g, f"{label} people", r.taxpayers_k * 1e3, household_row(adults, inb.astype(float), n), 0.3, 50_000))
         for col, amount in [("employment", r.employment_gbp_m), ("self_employment", r.self_employment_gbp_m), ("pension", r.pension_gbp_m)]:
             if pd.notna(amount):
                 targets.append(Target(g, f"{label} {col}", amount * 1e6 * EARNINGS_2023_24,
-                                      household_row(adults, inb * adults[col].to_numpy(), n), 1, 2e9))
+                                      household_row(adults, inb * adults[col].to_numpy(), n), 0.3, 2e9))
         # Table 3.7: property (with HMRC's small "other income"), interest and dividends: amounts and people.
         o = other_by_band.loc[r.band_lower]
         g2 = "HMRC property, interest and dividends by income band"
@@ -129,6 +131,20 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
                                     ("interest", o.interest_people_k, o.interest_gbp_m), ("dividends", o.dividends_people_k, o.dividends_gbp_m)]:
             targets.append(Target(g2, f"{label} {col}", amount * 1e6 * EARNINGS_2023_24, household_row(adults, inb * adults[col].to_numpy(), n), 1, 1e9))
             targets.append(Target(g2, f"{label} {col} people", people * 1e3, household_row(adults, (inb & (adults[col] > 0).to_numpy()).astype(float), n), 0.5, 50_000))
+    # HMRC Income Tax liabilities statistics (July 2026), Table 2.5: projected taxpayers and total income by
+    # range of total income, for 2026-27 itself, so no uprating. Taxpayers are taken as people above the
+    # personal allowance.
+    r25 = pd.read_csv(T / "hmrc_income_tax_by_range_2026_27.csv")
+    r25 = r25[r25["band_lower"] != "all"].copy()
+    r25["lo"] = r25["band_lower"].astype(float)
+    edges25 = list(r25["lo"]) + [np.inf]
+    for i, row in enumerate(r25.itertuples()):
+        inb = ((adults["total"] >= row.lo) & (adults["total"] < edges25[i + 1])).to_numpy()
+        label = f"£{int(row.lo):,}+"
+        g = "HMRC 2026-27 taxpayers and income by range"
+        # Weighted up: HMRC's own projection for this exact year is the most direct source for who pays tax.
+        targets.append(Target(g, f"{label} taxpayers", row.taxpayers_k * 1e3, household_row(adults, inb.astype(float), n), 2, 50_000))
+        targets.append(Target(g, f"{label} total income", row.total_income_gbp_m * 1e6, household_row(adults, inb * adults["total"].to_numpy(), n), 2, 2e9))
     # OBR: employees in 2026-27 (EFO March 2026, table 1.6), any age 16+, including those past State Pension age.
     targets.append(Target("OBR employees", "employees 2026-27", 29.825e6,
                           household_row(adults, (adults["employment"] > 0).astype(float).to_numpy(), n), 1, 1e6))

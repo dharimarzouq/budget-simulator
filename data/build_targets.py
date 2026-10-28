@@ -81,6 +81,26 @@ def t37_header() -> str:
     return raw.iloc[4, 0]
 
 
+def liabilities_2026_27() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """HMRC Income Tax liabilities statistics (July 2026): projections for 2026-27 itself.
+    Table 2.5: taxpayers, income and tax by range of total income. Table 2.6: tax by source and band."""
+    path = RAW / "hmrc_income_tax_liabilities_2026_07.ods"
+    t25 = simple_table(path, "2_5_IT_Liabilities_2026-27")
+    t25.columns = [str(c).replace("\n", " ") for c in t25.columns]
+    pick = lambda start: next(c for c in t25.columns if c.startswith(start))
+    by_range = pd.DataFrame({
+        "band_lower": t25.iloc[:, 0].astype(str).str.replace(r"[^\d.]", "", regex=True).replace("", "all"),
+        "taxpayers_k": t25[pick("Total number")],
+        "total_income_gbp_m": t25[pick("Total income")],
+        "income_tax_gbp_m": t25[pick("Total Income Tax")],
+    })
+    by_range.loc[t25.iloc[:, 0].astype(str).str.startswith("All"), "band_lower"] = "all"
+    by_range["band_lower"] = by_range["band_lower"].str.replace(r"\.0$", "", regex=True)
+    t26 = simple_table(path, "2_6_IT_by_income_source_2026-27")
+    t26.columns = ["line", "savers_rate", "basic_rate", "higher_rate", "additional_rate", "all_taxpayers"]
+    return by_range, t26
+
+
 def simple_table(path: Path, sheet: str) -> pd.DataFrame:
     """A sheet with a few lines of notes, then a header row, then data until 'End of worksheet'."""
     raw = pd.read_excel(path, engine="odf", sheet_name=sheet, header=None)
@@ -147,6 +167,10 @@ def main() -> None:
     OUT.mkdir(exist_ok=True)
     t = spi_by_region()
     t.to_csv(OUT / "hmrc_income_by_region_band_2023_24.csv", index=False)
+    r25, r26 = liabilities_2026_27()
+    r25.to_csv(OUT / "hmrc_income_tax_by_range_2026_27.csv", index=False)
+    r26.to_csv(OUT / "hmrc_income_tax_by_source_2026_27.csv", index=False)
+    print("Table 2.5 (2026-27):", r25.to_string(index=False))
     o = spi_other_income()
     o.to_csv(OUT / "hmrc_property_interest_dividends_by_band_2023_24.csv", index=False)
     print("Table 3.7:", o[o["band_lower"] == "all"].to_dict("records"))

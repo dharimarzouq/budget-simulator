@@ -135,6 +135,18 @@ hmrc_nics_reliefs_2026_01.csv:
   notes:
     - Costs are measured against a world without the relief, so they aren't exactly the revenue a population model should subtract. Close enough for a check.
 
+hmrc_income_tax_by_range_2026_27.csv:
+  source: hmrc-income-tax-liabilities-2026-07
+  table: "2.5: Income Tax liabilities by income range, 2026-27 (projected)"
+  year: 2026-27
+  units: thousands of taxpayers; £ million
+  use: calibration (taxpayers and total income per range, weighted x2); total liabilities (£347bn) as the check for income tax
+hmrc_income_tax_by_source_2026_27.csv:
+  source: hmrc-income-tax-liabilities-2026-07
+  table: "2.6: Income Tax liabilities by income source, tax band and marginal rate, 2026-27 (projected)"
+  year: 2026-27
+  units: £ million
+  use: check (tax on earnings and other non-savings income, savings, dividends)
 hmrc_property_interest_dividends_by_band_2023_24.csv:
   source: hmrc-spi-2023-24
   table: "3.7: Property, interest, dividend and other income"

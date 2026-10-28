@@ -43,7 +43,7 @@ ASSUMPTIONS = {
     "share_employees_second_job": 0.06,  # ONS: about 1.29m people (3.7% of the employed) had a second job in 2026
     "second_job_median": 5_000,
     "second_job_sigma": 0.9,
-    "profit_median": 14_000,
+    "profit_median": 20_000,  # raised from £14,000: HMRC shows most self-employed pay tax (mean profit about £29,000)
     "profit_sigma": 1.0,
     "profit_top_tail_share": 0.04,  # self-employed drawn from a Pareto tail, so very high profits exist
     "profit_top_tail_min": 80_000,
@@ -72,6 +72,7 @@ ASSUMPTIONS = {
     "property_sigma": 0.8,
     "interest_sigma": 1.5,
     "dividends_sigma": 1.8,
+    "share_pensioner_couples_both": 0.7,  # pensioner couples where both are over State Pension age
     "share_large_households_two_extra": 0.4,  # households of 3+ adults with 4+ adults
     "share_extra_adults_older": 0.25,  # extra adults who are older relatives rather than grown-up children
     "uc_take_up": 0.85,
@@ -128,6 +129,14 @@ class Builder:
                  4: "Families: Four children", 5: "Families: Five to Nine children [note 3]"}
         counts = np.array([float(cbf[c]) for c in sizes.values()])
         self.kids_p = counts / counts.sum()
+        # FRS 2024-25 adults by age band, for working-age adults' ages (18-65).
+        fa = pd.read_csv(TARGETS / "frs_adults_age_employment_2024-25.csv")
+        fa.columns = ["age", "status", "adults"]
+        bands = fa.groupby("age")["adults"].sum()
+        spans = {"16 to 24 (adult)": (18, 24), "25 to 34": (25, 34), "35 to 44": (35, 44), "45 to 54": (45, 54), "55 to 59": (55, 59), "60 to 64": (60, 65)}
+        self.age_bands = [spans[b] for b in spans]
+        w = np.array([bands[b] for b in spans])
+        self.age_band_p = w / w.sum()
         # HMRC SPI 2023-24: for each band of total income, the share of taxpayers with property income, interest
         # and dividends, and their average amounts, uprated to 2026-27 with earnings.
         spi = pd.read_csv(TARGETS / "hmrc_income_by_region_band_2023_24.csv")
@@ -194,7 +203,11 @@ class Builder:
         return {"age": age, "employment": round(pay, 2), "secondJob": 0.0, "selfEmployment": 0.0, "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
 
     def working_age(self, young=False) -> int:
-        return int(self.rng.integers(18, 25)) if young else int(self.rng.integers(18, 66))
+        """An age from 18 to 65, following the FRS's count of adults in each age band."""
+        if young:
+            return int(self.rng.integers(18, 25))
+        lo, hi = self.age_bands[self.rng.choice(len(self.age_bands), p=self.age_band_p)]
+        return int(self.rng.integers(lo, hi + 1))
 
     def pension_age(self) -> int:
         return int(min(100, 66 + self.rng.exponential(9)))
@@ -241,16 +254,19 @@ class Builder:
 
         if "one adult" in comp or "one female" in comp or "one male" in comp:
             units = [{"adults": [adult(lone_parent=has_kids)], "children": kids}]
-        elif "two adults" in comp:
-            first = adult()
-            partner = {**adult(), "age": max(18, first["age"] + int(r.integers(-4, 5)))}
-            units = [{"adults": [first, partner], "children": kids}]
         else:
-            # Three or more adults: a couple (with any children) plus one or two more adults, each their own
-            # benefit unit. Mostly grown-up children; some older relatives.
             first = adult()
-            partner = {**adult(), "age": max(18, first["age"] + int(r.integers(-4, 5)))}
+            if pensioner_hh and r.random() >= A["share_pensioner_couples_both"]:
+                # A pensioner with a younger partner who hasn't reached State Pension age.
+                partner = self.working_age_adult(int(r.integers(55, 66)))
+            else:
+                # A partner of about the same age, on the same side of State Pension age.
+                age = max(18, first["age"] + int(r.integers(-4, 5)))
+                partner = self.pensioner(max(66, age)) if pensioner_hh else self.working_age_adult(min(age, 65))
             units = [{"adults": [first, partner], "children": kids}]
+        if not ("one adult" in comp or "one female" in comp or "one male" in comp or "two adults" in comp):
+            # Three or more adults: the couple (with any children) plus one or two more adults, each their own
+            # benefit unit. Mostly grown-up children; some older relatives.
             for _ in range(1 if r.random() >= A["share_large_households_two_extra"] else 2):
                 if r.random() < A["share_extra_adults_older"]:
                     age = int(r.integers(55, 90))

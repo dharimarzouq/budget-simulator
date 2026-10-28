@@ -25,6 +25,19 @@ def obr(file: str, line_start: str, section: str | None = None) -> float:
     return float(t["gbp_bn"].sum())
 
 
+def liab(band: str, column: str) -> float:
+    """HMRC Income Tax liabilities statistics, Table 2.5, 2026-27 (£m or thousands)."""
+    t = pd.read_csv(T / "hmrc_income_tax_by_range_2026_27.csv", dtype={"band_lower": str})
+    return float(t.loc[t["band_lower"] == band, column].iloc[0])
+
+
+def src(kind: str) -> float:
+    """HMRC Table 2.6, 2026-27: income tax on earnings (all non-savings income), savings or dividends, £bn."""
+    t = pd.read_csv(T / "hmrc_income_tax_by_source_2026_27.csv")
+    rows = t[t["line"].str.startswith(f"Income Tax on {kind}")]
+    return float(pd.to_numeric(rows["all_taxpayers"]).sum()) / 1e3
+
+
 def nics_relief(name_start: str) -> float:
     """HMRC's 2025-26 cost of a NICs relief, £bn (tax relief statistics, January 2026)."""
     t = pd.read_csv(T / "hmrc_nics_reliefs_2026_01.csv")
@@ -96,7 +109,12 @@ def main(population: str, results: str) -> None:
         ("Employment income", (w * d["employment"]).sum() / 1e9, spi_uk["employment_gbp_m"] / 1e3 * EARNINGS_2023_24_TO_2026_27, "£bn", "HMRC SPI 2023-24, uprated", "taxpayers only in HMRC's figure"),
         ("Self-employment profits", (w * d["self_employment"]).sum() / 1e9, spi_uk["self_employment_gbp_m"] / 1e3 * EARNINGS_2023_24_TO_2026_27, "£bn", "HMRC SPI 2023-24, uprated", "taxpayers only"),
         ("Pension income", (w * d["pension"]).sum() / 1e9, spi_uk["pension_gbp_m"] / 1e3 * EARNINGS_2023_24_TO_2026_27, "£bn", "HMRC SPI 2023-24, uprated", "taxpayers only; uprated with earnings as an approximation"),
-        ("Income tax", (w * d["income_tax"]).sum() / 1e9, obr("obr_income_tax_nics_2026_03.csv", "Income tax"), "£bn", "OBR March 2026", "OBR includes tax on savings, dividends, property"),
+        ("Income tax", (w * d["income_tax"]).sum() / 1e9, obr("obr_income_tax_nics_2026_03.csv", "Income tax"), "£bn", "OBR March 2026", "receipts; include tax we don't model per person (trusts, timing)"),
+        ("Income tax liabilities", (w * d["income_tax"]).sum() / 1e9, liab("all", "income_tax_gbp_m") / 1e3, "£bn", "HMRC liabilities 2026-27 (July 2026)", "the like-for-like comparison"),
+        ("Income tax on earnings, pensions and property", (w * d["non_savings_tax"]).sum() / 1e9, src("earnings"), "£bn", "HMRC liabilities 2026-27, table 2.6", ""),
+        ("Income tax on savings", (w * d["savings_tax"]).sum() / 1e9, src("savings"), "£bn", "HMRC liabilities 2026-27, table 2.6", ""),
+        ("Income tax on dividends", (w * d["dividend_tax"]).sum() / 1e9, src("dividends"), "£bn", "HMRC liabilities 2026-27, table 2.6", ""),
+        ("Income taxpayers 2026-27", (w * d["taxpayers"]).sum() / 1e6, liab("all", "taxpayers_k") / 1e3, "m", "HMRC liabilities 2026-27", ""),
         ("Employee NICs", (w * d["employee_ni"]).sum() / 1e9, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employee"), "£bn", "OBR March 2026", ""),
         ("Employer NICs", (w * d["employer_ni"]).sum() / 1e9 - lump_sums, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employer"), "£bn", "OBR March 2026",
          f"less £{lump_sums:.1f}bn Employment Allowance and apprentice relief (HMRC 2025-26 costs, not per household)"),

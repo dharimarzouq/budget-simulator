@@ -26,6 +26,8 @@ export interface AdultResult {
   /** Earnings, pensions and property income after pension contributions, and the tax on it (before savings and dividends). */
   nonSavingsIncome: number;
   nonSavingsTax: number;
+  savingsTax: number;
+  dividendTax: number;
   employeeNI: number;
   selfEmployedNI: number;
   /** Paid by the employer, so not taken from the household's income; needed for costings. */
@@ -199,7 +201,7 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
 
   return {
     totalIncome, adjustedNetIncome, personalAllowance, taxableIncome, incomeTax,
-    nonSavingsIncome: nonSavings, nonSavingsTax: ns.tax,
+    nonSavingsIncome: nonSavings, nonSavingsTax: ns.tax, savingsTax: sv.tax, dividendTax: dv.tax,
     employeeNI, selfEmployedNI, employerNI, employerNIWorking, lines,
   };
 }

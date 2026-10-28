@@ -1,0 +1,14 @@
+line,savers_rate,basic_rate,higher_rate,additional_rate,all_taxpayers
+Income Tax on earnings (at basic rate),14,90900,52900,9120.0,153000.0
+Income Tax on earnings (at higher rate),[not applicable],[not applicable],53000,37300.0,90300.0
+Income Tax on earnings (at additional rate),[not applicable],[not applicable],[not applicable],75500.0,75500.0
+Income Tax on savings (at basic rate),123,977,461,87.0,1650.0
+Income Tax on savings (at higher rate),[not applicable],[not applicable],1760,802.0,2560.0
+Income Tax on savings (at additional rate),[not applicable],[not applicable],[not applicable],3970.0,3970.0
+Income Tax on dividends (at basic rate),476,847,1810,78.0,3210.0
+Income Tax on dividends (at higher rate),[not applicable],[not applicable],5090,1960.0,7050.0
+Income Tax on dividends (at additional rate),[not applicable],[not applicable],[not applicable],9510.0,9510.0
+Allowances given as Income Tax reductions,7,572,1100,3690.0,5370.0
+Total Income Tax liability after allowances [note 5],613,93000,115000,138000.0,347000.0
+Average rate of Income Tax,0.052,0.104,0.208,0.375,0.19
+Average amount of Income Tax in £,1480,2960,14900,107000.0,8510.0

@@ -20,35 +20,35 @@ Two things to know about HMRC's figures:
 
 | Change | Ours (£m) | HMRC (£m) | Ratio | Why they differ |
 |---|---:|---:|---:|---|
-| Basic rate +1p | 7,021 | 8,073 | 0.87 | Probably too few taxpayers just above the personal allowance (see POPULATION.md) |
-| Higher rate +1p | 2,328 | 2,104 | 1.11 | Some behaviour in HMRC's figure |
-| Additional rate +1p (yield) | 1,699 | 259 | 6.6 | HMRC's includes behaviour: top earners shift and defer income. **Ours is static and overstates this.** See 6d |
-| Additional rate −1p (cost) | −1,699 | −328 | 5.2 | Same |
-| Personal allowance +£100 | −898 | −1,027 | 0.87 | Too few taxpayers at the bottom, as for the basic rate |
-| Personal allowance +1% | −1,128 | −1,174 | 0.96 | |
-| Basic rate band +1% | −650 | −651 | 1.00 | |
-| Basic rate band +10% | −6,034 | −6,116 | 0.99 | |
-| Basic rate band −10% | 7,095 | 7,046 | 1.01 | |
-| Employee NICs main rate +1pp | 5,627 | 5,350 | 1.05 | |
-| Employee NICs additional rate +1pp | 2,997 | 2,000 | 1.50 | Behaviour, plus pay at the top that's taxable but not liable to NICs (share schemes, some benefits in kind) |
-| Employer NICs rate +1pp | 10,435 | 11,150 | 0.94 | HMRC's includes employer NICs on benefits in kind (Class 1A), which we don't model |
-| Class 4 main rate +1pp | 426 | 514 | 0.83 | |
-| Class 4 additional rate +1pp | 484 | 347 | 1.39 | Self-employed profits at the top are too high in the population |
-| Employee threshold +£2 a week | −213 | −210 | 1.01 | |
-| Employer threshold +£2 a week | −432 | −420 | 1.03 | |
-| Upper earnings limit +£10 a week | 197 | 220 | 0.90 | |
-| Lower profits limit +£104 | −15 | −15 | 1.01 | |
-| Upper profits limit +£520 | 8 | 10 | 0.87 | |
-| Child Benefit first child +£1 a week | −362 | −335 | 1.08 | The population has 5% too many families paid Child Benefit |
-| Child Benefit other children +£1 a week | −254 | −230 | 1.10 | Same |
+| Basic rate +1p | 7,133 | 8,073 | 0.88 | 2.7m too few taxpayers, all under 65 (see POPULATION.md); also uncertainty in the comparison, which mixes liabilities and receipts |
+| Higher rate +1p | 2,325 | 2,104 | 1.11 | Some behaviour in HMRC's figure |
+| Additional rate +1p (yield) | 1,622 | 259 | 6.3 | HMRC's includes behaviour: top earners shift and defer income. **Ours is static and overstates this.** See 6d |
+| Additional rate −1p (cost) | −1,622 | −328 | 4.9 | Same |
+| Personal allowance +£100 | −900 | −1,027 | 0.88 | Worth about £20 to each taxpayer, so it scales with the number of taxpayers, which is 7% short |
+| Personal allowance +1% | −1,131 | −1,174 | 0.96 | |
+| Basic rate band +1% | −641 | −651 | 0.98 | |
+| Basic rate band +10% | −6,003 | −6,116 | 0.98 | |
+| Basic rate band −10% | 7,015 | 7,046 | 1.00 | |
+| Employee NICs main rate +1pp | 5,865 | 5,350 | 1.10 | Pay between the thresholds is a little high in the population |
+| Employee NICs additional rate +1pp | 2,988 | 2,000 | 1.49 | Behaviour, plus pay at the top that's taxable but not liable to NICs (share schemes, some benefits in kind) |
+| Employer NICs rate +1pp | 10,635 | 11,150 | 0.95 | HMRC's includes employer NICs on benefits in kind (Class 1A), which we don't model |
+| Class 4 main rate +1pp | 442 | 514 | 0.86 | |
+| Class 4 additional rate +1pp | 502 | 347 | 1.45 | Self-employed profits at the top are too high in the population |
+| Employee threshold +£2 a week | −221 | −210 | 1.05 | |
+| Employer threshold +£2 a week | −443 | −420 | 1.05 | |
+| Upper earnings limit +£10 a week | 200 | 220 | 0.91 | |
+| Lower profits limit +£104 | −15 | −15 | 1.03 | |
+| Upper profits limit +£520 | 9 | 10 | 0.91 | |
+| Child Benefit first child +£1 a week | −361 | −335 | 1.08 | The population has 5% too many families paid Child Benefit |
+| Child Benefit other children +£1 a week | −255 | −230 | 1.11 | Same |
 
-(Updated 28 October 2026, after property, savings and dividend income began to be taxed. Before that, the basic rate band lines were 14% low; now they match HMRC to within 1%.)
+(Updated 28 October 2026, after property, savings and dividend income began to be taxed and the population was calibrated to HMRC's 2026-27 taxpayer projections. Before the first change, the basic rate band lines were 14% low; now they match HMRC to within 2%.)
 
 ### What this means for trusting a costing
 
-- **National Insurance thresholds and limits, the basic rate band, the personal allowance by 1%:** within 4% of HMRC. Trustworthy.
+- **National Insurance thresholds and limits, the basic rate band, the personal allowance by 1%:** within 5% of HMRC. Trustworthy.
 - **Higher rate, employee and employer NICs main rates:** within 11%. Good.
-- **Basic rate, personal allowance in pounds:** about 13% low, probably because there are too few taxpayers just above the allowance. Treat as an underestimate.
+- **Basic rate, personal allowance in pounds:** about 12% low, because the population has 2.7m too few taxpayers under 65. Treat as an underestimate until the household structure is fixed.
 - **Additional rate, NICs above the upper earnings limit, Class 4 at the top:** static figures are far above HMRC's behavioural ones. **Don't use these without behaviour (6d).** On the page they'll be flagged until then.
 - **Child Benefit:** about 10% high, because of too many families in the population.
 

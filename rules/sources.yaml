@@ -134,6 +134,14 @@ govuk-dividend-tax:
   licence: Open Government Licence v3.0
   accessed: 2026-10-28
 
+hmrc-income-tax-liabilities-2026-07:
+  title: "Income Tax liabilities statistics: tax year 2023 to 2024 to tax year 2026 to 2027"
+  publisher: HM Revenue & Customs
+  url: https://www.gov.uk/government/statistics/income-tax-liabilities-statistics-tax-year-2023-to-2024-to-tax-year-2026-to-2027
+  licence: Open Government Licence v3.0
+  published: 2026-07-15
+  accessed: 2026-10-28
+
 ukpga-2026-13:
   title: Universal Credit (Removal of Two Child Limit) Act 2026
   publisher: legislation.gov.uk
