@@ -22,6 +22,7 @@ try {
     "child_benefit", "child_benefit_charge", "uc_award_month", "uc_maximum_month", "benefit_cap_month", "net",
     "taxpayers", "top_income", "non_savings_tax", "savings_tax", "dividend_tax", "adult0_tax", "adult1_tax",
     "marriage_allowance", "adult0_reductions", "adult1_reductions",
+    "adult0_non_savings_tax", "adult1_non_savings_tax", "adult0_savings_tax", "adult1_savings_tax", "adult0_dividend_tax", "adult1_dividend_tax",
   ];
   const lines = [columns.join(",")];
   for (const u of units) {
@@ -56,6 +57,7 @@ try {
       res.adults[1]?.incomeTax ?? 0,
       withoutMA.adults.reduce((s, a) => s + a.incomeTax, 0) - sum((a) => a.incomeTax),
       ...[0, 1].map((i) => -(res.adults[i]?.lines.find((l) => l.label === "Tax reductions")?.amount ?? 0)),
+      ...["nonSavingsTax", "savingsTax", "dividendTax"].flatMap((k) => [0, 1].map((i) => res.adults[i]?.[k] ?? 0)),
     ];
     lines.push(row.map((v) => (typeof v === "number" ? Math.round(v * 100) / 100 : v)).join(","));
   }

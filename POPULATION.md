@@ -8,7 +8,7 @@ It replaces survey microdata (the Family Resources Survey), which can't be publi
 
 1. **Targets** (`data/targets/`, listed with sources in `targets.yaml`): published tables from HMRC, DWP, the Family Resources Survey via Stat-Xplore, and the OBR.
 2. **Seed** (`data/build_seed.py`): 30,012 made-up private households, plus 2,000 people outside private households (below). With 600 extra top-income households (below), that's 38,328 benefit units in all. Households are spread across all 12 regions, the four tenures, and households with and without children, in proportion to the FRS, with at least 40 in every combination. Each starts with a weight: how many real households it stands for.
-3. **Calibration** (`data/calibrate.py`): the weights are scaled up or down to bring the weighted totals as close as possible to 767 published figures at once. Each household's scaling is kept as close to 1 as it can be, and never below ÷10 or above ×10. Published sources disagree with each other slightly, so this minimises the misses rather than forcing an exact match. Every miss is reported in `data/build/calibration_report.csv`.
+3. **Calibration** (`data/calibrate.py`): the weights are scaled up or down to bring the weighted totals as close as possible to 773 published figures at once. Each household's scaling is kept as close to 1 as it can be, and never below ÷10 or above ×10. Published sources disagree with each other slightly, so this minimises the misses rather than forcing an exact match. Every miss is reported in `data/build/calibration_report.csv`.
 4. **Checks**: totals that were *not* used in calibration test the result (below).
 
 **How much depends on the random draws.** The seed is made with random numbers. Rebuilding it from three different starting points (`POPULATION_SEED=2027` and `2028`, against the standard 2026) moves every tax and benefit total by under 1%: income tax by 0.3%, NICs by 0.7%, Universal Credit by 0.1%, Child Benefit by 0.4%. Smaller figures move more: the Marriage Allowance cost by 4%, the working-pensioner NICs exemption by 4%, people with a second job by 9%.
@@ -100,16 +100,16 @@ Median miss for each group of targets, before and after calibration:
 | Targets | Number | Before | After | Worst after |
 |---|---:|---:|---:|---:|
 | **HMRC 2026-27 taxpayers and income by income range** (weighted ×2) | 22 | 21% | 1.5% | 6% |
-| **HMRC 2026-27 income tax by source** | 3 | 21% | 2.8% | 10% |
+| **HMRC 2026-27 income tax by source and type of taxpayer** (earnings, savings, dividends × basic, higher, additional rate; weighted ×2) | 9 | 32% | 1.9% | 19% |
 | HMRC 2023-24 pay, profits, pensions and self-employed counts by band, uprated (pay and pensions weighted ×0.3) | 60 | 24% | 2.3% | 15% |
-| HMRC property, interest and dividends by band (amounts and people) | 72 | 41% | 1.4% | 18% |
+| HMRC property, interest and dividends by band (amounts and people; interest amounts weighted ×0.3) | 72 | 41% | 2.6% | 23% |
 | HMRC pension contributions by band | 12 | 27% | 0.8% | 6% |
 | HMRC other deductions by band | 12 | 27% | 0.3% | 1% |
 | HMRC self-employed taxpayers by range of profits (people and amounts) | 28 | 26% | 1.7% | 8% |
 | HMRC taxpayers and income by region (as shares of the 2026-27 total) | 24 | 6% | 1.1% | 5% |
 | HMRC taxpayers and income by region and income band (uprated, weighted ×0.3) | 216 | 16% | 2.0% | 6% |
 | **Scottish Fiscal Commission: Scottish income tax 2026-27** | 1 | 44% | 5.4% | |
-| HMRC 2026-27 tax reductions, higher and additional-rate taxpayers | 2 | | 1.2% | 2% |
+| HMRC 2026-27 tax reductions, higher and additional-rate taxpayers | 2 | 64% | 1.5% | 2% |
 | HMRC taxpayers and income by age (as shares of the 2026-27 total) | 26 | 14% | 3.6% | 29% |
 | HMRC costs of the NICs thresholds | 2 | 3% | 1.2% | 1% |
 | HMRC employer NICs pay base (ready reckoner: £11,150m per 1p, so £1,115bn) | 1 | 14% | 3.4% | |
@@ -152,10 +152,10 @@ The worst misses:
 | **Everyone paid during the year** | **31.3m** | 30.3m on payrolls in one month | ONS/HMRC PAYE RTI, September 2026 | no; not the same measure (see above) |
 | All pay | £1,327bn | £1,298bn wages and salaries | OBR March 2026 (national accounts) | yes |
 | People with a second job | 1.15m | 1.29m | ONS LFS mid-2026 (secondary reports) | no |
-| **Income tax** | **£348.2bn** | **£347.0bn liabilities** (£359.6bn receipts) | HMRC liabilities 2026-27; OBR | by source |
+| **Income tax** | **£348.3bn** | **£347.0bn liabilities** (£359.6bn receipts) | HMRC liabilities 2026-27; OBR | by source and type |
 | of which on earnings, pensions and property (before tax reductions) | £325.6bn | £318.8bn after them | HMRC 2026-27, table 2.6 | yes, grossed up |
-| of which on savings (before tax reductions) | £7.4bn | £8.2bn after them | HMRC 2026-27, table 2.6 | yes, grossed up |
-| of which on dividends (before tax reductions) | £20.2bn | £19.8bn after them | HMRC 2026-27, table 2.6 | yes, grossed up |
+| of which on savings (before tax reductions) | £7.5bn | £8.2bn after them | HMRC 2026-27, table 2.6 | yes, grossed up |
+| of which on dividends (before tax reductions) | £20.1bn | £19.8bn after them | HMRC 2026-27, table 2.6 | yes, grossed up |
 | **Scottish income tax** (earnings, pensions and property) | **£22.7bn** | £21.5bn | Scottish Fiscal Commission, January 2026 | yes |
 | **Marriage Allowance** | **£0.48bn** | £0.59bn | HMRC tax relief statistics 2025-26 | no |
 | **Employee NICs** | **£55.1bn** | £51.5bn | OBR | no |
@@ -180,11 +180,12 @@ The zero rate for employees under 21 *is* modelled, because age is known.
 
 What this says, plainly:
 
-- **Income tax matches HMRC's 2026-27 liabilities to within 0.4%** (£348.2bn against £347.0bn). HMRC's liabilities are the like-for-like comparison: the OBR's £359.6bn is cash received, which includes tax not owed by individuals in the year. Getting here took three things that cut tax, all from HMRC's own figures:
+- **Tax on savings is 9% under HMRC's 2026-27 figure, all of it among additional-rate taxpayers** (18% short there; basic and higher-rate taxpayers' tax on savings is within 2%). Calibration can't put more interest at the top without breaking HMRC's counts of people with interest. HMRC's "savings income" also includes things other than bank and building society interest, such as gains on life insurance bonds, which are concentrated among the wealthiest. That's the likely explanation, not a confirmed one. Interest is uprated from 2023-24 by one factor (×1.6) for every band, so those 2023-24 amounts now carry low weight and HMRC's 2026-27 tax by type of taxpayer leads.
+- **Income tax matches HMRC's 2026-27 liabilities to within 0.4%** (£348.3bn against £347.0bn). HMRC's liabilities are the like-for-like comparison: the OBR's £359.6bn is cash received, which includes tax not owed by individuals in the year. Getting here took three things that cut tax, all from HMRC's own figures:
   - **Other deductions** (losses, qualifying interest): about £3bn of tax.
   - **Marriage Allowance**: £0.5bn.
   - **Tax reductions**: £4.8bn. HMRC's Table 2.6 shows £5.4bn of reliefs given as a cut in the tax bill (EIS, SEIS and VCT relief, relief for tax paid abroad and similar; £0.6bn of it, for basic-rate taxpayers, is essentially Marriage Allowance). Our tax before them was £352.4bn, which is HMRC's £347.0bn plus £5.4bn almost exactly.
-  - **One thing still uncertain:** about half of pension contributions (£19bn) are "relief at source", where the pension provider claims the basic-rate relief. The engine treats every contribution as taken off before tax. If HMRC's liabilities don't net that relief off, ours is about £4bn (1%) lower than it should be on HMRC's measure. I haven't confirmed which. For costings it makes no difference: the government gives the relief either way.
+  - **Pension contributions are treated the same way as HMRC's.** About half (£19bn) are "relief at source", where the pension provider claims the basic-rate relief. The engine takes every contribution off income before tax, and so does HMRC's model behind these figures: its supporting documentation says income after deductions is "total income minus contributions to occupational and private pensions" and charities, which "implies 100% tax relief on such contributions". So the comparison is like for like.
   - **Scotland is 5% over the official forecast** (£22.6bn against the Scottish Fiscal Commission's £21.5bn for tax on earnings, pensions and property). It was 13% over (£24.3bn), and the cause was how income was spread within Scotland: HMRC's 2024-25 Scottish statistics count 115,000 advanced-rate and 41,000 top-rate taxpayers, and the population had about 60% more. Each region's taxpayers and income are now calibrated by income band (HMRC SPI Table 3.11), and the Commission's forecast is a target. Part of what's left is definitional: the Commission's figure is revenue after relief-at-source pension relief, Gift Aid and uncollected tax (about £0.45bn in HMRC's 2024-25 Scottish figures), so like for like the gap is nearer 3%.
 - **Universal Credit and Child Benefit spending match** within 1%.
 - **Self-employed NICs match** (£3.15bn against £3.16bn), and so do the costs of the NICs thresholds (within 2%).
