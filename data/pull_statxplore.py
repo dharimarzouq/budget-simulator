@@ -66,6 +66,7 @@ def main() -> None:
         f"frs_households_income_composition_{tag}.csv": frs(year_uri, [FRS_F + "INC_BAND200_INYR", FRS_F + "COMPOS_KID"]),
         f"frs_households_income_detailed_composition_{tag}.csv": frs(year_uri, [FRS_F + "INC_BAND200_INYR", FRS_F + "COMPOS"]),
         f"frs_households_pensioners_composition_{tag}.csv": frs(year_uri, [FRS_F + "PEN", FRS_F + "COMPOS_KID"]),
+        f"frs_households_pensioners_detailed_composition_{tag}.csv": frs(year_uri, [FRS_F + "PEN", FRS_F + "COMPOS"]),
         f"frs_households_rent_region_tenure_{tag}.csv": frs(year_uri, [FRS_F + "REGION", FRS_F + "TENURE"], rent),
         f"frs_households_savings_composition_{tag}.csv": frs(year_uri, [FRS_F + "savings_band_inyr_new", FRS_F + "COMPOS_KID"]),
         f"frs_households_benefits_{tag}.csv": frs(year_uri, [FRS_F + "REC_CHB", FRS_F + "REC_UC", FRS_F + "REC_RP"]),

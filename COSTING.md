@@ -20,11 +20,11 @@ Two things to know about HMRC's figures:
 
 | Change | Ours (£m) | HMRC (£m) | Ratio | Why they differ |
 |---|---:|---:|---:|---|
-| Basic rate +1p | 7,133 | 8,073 | 0.88 | 2.7m too few taxpayers, all under 65 (see POPULATION.md); also uncertainty in the comparison, which mixes liabilities and receipts |
+| Basic rate +1p | 7,097 | 8,073 | 0.88 | 2.7m too few taxpayers, all under 65, probably people outside private households (see POPULATION.md); also uncertainty in the comparison, which mixes liabilities and receipts |
 | Higher rate +1p | 2,325 | 2,104 | 1.11 | Some behaviour in HMRC's figure |
 | Additional rate +1p (yield) | 1,622 | 259 | 6.3 | HMRC's includes behaviour: top earners shift and defer income. **Ours is static and overstates this.** See 6d |
 | Additional rate −1p (cost) | −1,622 | −328 | 4.9 | Same |
-| Personal allowance +£100 | −900 | −1,027 | 0.88 | Worth about £20 to each taxpayer, so it scales with the number of taxpayers, which is 7% short |
+| Personal allowance +£100 | −904 | −1,027 | 0.88 | Worth about £20 to each taxpayer, so it scales with the number of taxpayers, which is 7% short |
 | Personal allowance +1% | −1,131 | −1,174 | 0.96 | |
 | Basic rate band +1% | −641 | −651 | 0.98 | |
 | Basic rate band +10% | −6,003 | −6,116 | 0.98 | |
@@ -48,7 +48,7 @@ Two things to know about HMRC's figures:
 
 - **National Insurance thresholds and limits, the basic rate band, the personal allowance by 1%:** within 5% of HMRC. Trustworthy.
 - **Higher rate, employee and employer NICs main rates:** within 11%. Good.
-- **Basic rate, personal allowance in pounds:** about 12% low, because the population has 2.7m too few taxpayers under 65. Treat as an underestimate until the household structure is fixed.
+- **Basic rate, personal allowance in pounds:** about 12% low, because the population has 2.7m too few taxpayers under 65, probably people HMRC counts but a private-household population can't include. Treat as an underestimate. A fix would add HMRC's missing taxpayers as a separate group, outside households.
 - **Additional rate, NICs above the upper earnings limit, Class 4 at the top:** static figures are far above HMRC's behavioural ones. **Don't use these without behaviour (6d).** On the page they'll be flagged until then.
 - **Child Benefit:** about 10% high, because of too many families in the population.
 

@@ -49,7 +49,7 @@ ASSUMPTIONS = {
     "profit_top_tail_min": 80_000,
     "profit_top_tail_alpha": 1.3,
     "share_pensioners_new_state_pension": 0.6,  # rest on the old basic pension
-    "share_pensioners_working": 0.12,  # pensioners under 75 with a job; ONS puts employment at 65+ at about 12%
+    "share_pensioners_working": 0.2,  # pensioners under 75 with a job; set so their NICs exemption comes near HMRC's £1.2bn
     "pensioner_pay_median": 13_000,  # lowered from £18,000 so their NICs exemption matches HMRC's £1.2bn cost
     "pensioner_pay_sigma": 0.9,
     "share_pensioners_private_pension": 0.65,
@@ -74,7 +74,7 @@ ASSUMPTIONS = {
     "dividends_sigma": 1.8,
     "share_pensioner_couples_both": 0.7,  # pensioner couples where both are over State Pension age
     "share_large_households_two_extra": 0.4,  # households of 3+ adults with 4+ adults
-    "share_extra_adults_older": 0.25,  # extra adults who are older relatives rather than grown-up children
+    "share_extra_adults_older": 0.05,  # other extra adults who are older relatives (grandparents are set from the FRS)
     "uc_take_up": 0.85,
     "cb_opt_out_60k_80k": 0.4,  # families whose higher earner is in the Child Benefit charge range
     "cb_opt_out_over_80k": 0.8,
@@ -112,11 +112,12 @@ class Builder:
         comp = comp.groupby(comp.columns[1])["households"].sum()
         self.comp_with = comp[comp.index.str.contains("with children")]
         self.comp_without = comp[comp.index.str.contains("without children")]
-        pen = pd.read_csv(TARGETS / "frs_households_pensioners_composition_2024-25.csv")
-        pen.columns = ["pensioners", "kids", "households"]
+        # FRS 2024-25: share of each kind of household with at least one adult over State Pension age.
+        pen = pd.read_csv(TARGETS / "frs_households_pensioners_detailed_composition_2024-25.csv")
+        pen.columns = ["pensioners", "composition", "households"]
         self.p_pensioner = {
-            kids: g.loc[~g["pensioners"].str.contains("No ", case=False), "households"].sum() / g["households"].sum()
-            for kids, g in pen.groupby("kids")
+            comp: g.loc[~g["pensioners"].str.contains("No ", case=False), "households"].sum() / g["households"].sum()
+            for comp, g in pen.groupby("composition")
         }
         rents = pd.read_csv(TARGETS / "frs_households_rent_region_tenure_2024-25.csv")
         rents.columns = ["region", "tenure", "households", "rent_week"]
@@ -246,7 +247,12 @@ class Builder:
         has_kids = "with children" in kids_label and "without" not in kids_label
         comps = self.comp_with if has_kids else self.comp_without
         comp = str(r.choice(comps.index, p=(comps / comps.sum()).to_numpy()))
-        pensioner_hh = (not has_kids) and r.random() < self.p_pensioner.get(kids_label, 0)
+        large = not ("one adult" in comp or "one female" in comp or "one male" in comp or "two adults" in comp)
+        has_pensioner = r.random() < self.p_pensioner.get(comp, 0)
+        # Without children, the pensioner leads the household. With children, they're a grandparent living with
+        # the family (only in households of three or more adults; with fewer it's too rare to model).
+        pensioner_hh = has_pensioner and not has_kids
+        grandparent = has_pensioner and has_kids and large
         kids = self.children() if has_kids else []
 
         def adult(lone_parent=False, young=False):
@@ -264,15 +270,18 @@ class Builder:
                 age = max(18, first["age"] + int(r.integers(-4, 5)))
                 partner = self.pensioner(max(66, age)) if pensioner_hh else self.working_age_adult(min(age, 65))
             units = [{"adults": [first, partner], "children": kids}]
-        if not ("one adult" in comp or "one female" in comp or "one male" in comp or "two adults" in comp):
+        if large:
             # Three or more adults: the couple (with any children) plus one or two more adults, each their own
-            # benefit unit. Mostly grown-up children; some older relatives.
-            for _ in range(1 if r.random() >= A["share_large_households_two_extra"] else 2):
-                if r.random() < A["share_extra_adults_older"]:
+            # benefit unit. Usually grown-up children (older ones when the couple are pensioners); a grandparent
+            # where the FRS says a family with children includes a pensioner; occasionally another older relative.
+            for j in range(1 if r.random() >= A["share_large_households_two_extra"] else 2):
+                if grandparent and j == 0:
+                    extra = self.pensioner(self.pension_age())
+                elif r.random() < A["share_extra_adults_older"]:
                     age = int(r.integers(55, 90))
                     extra = self.pensioner(age) if age >= 66 else self.working_age_adult(age)
                 else:
-                    extra = self.working_age_adult(int(r.integers(18, 31)))
+                    extra = self.working_age_adult(int(r.integers(25, 50)) if pensioner_hh else int(r.integers(18, 31)))
                 units.append({"adults": [extra], "children": []})
 
         for i, u in enumerate(units):
