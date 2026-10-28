@@ -6,7 +6,9 @@ import { costPolicy, run } from "../src/policy/costing";
 import { distribution } from "../src/policy/distribution";
 import { leverCheck, policyCheck } from "../src/policy/grades";
 import { LEVER, LEVERS } from "../src/policy/levers";
-import { applyPolicy, policyFromQuery, policyToQuery } from "../src/policy/policy";
+import { applyPolicy, effectiveChanges, policyFromQuery, policyToQuery, type Policy } from "../src/policy/policy";
+import { REMOVALS } from "../src/policy/removals";
+import type { Region } from "../src/engine";
 
 const r = ruleSet("2026-27");
 
@@ -57,7 +59,73 @@ describe("levers and policies", () => {
   });
 });
 
-describe("costing over the population", () => {
+describe("removing a tax, allowance or charge", () => {
+  const tax = (h: ReturnType<typeof household>, p: Policy) => calculate(h, applyPolicy(r, p)).adults[0]!;
+  const on = (id: string) => ({ lever: id, value: true });
+  const employee = (pay: number, region: Region = "england") => household({ region, adults: [adult({ employment: pay })] });
+
+  it("no higher rate: £80,000 pays the basic rate on everything above the allowance, and follows a changed basic rate", () => {
+    expect(tax(employee(80000), [on("no_higher")]).incomeTax).toBeCloseTo((80000 - 12570) * 0.2, 2);
+    expect(tax(employee(80000), [on("no_higher"), { lever: "it_basic", value: 0.21 }]).incomeTax).toBeCloseTo((80000 - 12570) * 0.21, 2);
+    // Scotland sets its own rates, so it's untouched.
+    expect(tax(employee(80000, "scotland"), [on("no_higher")]).incomeTax).toBeCloseTo(tax(employee(80000, "scotland"), []).incomeTax, 6);
+  });
+
+  it("no additional rate: top incomes pay the higher rate, or the basic rate if that's gone too", () => {
+    expect(tax(employee(200000), [on("no_additional")]).incomeTax).toBeCloseTo(tax(employee(200000), [{ lever: "it_additional", value: 0.4 }]).incomeTax, 6);
+    // No allowance at £200,000 (tapered away), so everything is taxed at 20%.
+    expect(tax(employee(200000), [on("no_additional"), on("no_higher")]).incomeTax).toBeCloseTo(200000 * 0.2, 2);
+  });
+
+  it("no personal allowance: tax from the first pound; no taper: the full allowance at any income", () => {
+    expect(tax(employee(30000), [on("no_pa")]).incomeTax).toBeCloseTo(6000, 2);
+    // 37,700 at 20% + 87,440 at 40% + 12,290 at 45% on taxable income of 137,430.
+    expect(tax(employee(150000), [on("no_taper")]).incomeTax).toBeCloseTo(7540 + 34976 + 5530.5, 2);
+  });
+
+  it("no National Insurance, employee, employer or self-employed", () => {
+    expect(tax(employee(40000), [on("no_ni_employee")]).employeeNI).toBe(0);
+    expect(tax(employee(40000), [on("no_ni_employer")]).employerNI).toBe(0);
+    expect(tax(household({ adults: [adult({ selfEmployment: 40000 })] }), [on("no_ni_self")]).selfEmployedNI).toBe(0);
+    // Each leaves the other kinds alone.
+    expect(tax(employee(40000), [on("no_ni_employer")]).employeeNI).toBeCloseTo(tax(employee(40000), []).employeeNI, 6);
+  });
+
+  it("no dividend tax, and no savings allowances", () => {
+    expect(tax(household({ adults: [adult({ dividends: 50000 })] }), [on("no_dividend_tax")]).incomeTax).toBe(0);
+    // £1,000 of interest on top of £30,000 pay: today the £1,000 allowance covers it; without it, 20%.
+    const saver = household({ adults: [adult({ employment: 30000, savingsInterest: 1000 })] });
+    expect(tax(saver, [on("no_savings_allowances")]).incomeTax - tax(saver, []).incomeTax).toBeCloseTo(200, 2);
+  });
+
+  it("no Child Benefit charge, and no benefit cap", () => {
+    const family = household({ adults: [adult({ employment: 80000 })], children: [child(), child()] });
+    expect(calculate(family, r).childBenefitCharge).toBeGreaterThan(0);
+    expect(calculate(family, applyPolicy(r, [on("no_cb_charge")])).childBenefitCharge).toBe(0);
+    const capped = household({ region: "london", adults: [adult({ age: 30 })], children: [child(), child(), child(), child()], rentMonthly: 2500 });
+    expect(calculate(capped, r).universalCredit.benefitCap.reduction).toBeGreaterThan(0);
+    expect(calculate(capped, applyPolicy(r, [on("no_benefit_cap")])).universalCredit.benefitCap.reduction).toBe(0);
+  });
+
+  it("Scottish bands merge into the one below (the starter band into basic)", () => {
+    const sc = (p: Policy) => tax(employee(200000, "scotland"), p).incomeTax;
+    expect(sc([on("no_sc_top")])).toBeCloseTo(sc([{ lever: "sc_top", value: r.incomeTax.bands.scotland[4]!.rate }]), 6);
+    expect(tax(employee(20000, "scotland"), [on("no_sc_starter")]).incomeTax).toBeCloseTo(tax(employee(20000, "scotland"), [{ lever: "sc_starter", value: 0.2 }]).incomeTax, 6);
+  });
+
+  it("a removal drops the levers it makes meaningless, goes in a share link, and is marked a known gap", () => {
+    const p = [{ lever: "it_basic_band", value: 40000 }, { lever: "it_higher", value: 0.45 }, on("no_higher"), { lever: "it_basic", value: 0.21 }];
+    expect(effectiveChanges(r, p)).toEqual([on("no_higher"), { lever: "it_basic", value: 0.21 }]);
+    expect(policyFromQuery(policyToQuery([on("no_pa")]))).toEqual([on("no_pa")]);
+    for (const x of REMOVALS) {
+      expect(LEVER[x.lever], x.id).toBeDefined();
+      expect(leverCheck(x.id).check).toBe("gap");
+    }
+  });
+});
+
+// These run the whole population, several times over with behaviour, so they get longer than the default 5 seconds.
+describe("costing over the population", { timeout: 30000 }, () => {
   const pop = decodePopulation(JSON.parse(readFileSync("public/data/population-2026-27.json", "utf-8")));
   const base = run(pop, r);
 
@@ -86,6 +154,12 @@ describe("costing over the population", () => {
     const c = costPolicy(pop, r, [{ lever: "it_basic", value: 0.22 }, { lever: "uc_taper", value: 0.5 }], base);
     const sum = c.perLever.reduce((s, l) => s + l.netRevenue, 0) + c.interaction;
     expect(sum).toBeCloseTo(c.netRevenue, 0);
+  });
+
+  it("removing employer National Insurance loses what it raises, after the Employment Allowance", () => {
+    const c = costPolicy(pop, r, [{ lever: "no_ni_employer", value: true }], base);
+    expect(c.reformed.totals.employerNI).toBe(0);
+    expect(c.change.employerNI).toBeCloseTo(-base.totals.employerNI, 0);
   });
 
   it("bringing back the two-child limit saves money", () => {

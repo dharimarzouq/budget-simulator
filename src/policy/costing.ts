@@ -41,6 +41,9 @@ export function run(pop: Population, r: RuleSet): Run {
     totals.universalCredit += w * res.universalCredit.award * 12;
     netIncome[i] = res.netIncome;
   });
+  // Employment Allowance and apprentice relief are lump sums, not per person. They cancel out of most costings, but
+  // not out of removing employer NICs, which takes them away too.
+  totals.employerNI -= r.ni.employmentAllowanceCost + r.ni.apprenticeReliefCost;
   return { totals, netIncome };
 }
 

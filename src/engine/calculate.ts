@@ -241,7 +241,9 @@ function childBenefitCharge(benefit: number, adults: AdultResult[], r: RuleSet):
   const amount = (benefit * percent) / 100;
   const working = !benefit
     ? "No Child Benefit received."
-    : excess
+    : !Number.isFinite(cb.chargeThreshold)
+      ? "No charge: it has been removed."
+      : excess
       ? `Higher earner's adjusted net income ${gbp(top)} is ${gbp(excess)} over ${gbp(cb.chargeThreshold)}: ${percent}% of Child Benefit (1% per £${cb.chargeTaperWidth / 100}).`
       : `Higher earner's adjusted net income ${gbp(top)} is not over ${gbp(cb.chargeThreshold)}.`;
   return { label: "High Income Child Benefit Charge", amount, working };
@@ -374,6 +376,7 @@ function applyBenefitCap(
           ? `Doesn't apply: earnings after tax of ${gbp(x.earnings)} a month are at least ${uc.capEarningsHours} hours a week at the National Living Wage (${gbp(earningsThreshold)}).`
           : undefined;
   const capName = `${london ? "London" : "outside London"}, ${family ? "couple or with children" : "single, no children"}`;
+  if (!Number.isFinite(cap)) return { cap, benefits, reduction: 0, working: "No benefit cap: it has been removed." };
   if (exemption) return { cap, benefits, reduction: 0, exemption, working: exemption };
 
   const excess = Math.max(0, benefits - cap);

@@ -32,7 +32,16 @@ details summary { cursor: pointer; }
 /* Top bar and the two columns */
 .top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
 .top nav { display: flex; gap: 8px; align-items: center; }
-.bench { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 12px; }
+/* Two columns (levers beside the chart and results), three on wide screens, one on phones. */
+.bench { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); grid-template-areas: "levers chart" "levers results";
+  grid-template-rows: auto 1fr; gap: 0 24px; align-items: start; margin-top: 12px; }
+#levers-panel { grid-area: levers; }
+#tax-panel { grid-area: chart; }
+#results { grid-area: results; }
+@media (min-width: 1400px) {
+  .bench { grid-template-columns: minmax(0, 320px) minmax(0, 1fr) minmax(0, 1.15fr); grid-template-areas: "levers chart results"; grid-template-rows: auto; }
+  #tax-panel { position: sticky; top: 8px; }
+}
 #levers-panel { position: sticky; top: 8px; max-height: calc(100vh - 16px); overflow-y: auto; border-right: 1px solid var(--rule); padding-right: 12px; }
 #levers-drawer > summary { font-weight: 600; margin-bottom: 6px; }
 .lever-tools { display: grid; gap: 6px; margin-bottom: 8px; }
@@ -48,6 +57,13 @@ label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .lever[hidden], .group[hidden] { display: none; }
 .lever.changed .undo { visibility: visible; }
 .lever .flag { grid-column: 1 / span 2; }
+.lever .remove { margin-left: 6px; padding: 0 6px; font-size: 11px; color: var(--ink-2); font-family: system-ui, sans-serif; }
+.lever .remove:hover { color: var(--loss); border-color: var(--loss); }
+.lever.removed { grid-template-columns: minmax(0, 1fr) auto; background: var(--surface-2); padding-left: 6px; padding-right: 6px; }
+.lever.removed .removed-note { color: var(--ink-2); font-size: 12px; }
+.bubble { position: fixed; z-index: 10; display: none; pointer-events: none; background: var(--ink); color: var(--surface); border-radius: 4px;
+  padding: 3px 8px; font-size: 13px; font-family: var(--mono); white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 0.2); }
+.bubble span { opacity: 0.8; }
 
 /* Results */
 #headline { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
@@ -72,7 +88,20 @@ label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .chart text { fill: var(--ink-2); font-size: 12px; }
 .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 4px;
   padding: 4px 8px; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 0.12); display: none; }
-.pending { opacity: 0.55; }
+/* While a new costing is on its way the old figures stay, with a note. */
+.updating { display: none; position: sticky; top: 0; z-index: 5; width: max-content; margin: 0 0 6px auto; padding: 2px 8px;
+  font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 4px; }
+.pending .updating { display: block; }
+
+/* The live tax chart */
+.chart-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.chart-controls label { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.chart-controls select { width: auto; }
+.chart-controls .toggle { margin: 0; }
+.legend { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+.key { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--ink-2); }
+.key-budget { border-top: 3px solid var(--series); margin-left: 10px; }
+#tax-panel h2 { margin-top: 0.3em; }
 
 /* The household calculator */
 .calc { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 24px; align-items: start; }
@@ -86,7 +115,11 @@ legend { font-weight: 600; padding: 0 4px; }
 details { margin-top: 8px; }
 
 @media (max-width: 900px) {
-  .bench { grid-template-columns: minmax(0, 1fr); }
+  .bench { grid-template-columns: minmax(0, 1fr); grid-template-areas: "levers" "chart" "results"; grid-template-rows: auto; }
   #levers-panel { position: static; max-height: none; border-right: 0; padding-right: 0; border-bottom: 1px solid var(--rule); }
   .calc { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  /* Charts are drawn 640 wide and scaled down, so their labels need to start bigger. */
+  .chart text { font-size: 20px; }
 }

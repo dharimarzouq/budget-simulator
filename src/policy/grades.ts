@@ -9,6 +9,7 @@
 //   fair    within about 15%, or HMRC's figure inside our range, or no direct check but the totals it rests on match
 //   gap     a known gap with published figures: treat as rough
 import type { Policy } from "./policy";
+import { REMOVAL } from "./removals";
 
 export type Grade = "A" | "B" | "C" | "D";
 export const GRADE_MEANING: Record<Grade, string> = {
@@ -68,9 +69,12 @@ const CHECKS: Record<string, { check: Check; why: string }> = {
   cb_charge_width: c("gap", "The charge comes out 18–20% above HMRC's figures, uprated."),
 };
 
-const UC_DEFAULT = c("fair", "No direct check of this change; Universal Credit spending matches the OBR within 1% and DWP's caseloads closely.");
+const REMOVED = c("gap", "Removing something altogether is far bigger than the small changes HMRC's ready reckoner checks. The static figure is mechanical; how people respond to a change this big is the least certain part.");
+
+const UC_DEFAULT =c("fair", "No direct check of this change; Universal Credit spending matches the OBR within 1% and DWP's caseloads closely.");
 
 export function leverCheck(lever: string): { check: Check; why: string } {
+  if (REMOVAL[lever]) return REMOVED;
   return CHECKS[lever] ?? (lever.startsWith("uc_") ? UC_DEFAULT : c("gap", "Not checked."));
 }
 

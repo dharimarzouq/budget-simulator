@@ -3,7 +3,9 @@
 import { calculate, ruleSet } from "./engine";
 import { readForm, renderForm, renderResult } from "./calculator";
 import { LEVERS, LEVER, type Lever, type LeverValue } from "./policy/levers";
-import { applyPolicy, policyFromQuery, policyToQuery, type Policy } from "./policy/policy";
+import { applyPolicy, coveredLevers, effectiveChanges, policyFromQuery, policyToQuery, type Policy } from "./policy/policy";
+import { REMOVAL, REMOVAL_FOR } from "./policy/removals";
+import { initTaxChart } from "./taxchart";
 import { CHECK_LABEL, CHECK_MEANING, COSTING_GRADE, GRADE_MEANING, leverCheck, policyCheck, type Check } from "./policy/grades";
 import type { Group } from "./policy/distribution";
 import type { Reply, Request } from "./costing.worker";
@@ -27,31 +29,58 @@ function showValue(l: Lever, v: LeverValue): string {
 
 // ---- the policy, kept in the URL so a budget can be shared -------------------------------------
 const policy = new Map<string, LeverValue>(policyFromQuery(location.search.slice(1)).map((c) => [c.lever, c.value]));
-const currentPolicy = (): Policy => [...policy].map(([lever, value]) => ({ lever, value })).filter((c) => LEVER[c.lever]!.get(rules) !== c.value);
+const currentPolicy = (): Policy => effectiveChanges(rules, [...policy].map(([lever, value]) => ({ lever, value })));
 
-function setLever(id: string, value: LeverValue | undefined) {
-  if (value === undefined || LEVER[id]!.get(rules) === value) policy.delete(id);
-  else policy.set(id, value);
+function policyChanged() {
   const q = policyToQuery(currentPolicy());
   history.replaceState(null, "", q ? `?${q}` : location.pathname);
-  refreshLeverRow(id);
-  $("changed-count").textContent = policy.size ? `(${policy.size} changed)` : "";
+  const n = currentPolicy().length;
+  $("changed-count").textContent = n ? `(${n} changed)` : "";
   requestCosting();
   updateHousehold();
 }
 
+function setLever(id: string, value: LeverValue | undefined) {
+  if (value === undefined || LEVER[id]!.get(rules) === value) policy.delete(id);
+  else policy.set(id, value);
+  refreshLeverRow(id);
+  policyChanged();
+}
+
+/** Remove a tax or allowance (dropping changes to the levers it makes meaningless), or bring it back. */
+function setRemoval(id: string, removed: boolean) {
+  const x = REMOVAL[id]!;
+  if (removed) {
+    for (const l of [x.lever, ...x.hides]) policy.delete(l);
+    policy.set(id, true);
+  } else policy.delete(id);
+  renderLevers();
+  filterLevers();
+  policyChanged();
+}
+
 // ---- levers ------------------------------------------------------------------------------------
-/** Slider range around today's value: ±10 points for rates, 0 to double for amounts. */
+/**
+ * Slider range around today's value: ±10 points for rates, in whole points from today's rate (the number box takes
+ * anything finer), and 0 to double for amounts.
+ */
 function range(l: Lever): { min: number; max: number; step: number; scale: number } {
-  const today = l.get(rules) as number;
-  if (l.unit === "rate") return { min: Math.max(0, Math.round(today * 100) - 10), max: Math.min(100, Math.round(today * 100) + 10), step: 0.5, scale: 100 };
-  return { min: 0, max: Math.max(today * 2, l.step * 20), step: l.step, scale: 1 };
+  const today = +((l.get(rules) as number) * 100).toFixed(4);
+  if (l.unit === "rate") return { min: today - Math.min(10, Math.floor(today)), max: Math.min(100, today + 10), step: 1, scale: 100 };
+  return { min: 0, max: Math.max((l.get(rules) as number) * 2, l.step * 20), step: l.step, scale: 1 };
 }
 
 function leverRow(l: Lever): string {
   const today = l.get(rules);
   const v = policy.get(l.id) ?? today;
-  const name = `<div class="name"><span title="${esc(l.note ?? "")}">${esc(l.label)}</span><span class="today">today ${esc(showValue(l, today))}</span></div>`;
+  const removal = REMOVAL_FOR[l.id];
+  const removeButton = removal ? `<button type="button" class="remove" data-remove="${removal.id}" title="${esc(removal.means)}">Remove</button>` : "";
+  const name = `<div class="name"><span title="${esc(l.note ?? "")}">${esc(l.label)}</span><span class="today">today ${esc(showValue(l, today))}${removeButton}</span></div>`;
+  if (removal && policy.get(removal.id)) {
+    return `<div class="lever removed" data-id="${l.id}"><div class="name"><span>${esc(l.label)}</span><span class="today">today ${esc(showValue(l, today))}</span></div>
+      <div class="removed-note"><strong>Removed.</strong> ${esc(removal.means)}</div>
+      <button type="button" data-restore="${removal.id}">Bring back</button></div>`;
+  }
   const undo = `<button type="button" class="undo" data-undo="${l.id}" aria-label="Reset ${esc(l.label)}" title="Back to today's value">×</button>`;
   if (l.unit === "flag") {
     return `<div class="lever" data-id="${l.id}">${name}<label class="check flag"><input type="checkbox" data-flag="${l.id}"${v ? " checked" : ""}> ${esc(l.label)} in force</label>${undo}</div>`;
@@ -60,23 +89,29 @@ function leverRow(l: Lever): string {
   const shown = +((v as number) * scale).toFixed(4);
   return `<div class="lever" data-id="${l.id}">${name}
     <input type="range" min="${min}" max="${max}" step="${step}" value="${shown}" data-range="${l.id}" aria-label="${esc(l.label)}">
-    <input type="number" step="${step}" value="${shown}" data-number="${l.id}" aria-label="${esc(l.label)}${l.unit === "rate" ? ", %" : ", £"}">
+    <input type="number" step="${l.unit === "rate" ? "any" : step}" value="${shown}" data-number="${l.id}" aria-label="${esc(l.label)}${l.unit === "rate" ? ", %" : ", £"}">
     ${undo}</div>`;
 }
 
 function renderLevers() {
   const groups = [...new Set(LEVERS.map((l) => l.group))];
+  const open = new Set([...document.querySelectorAll<HTMLDetailsElement>(".group[open]")].map((d) => d.dataset.group));
+  const touched = (g: string) => LEVERS.some((l) => l.group === g && (policy.has(l.id) || (REMOVAL_FOR[l.id] && policy.has(REMOVAL_FOR[l.id]!.id))));
+  // Levers hidden by a removal, other than the removed lever itself (whose row says "Removed").
+  const covered = coveredLevers(currentPolicy());
+  for (const id of policy.keys()) if (REMOVAL[id]) covered.delete(REMOVAL[id]!.lever);
   $("levers").innerHTML = groups
-    .map((g, i) => `<details class="group"${i === 0 || LEVERS.some((l) => l.group === g && policy.has(l.id)) ? " open" : ""}><summary>${esc(g)}</summary>
-      ${LEVERS.filter((l) => l.group === g).map(leverRow).join("")}</details>`)
+    .map((g, i) => `<details class="group" data-group="${esc(g)}"${open.has(g) || (!open.size && i === 0) || touched(g) ? " open" : ""}><summary>${esc(g)}</summary>
+      ${LEVERS.filter((l) => l.group === g).map((l) => leverRow(l).replace('class="lever', covered.has(l.id) ? 'data-gone class="lever' : 'class="lever')).join("")}</details>`)
     .join("");
-  for (const id of policy.keys()) refreshLeverRow(id);
-  $("changed-count").textContent = policy.size ? `(${policy.size} changed)` : "";
+  for (const id of policy.keys()) if (LEVER[id]) refreshLeverRow(id);
+  const n = currentPolicy().length;
+  $("changed-count").textContent = n ? `(${n} changed)` : "";
 }
 
 function refreshLeverRow(id: string) {
   const row = document.querySelector<HTMLElement>(`.lever[data-id="${id}"]`);
-  if (!row) return;
+  if (!row || row.classList.contains("removed")) return;
   const l = LEVER[id]!;
   const v = policy.get(id) ?? l.get(rules);
   row.classList.toggle("changed", policy.has(id));
@@ -95,14 +130,46 @@ function filterLevers() {
   const changedOnly = ($("changed-only") as HTMLInputElement).checked;
   document.querySelectorAll<HTMLElement>(".lever").forEach((row) => {
     const l = LEVER[row.dataset.id!]!;
-    const hit = (!q || `${l.label} ${l.group} ${l.note ?? ""} ${l.id.replace(/_/g, " ")}`.toLowerCase().includes(q)) && (!changedOnly || policy.has(l.id));
-    row.hidden = !hit;
+    const removed = row.classList.contains("removed");
+    const hit = (!q || `${l.label} ${l.group} ${l.note ?? ""} ${l.id.replace(/_/g, " ")}`.toLowerCase().includes(q)) && (!changedOnly || policy.has(l.id) || removed);
+    row.hidden = !hit || row.hasAttribute("data-gone");
   });
   document.querySelectorAll<HTMLDetailsElement>(".group").forEach((g) => {
     const any = [...g.querySelectorAll<HTMLElement>(".lever")].some((r) => !r.hidden);
     g.hidden = !any;
     if ((q || changedOnly) && any) g.open = true;
   });
+}
+
+// ---- the box that follows a slider while it's dragged ------------------------------------------
+let bubbleTimer: number | undefined;
+
+function showBubble(input: HTMLInputElement, l: Lever, value: number) {
+  const bubble = $("bubble");
+  const today = l.get(rules) as number;
+  const d = value - today;
+  const diff =
+    Math.abs(d) < 1e-9
+      ? "today's value"
+      : l.unit === "rate"
+        ? `${d > 0 ? "+" : "−"}${+Math.abs(d * 100).toFixed(2)} ${Math.abs(d * 100) === 1 ? "point" : "points"}`
+        : `${d > 0 ? "+" : "−"}${showValue(l, Math.abs(d))}`;
+  bubble.innerHTML = `<strong>${esc(showValue(l, value))}</strong> <span>(${esc(diff)})</span>`;
+  bubble.style.display = "block";
+  // Over the slider's thumb: its centre runs from half a thumb in from each end.
+  const box = input.getBoundingClientRect();
+  const min = Number(input.min), max = Number(input.max);
+  const thumb = 16;
+  const cx = box.left + thumb / 2 + ((Number(input.value) - min) / (max - min || 1)) * (box.width - thumb);
+  const w = bubble.offsetWidth;
+  bubble.style.left = `${Math.max(4, Math.min(window.innerWidth - w - 4, cx - w / 2))}px`;
+  bubble.style.top = `${box.top - bubble.offsetHeight - 6}px`;
+  clearTimeout(bubbleTimer);
+}
+
+function hideBubble() {
+  clearTimeout(bubbleTimer);
+  bubbleTimer = window.setTimeout(() => ($("bubble").style.display = "none"), 700);
 }
 
 function wireLevers() {
@@ -119,17 +186,24 @@ function wireLevers() {
       const twin = t.dataset.range ? t.parentElement!.querySelector<HTMLInputElement>("[data-number]") : t.parentElement!.querySelector<HTMLInputElement>("[data-range]");
       if (twin) twin.value = t.value;
       setLever(id, value);
+      if (t.dataset.range) showBubble(t, l, value);
     }
     if (t.dataset.flag) setLever(t.dataset.flag, t.checked);
   });
   panel.addEventListener("click", (ev) => {
-    const id = (ev.target as HTMLElement).dataset.undo;
-    if (id) setLever(id, undefined);
+    const d = (ev.target as HTMLElement).dataset;
+    if (d.undo) setLever(d.undo, undefined);
+    if (d.remove) setRemoval(d.remove, true);
+    if (d.restore) setRemoval(d.restore, false);
   });
+  for (const end of ["pointerup", "change", "blur"]) panel.addEventListener(end, hideBubble, true);
   $("lever-search").addEventListener("input", filterLevers);
   $("changed-only").addEventListener("change", filterLevers);
   $("reset").addEventListener("click", () => {
-    for (const id of [...policy.keys()]) setLever(id, undefined);
+    policy.clear();
+    renderLevers();
+    filterLevers();
+    policyChanged();
   });
   $("share").addEventListener("click", async () => {
     try {
@@ -224,6 +298,16 @@ const EFFECTS: [keyof Static["change"], string, 1 | -1][] = [
   ["childBenefit", "Child Benefit (spending)", -1], ["universalCredit", "Universal Credit (spending)", -1],
 ];
 
+const changeLabel = (id: string) => (REMOVAL[id] ? `Removed: ${REMOVAL[id]!.label}` : LEVER[id]!.label);
+
+/** A change's name with what it does underneath. */
+function changeText(id: string): string {
+  const x = REMOVAL[id];
+  if (x) return `${esc(changeLabel(id))}<div class="working">${esc(x.means)}</div>`;
+  const l = LEVER[id]!;
+  return `${esc(l.label)}<div class="working">${esc(l.group)}: ${esc(showValue(l, l.get(rules)))} → ${esc(showValue(l, policy.get(id)!))}</div>`;
+}
+
 function renderBreakdown(s: Static) {
   const changes = currentPolicy();
   if (!changes.length) {
@@ -239,9 +323,8 @@ function renderBreakdown(s: Static) {
   html += `<tr class="total"><td>Total (static)</td>${signed(s.netRevenue)}</tr></table>`;
   html += `<table><tr><th>Each change on its own</th><th class="num">£ a year</th><th>Checks against HMRC</th></tr>`;
   for (const p of s.perLever) {
-    const l = LEVER[p.lever]!;
     const g = leverCheck(p.lever);
-    html += `<tr><td>${esc(l.label)}<div class="working">${esc(l.group)}: ${esc(showValue(l, l.get(rules)))} → ${esc(showValue(l, policy.get(p.lever)!))}</div></td>${signed(p.netRevenue)}<td title="${esc(g.why)}">${checkBadge(g.check)}</td></tr>`;
+    html += `<tr><td>${changeText(p.lever)}</td>${signed(p.netRevenue)}<td title="${esc(g.why)}">${checkBadge(g.check)}</td></tr>`;
   }
   if (changes.length > 1) html += `<tr><td>Interaction<div class="working">Changes overlap: e.g. a tax rise reduces Universal Credit, a rate rise on a bigger allowance raises less.</div></td>${signed(s.interaction)}<td></td></tr>`;
   html += `</table></div>`;
@@ -249,7 +332,7 @@ function renderBreakdown(s: Static) {
     <p>Every made-up household is run through the 2026-27 rules twice, as they are and with your changes, and the differences are added up, weighted to stand for the whole UK. "Static" means nobody changes what they earn or claim. The figure allowing for responses uses ${SOURCES.sfc}, rising with income, with a low and high figure at half and one and a half times them. Benefits and employer National Insurance stay static.</p>
     <p>Confidence grade ${COSTING_GRADE}: ${esc(GRADE_MEANING[COSTING_GRADE])} (A would be an official costing, C international evidence, D an informed guess.)</p>
     <p>How each change checks against ${SOURCES.rr} and other published figures:</p>
-    <ul>${changes.map((ch) => `<li>${esc(LEVER[ch.lever]!.label)}: ${CHECK_LABEL[leverCheck(ch.lever).check]}. ${esc(leverCheck(ch.lever).why)}</li>`).join("")}</ul>
+    <ul>${changes.map((ch) => `<li>${esc(changeLabel(ch.lever))}:${CHECK_LABEL[leverCheck(ch.lever).check]}. ${esc(leverCheck(ch.lever).why)}</li>`).join("")}</ul>
     <p>Close: ${esc(CHECK_MEANING.close)} Fair: ${esc(CHECK_MEANING.fair)} Known gap: ${esc(CHECK_MEANING.gap)} More in ${SOURCES.how}.</p></details>`;
   $("breakdown").innerHTML = html;
 }
@@ -315,12 +398,16 @@ function updateHousehold() {
     ? `<div class="headline"><div>Today<strong>${pounds(before)}</strong></div><div>Under your budget<strong>${pounds(after)}</strong></div><div>Change, a year<strong class="${d < 0 ? "neg" : d > 0 ? "pos" : ""}">${pounds(d, true)}</strong></div></div>`
     : "";
   renderResult($("result"), h, reformed);
+  redrawTaxChart?.();
 }
 
+let redrawTaxChart: (() => void) | undefined;
 renderForm(form);
 form.addEventListener("input", updateHousehold);
 renderLevers();
+filterLevers();
 wireLevers();
+redrawTaxChart = initTaxChart($("tax-chart"), rules, () => applyPolicy(rules, currentPolicy()));
 updateHousehold();
 $("headline").innerHTML = currentPolicy().length
   ? `<div class="empty">Loading 39,000 made-up households to cost your budget…</div>`

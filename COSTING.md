@@ -142,6 +142,12 @@ All three are 3–6% low. HMRC's lines here are after tax reductions (EIS relief
 
 *Bringing back the two-child limit* (saves £2.7bn): the losses fall on tenths 2 to 5 (up to 1.1% of income) and on lone parents (14% of them lose; £600 a year on average across all lone parents). Pensioners and households without children are untouched. The poorest tenth barely moves, because families with larger Universal Credit awards have incomes that rank them a little higher.
 
+## Removing a tax, allowance or charge
+
+`src/policy/removals.ts` lists what can be removed altogether and what each removal means: the higher and additional rates, the personal allowance and its taper, dividend tax, the savings allowances, the Scottish starter, intermediate, advanced and top rates, each kind of National Insurance, the benefit cap and the Child Benefit charge. A removal is applied after every lever, so it can tie one rate to another: with the higher rate removed, the higher band is taxed at whatever the basic rate is set to. Levers a removal makes meaningless (such as where the higher rate starts) are dropped from the policy. Removing employer National Insurance also removes the Employment Allowance and apprentice relief, which are otherwise netted off as lump sums.
+
+These are much bigger changes than anything HMRC's ready reckoner checks, so every removal is marked "known gap". The static figure is mechanical and follows from the rules; the behavioural figure applies the same elasticities as for small changes, which is the least certain part. For example, removing the higher rate costs £44.7bn a year static.
+
 ## Universal Credit: check against an OBR costing
 
 There's no ready reckoner for Universal Credit, so UC costings are checked against the OBR's costings of real measures. The first is the removal of the two-child limit, which the OBR costed in November 2025 (Economic and fiscal outlook, table 3.2, as reported): £2.3bn in 2026-27, rising to about £3bn by 2029-30 as claims build up, for about 560,000 families gaining around £5,310 a year each.
