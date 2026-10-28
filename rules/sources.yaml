@@ -120,6 +120,20 @@ hmrc-tax-reliefs-2026-01:
   published: 2026-01
   accessed: 2026-10-27
 
+govuk-savings-allowance:
+  title: "Tax on savings interest: how much is tax-free"
+  publisher: GOV.UK
+  url: https://www.gov.uk/apply-tax-free-interest-on-savings/how-much-is-tax-free
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-28
+
+govuk-dividend-tax:
+  title: Tax on dividends
+  publisher: GOV.UK
+  url: https://www.gov.uk/tax-on-dividends
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-28
+
 ukpga-2026-13:
   title: Universal Credit (Removal of Two Child Limit) Act 2026
   publisher: legislation.gov.uk

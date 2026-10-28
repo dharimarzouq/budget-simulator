@@ -23,6 +23,9 @@ export interface AdultResult {
   personalAllowance: number;
   taxableIncome: number;
   incomeTax: number;
+  /** Earnings, pensions and property income after pension contributions, and the tax on it (before savings and dividends). */
+  nonSavingsIncome: number;
+  nonSavingsTax: number;
   employeeNI: number;
   selfEmployedNI: number;
   /** Paid by the employer, so not taken from the household's income; needed for costings. */
@@ -73,17 +76,28 @@ const money = new Intl.NumberFormat("en-GB", { minimumFractionDigits: 2, maximum
 const gbp = (n: number) => "£" + money.format(n);
 const pct = (r: number) => `${+(r * 100).toFixed(2)}%`;
 
-/** Tax on an amount through a schedule of bands. */
-export function bandTax(amount: number, bands: Band[]): { tax: number; working: string } {
+/**
+ * Tax on the slice of taxable income running from `start` to `start + amount`, through a schedule of bands.
+ * Savings and dividends sit on top of other income, so their slice doesn't start at zero. `rates`, if given,
+ * replaces the bands' own rates (dividends use their own rates in the same bands).
+ */
+export function sliceTax(start: number, amount: number, bands: Band[], rates?: number[]): { tax: number; parts: string[] } {
   let tax = 0;
   const parts: string[] = [];
   bands.forEach((band, i) => {
     const top = bands[i + 1]?.threshold ?? Infinity;
-    const slice = Math.min(amount, top) - band.threshold;
+    const slice = Math.min(start + amount, top) - Math.max(start, band.threshold);
     if (slice <= 0) return;
-    tax += slice * band.rate;
-    parts.push(`${pct(band.rate)} of ${gbp(slice)}`);
+    const rate = rates ? rates[i]! : band.rate;
+    tax += slice * rate;
+    parts.push(`${pct(rate)} of ${gbp(slice)}`);
   });
+  return { tax, parts };
+}
+
+/** Tax on an amount through a schedule of bands. */
+export function bandTax(amount: number, bands: Band[]): { tax: number; working: string } {
+  const { tax, parts } = sliceTax(0, amount, bands);
   return { tax, working: parts.join(" + ") || "nothing taxable" };
 }
 
@@ -95,14 +109,41 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
   const ni = r.ni;
   const lines: Line[] = [];
 
-  const totalIncome = pay(a) + a.selfEmployment + a.pension;
-  const adjustedNetIncome = Math.max(0, totalIncome - a.pensionContributions);
+  // Income is taxed in the legal order: non-savings income, then savings interest, then dividends.
+  const property = a.propertyIncome ?? 0;
+  const savings = a.savingsInterest ?? 0;
+  const dividends = a.dividends ?? 0;
+  const nonSavings = Math.max(0, pay(a) + a.selfEmployment + a.pension + property - a.pensionContributions);
+  const totalIncome = pay(a) + a.selfEmployment + a.pension + property + savings + dividends;
+  const adjustedNetIncome = nonSavings + savings + dividends;
   const allowanceLost = Math.min(it.personalAllowance, it.taperRate * Math.max(0, adjustedNetIncome - it.taperThreshold));
   const personalAllowance = it.personalAllowance - allowanceLost;
-  const taxableIncome = Math.max(0, adjustedNetIncome - personalAllowance);
 
-  const bands = h.region === "scotland" ? it.bands.scotland : h.region === "wales" ? it.bands.wales : it.bands.ruk;
-  const { tax: incomeTax, working: taxWorking } = bandTax(taxableIncome, bands);
+  // The personal allowance is used against non-savings income first, then savings, then dividends.
+  let allowanceLeft = personalAllowance;
+  const nsTaxable = Math.max(0, nonSavings - allowanceLeft);
+  allowanceLeft = Math.max(0, allowanceLeft - nonSavings);
+  const sTaxable = Math.max(0, savings - allowanceLeft);
+  allowanceLeft = Math.max(0, allowanceLeft - savings);
+  const dTaxable = Math.max(0, dividends - allowanceLeft);
+  const taxableIncome = nsTaxable + sTaxable + dTaxable;
+
+  const regionBands = h.region === "scotland" ? it.bands.scotland : h.region === "wales" ? it.bands.wales : it.bands.ruk;
+  const ns = sliceTax(0, nsTaxable, regionBands);
+
+  // Savings and dividends use UK rates and bands everywhere, stacked on top of non-savings income.
+  const uk = it.bands.ruk;
+  const savingsAllowance = taxableIncome > uk[2]!.threshold ? it.savingsAllowance.additional : taxableIncome > uk[1]!.threshold ? it.savingsAllowance.higher : it.savingsAllowance.basic;
+  const startingBand = Math.max(0, it.savingsStartingBand - nsTaxable);
+  const savingsNil = Math.min(sTaxable, startingBand + savingsAllowance); // taxed at 0%, but still uses up the band
+  const sv = sliceTax(nsTaxable + savingsNil, sTaxable - savingsNil, uk);
+  const dividendNil = Math.min(dTaxable, it.dividendAllowance);
+  const dv = sliceTax(nsTaxable + sTaxable + dividendNil, dTaxable - dividendNil, uk, it.dividendRates);
+  const incomeTax = ns.tax + sv.tax + dv.tax;
+
+  const pieces = [`earnings, pensions and property: ${ns.parts.join(" + ") || "nothing taxable"}`];
+  if (savings) pieces.push(`savings interest: ${gbp(savingsNil)} at 0% (starting rate and savings allowance)` + (sv.parts.length ? `, then ${sv.parts.join(" + ")}` : ""));
+  if (dividends) pieces.push(`dividends: ${gbp(dividendNil)} at 0% (dividend allowance)` + (dv.parts.length ? `, then ${dv.parts.join(" + ")}` : ""));
   lines.push({
     label: "Income tax",
     amount: incomeTax,
@@ -111,7 +152,7 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
       (a.pensionContributions ? ` less pension contributions ${gbp(a.pensionContributions)}` : "") +
       ` less personal allowance ${gbp(personalAllowance)}` +
       (allowanceLost ? ` (cut by ${gbp(allowanceLost)} because income is over ${gbp(it.taperThreshold)})` : "") +
-      ` leaves ${gbp(taxableIncome)} taxable: ${taxWorking}.`,
+      ` leaves ${gbp(taxableIncome)} taxable. ${pieces.join("; ")}.`,
   });
 
   const overPensionAge = a.age >= ni.statePensionAge;
@@ -156,7 +197,11 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
     (a.age < 21 ? " (the zero rate for employees under 21 covers pay up to that)" : "") +
     ". Not taken from pay, but part of what the job costs.";
 
-  return { totalIncome, adjustedNetIncome, personalAllowance, taxableIncome, incomeTax, employeeNI, selfEmployedNI, employerNI, employerNIWorking, lines };
+  return {
+    totalIncome, adjustedNetIncome, personalAllowance, taxableIncome, incomeTax,
+    nonSavingsIncome: nonSavings, nonSavingsTax: ns.tax,
+    employeeNI, selfEmployedNI, employerNI, employerNIWorking, lines,
+  };
 }
 
 function childBenefit(h: Household, r: RuleSet): Line {
@@ -266,12 +311,14 @@ function universalCredit(h: Household, adults: AdultResult[], childBenefitYear: 
   const maximum = elements.reduce((s, e) => s + e.amount, 0);
 
   // Earnings count after income tax, National Insurance and pension contributions. Where someone also
-  // has pension income, income tax is split between earnings and pension in proportion (a simplification).
+  // has pension or property income, the tax on non-savings income is split between them in proportion
+  // (a simplification). Property, savings and dividend income don't count as income for Universal Credit:
+  // the property and savings themselves count as capital, which isn't modelled beyond the savings entered.
   const earnings = h.adults.reduce((sum, a, i) => {
     const res = adults[i]!;
     const earned = pay(a) + a.selfEmployment - a.pensionContributions;
-    const taxShare = res.adjustedNetIncome > 0 ? Math.max(0, earned) / res.adjustedNetIncome : 0;
-    return sum + (earned - res.incomeTax * taxShare - res.employeeNI - res.selfEmployedNI) / 12;
+    const taxShare = res.nonSavingsIncome > 0 ? Math.max(0, earned) / res.nonSavingsIncome : 0;
+    return sum + (earned - res.nonSavingsTax * taxShare - res.employeeNI - res.selfEmployedNI) / 12;
   }, 0);
   // Pension income counts in full, before tax (DWP Advice for Decision Making H5004).
   const unearnedIncome = h.adults.reduce((s, a) => s + a.pension, 0) / 12;
@@ -331,7 +378,7 @@ export function calculate(h: Household, r: RuleSet): Result {
   const uc = universalCredit(h, adults, cb.amount, r);
   const ucYear = uc.award * 12;
 
-  const grossIncome = h.adults.reduce((s, a) => s + pay(a) + a.selfEmployment + a.pension, 0);
+  const grossIncome = h.adults.reduce((s, a) => s + pay(a) + a.selfEmployment + a.pension + (a.propertyIncome ?? 0) + (a.savingsInterest ?? 0) + (a.dividends ?? 0), 0);
   const sum = (f: (a: AdultResult) => number) => adults.reduce((s, a) => s + f(a), 0);
   const incomeTax = sum((a) => a.incomeTax);
   const ni = sum((a) => a.employeeNI + a.selfEmployedNI);
@@ -340,7 +387,7 @@ export function calculate(h: Household, r: RuleSet): Result {
   const netIncome = grossIncome + cb.amount + ucYear - incomeTax - ni - charge.amount - pensionContributions;
 
   const lines: Line[] = [
-    { label: "Gross income", amount: grossIncome, working: "Earnings, self-employment profits and pensions, before tax." },
+    { label: "Gross income", amount: grossIncome, working: "Earnings, self-employment profits, pensions, property income, savings interest and dividends, before tax." },
     { label: "Income tax", amount: -incomeTax, working: "See each adult." },
     { label: "National Insurance", amount: -ni, working: "See each adult." },
   ];

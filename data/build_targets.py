@@ -65,6 +65,22 @@ def spi_by_region() -> pd.DataFrame:
     return t
 
 
+def spi_other_income() -> pd.DataFrame:
+    """HMRC SPI Table 3.7: property, interest, dividend and other income by band of total income (UK)."""
+    t = read_table(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", "Table_3_7", t37_header())
+    out = pd.DataFrame({"band_lower": t.iloc[:, 0].replace({"All ranges": "all", "All Ranges": "all"})})
+    for prefix, name in [("Net income from property", "property"), ("Interest from building", "interest"), ("Dividends", "dividends"), ("Other income", "other")]:
+        cols = [c for c in t.columns if str(c).startswith(prefix)]
+        out[f"{name}_people_k"] = t[[c for c in cols if "Number" in str(c)][0]].to_numpy()
+        out[f"{name}_gbp_m"] = t[[c for c in cols if "Amount" in str(c)][0]].to_numpy()
+    return out
+
+
+def t37_header() -> str:
+    raw = pd.read_excel(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", engine="odf", sheet_name="Table_3_7", header=None)
+    return raw.iloc[4, 0]
+
+
 def simple_table(path: Path, sheet: str) -> pd.DataFrame:
     """A sheet with a few lines of notes, then a header row, then data until 'End of worksheet'."""
     raw = pd.read_excel(path, engine="odf", sheet_name=sheet, header=None)
@@ -131,6 +147,9 @@ def main() -> None:
     OUT.mkdir(exist_ok=True)
     t = spi_by_region()
     t.to_csv(OUT / "hmrc_income_by_region_band_2023_24.csv", index=False)
+    o = spi_other_income()
+    o.to_csv(OUT / "hmrc_property_interest_dividends_by_band_2023_24.csv", index=False)
+    print("Table 3.7:", o[o["band_lower"] == "all"].to_dict("records"))
     for name, df in child_benefit().items():
         df.to_csv(OUT / name, index=False)
         print(f"{name}: {len(df)} rows; columns {list(df.columns)[:4]}...")

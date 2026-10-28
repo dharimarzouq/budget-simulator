@@ -7,13 +7,13 @@ It replaces survey microdata (the Family Resources Survey), which can't be publi
 ## How it's built
 
 1. **Targets** (`data/targets/`, listed with sources in `targets.yaml`): published tables from HMRC, DWP, the Family Resources Survey via Stat-Xplore, and the OBR.
-2. **Seed** (`data/build_seed.py`): 30,012 made-up households (35,497 benefit units). They're spread across all 12 regions, the four tenures, and households with and without children, in proportion to the FRS, with at least 40 in every combination. Each starts with a weight: how many real households it stands for.
-3. **Calibration** (`data/calibrate.py`): the weights are scaled up or down to bring the weighted totals as close as possible to 370 published figures at once. Each household's scaling is kept as close to 1 as it can be, and never below ÷10 or above ×10. Published sources disagree with each other slightly, so this minimises the misses rather than forcing an exact match. Every miss is reported in `data/build/calibration_report.csv`.
+2. **Seed** (`data/build_seed.py`): 30,012 made-up households (35,464 benefit units). They're spread across all 12 regions, the four tenures, and households with and without children, in proportion to the FRS, with at least 40 in every combination. Each starts with a weight: how many real households it stands for.
+3. **Calibration** (`data/calibrate.py`): the weights are scaled up or down to bring the weighted totals as close as possible to 430 published figures at once. Each household's scaling is kept as close to 1 as it can be, and never below ÷10 or above ×10. Published sources disagree with each other slightly, so this minimises the misses rather than forcing an exact match. Every miss is reported in `data/build/calibration_report.csv`.
 4. **Checks**: totals that were *not* used in calibration test the result (below).
 
 Households with three or more adults are split into benefit units: a couple (with any children) and one or two more adults, each on their own. That's because tax and benefits are worked out per benefit unit. A household's units share a weight.
 
-**Other income.** Each adult can have property, savings and dividend income ("other income"). The engine doesn't tax it yet; that comes with savings and dividend tax in a later milestone. It's in the population because HMRC sorts people into income bands by *total* income, including this. Without it, the made-up people needed too much pay to reach each band, which inflated National Insurance.
+**Property, savings and dividend income.** Each adult can have rental profit, savings interest and dividends, drawn separately using HMRC's figures for who has each kind and how much, by income band (Personal Incomes Statistics, Table 3.7). The engine taxes them by the real rules: the savings allowances, the starting rate for savings, the dividend allowance and dividend rates. They're calibrated to HMRC's amounts and numbers of people for each kind, band by band. They matter twice over: for the tax itself, and because HMRC sorts people into income bands by *total* income. Without them, the made-up people needed too much pay to reach each band, which inflated National Insurance.
 
 ## Assumptions in the seed
 
@@ -25,7 +25,7 @@ These are starting guesses, not published figures. Calibration corrects the tota
 | Employee pay | Median £31,000, wide spread, plus a 4% top tail from £80,000 | Roughly ONS pay statistics, 2026-27 terms |
 | Employees with a second job | 6%, median £5,000 | ONS: about 1.29m people (3.7% of the employed) in 2026 |
 | Self-employed profits | Median £14,000, wide spread, plus a 4% top tail from £80,000 | Rough; the tail is needed to cover HMRC's top bands |
-| Other income (property, savings, dividends) | 60% of adults; median 5% of their other income, very wide spread | HMRC: 22.4m of 36.7m taxpayers have some, £125bn in 2023-24 |
+| Property, interest, dividends | Who has each and the average amount follow HMRC's Table 3.7 for the person's income band; spread around the average is a guess (wider for dividends) | HMRC Personal Incomes Statistics 2023-24, uprated |
 | Pensioners on the new State Pension | 60% (rest on the old basic pension) | Rough; new pension £241.30 a week, old £184.90 (DWP) |
 | Pensioners with a private pension | 65%, median £7,000, 3% tail from £50,000 | Rough |
 | Pensioners under 75 with a job | 12%, median pay £13,000 | ONS puts employment at 65+ at about 12%; pay set so their NICs exemption comes near HMRC's £1.2bn |
@@ -48,22 +48,23 @@ Median miss for each group of targets, before and after calibration:
 
 | Targets | Number | Before | After | Worst after |
 |---|---:|---:|---:|---:|
-| HMRC people and income (pay, profits, pensions, other) by income band | 60 | 22% | 1.0% | 22% |
-| HMRC taxpayers and income by region | 24 | 17% | 8.0% | 12% |
-| HMRC costs of the NICs thresholds | 2 | 9% | 7.8% | 8% |
-| OBR employee count | 1 | 5% | 3.7% | |
-| FRS adults by age | 9 | 21% | 8.3% | 15% |
-| UC households and spending, family type × tenure | 24 | 70% | 3.4% | 18% |
-| UC households by region and family type | 44 | 73% | 3.2% | 16% |
-| UC households by number of children | 10 | 62% | 3.4% | 15% |
-| UC households by health condition | 8 | 88% | 7.8% | 19% |
-| UC households with a disabled child | 4 | 92% | 2.2% | 13% |
-| UC households with a carer element | 4 | 24% | 18% | 30% |
-| Child Benefit families by size | 5 | 2% | 4.8% | 6% |
-| Child Benefit opt-outs | 1 | 113% | 18% | |
-| Child Benefit charge revenue | 1 | 144% | 26% | |
-| FRS households by region, children, tenure | 96 | 0% | 1.7% | 11% |
-| FRS households by income and composition | 77 | 30% | 3.9% | 64% |
+| HMRC people and income (pay, profits, pensions) by income band | 48 | 20% | 1.1% | 7% |
+| HMRC property, interest and dividends by income band (amounts and people) | 72 | 18% | 1.2% | 20% |
+| HMRC taxpayers and income by region | 24 | 17% | 6.8% | 15% |
+| HMRC costs of the NICs thresholds | 2 | 9% | 7.6% | 8% |
+| OBR employee count | 1 | 4% | 3.7% | |
+| FRS adults by age | 9 | 20% | 8.2% | 21% |
+| UC households and spending, family type × tenure | 24 | 73% | 5.3% | 23% |
+| UC households by region and family type | 44 | 70% | 3.6% | 16% |
+| UC households by number of children | 10 | 64% | 5.0% | 14% |
+| UC households by health condition | 8 | 81% | 10% | 22% |
+| UC households with a disabled child | 4 | 92% | 2.6% | 13% |
+| UC households with a carer element | 4 | 28% | 19% | 39% |
+| Child Benefit families by size | 5 | 5% | 4.7% | 7% |
+| Child Benefit opt-outs | 1 | 123% | 23% | |
+| Child Benefit charge revenue | 1 | 220% | 43% | |
+| FRS households by region, children, tenure | 96 | 0% | 1.5% | 12% |
+| FRS households by income and composition | 77 | 29% | 3.8% | 66% |
 
 The worst misses come from sources disagreeing, or from the seed lacking the right kind of household:
 
@@ -76,25 +77,25 @@ The worst misses come from sources disagreeing, or from the seed lacking the rig
 
 | Measure | Population | Published | Source | In calibration? |
 |---|---:|---:|---|---|
-| Households | 28.77m | 28.97m | FRS 2024-25 | yes, indirectly |
-| Income taxpayers | 37.2m | 36.7m | HMRC SPI 2023-24 | partly (bands from £15,000) |
+| Households | 29.26m | 28.97m | FRS 2024-25 | yes, indirectly |
+| Income taxpayers | 37.8m | 36.7m | HMRC SPI 2023-24 | partly (bands from £15,000) |
 | Employees | 28.7m | 29.8m | OBR March 2026 | yes |
-| People with a second job | 1.70m | 1.29m | ONS LFS mid-2026 (secondary reports) | no |
-| Employment income | £1,259bn | £1,230bn | HMRC SPI, uprated | partly |
-| Self-employment profits | £131bn | £122bn | HMRC SPI, uprated | partly |
-| Pension income | £292bn | £243bn | HMRC SPI, uprated | partly |
-| **Income tax** | **£321bn** | £360bn | OBR March 2026 | no |
-| **Employee NICs** | **£52.3bn** | £51.5bn | OBR | no |
-| **Employer NICs** (after the lump sums below) | **£151.4bn** | £151.0bn | OBR | no |
-| Cost of the NICs primary threshold | £28.0bn | £30.4bn | HMRC tax relief statistics 2025-26 | yes |
+| People with a second job | 1.79m | 1.29m | ONS LFS mid-2026 (secondary reports) | no |
+| Employment income | £1,242bn | £1,230bn | HMRC SPI, uprated | partly |
+| Self-employment profits | £133bn | £122bn | HMRC SPI, uprated | partly |
+| Pension income | £299bn | £243bn | HMRC SPI, uprated | partly |
+| **Income tax** | **£357.7bn** | £359.6bn | OBR March 2026 | no |
+| **Employee NICs** | **£51.0bn** | £51.5bn | OBR | no |
+| **Employer NICs** (after the lump sums below) | **£148.6bn** | £151.0bn | OBR | no |
+| Cost of the NICs primary threshold | £28.1bn | £30.4bn | HMRC tax relief statistics 2025-26 | yes |
 | Cost of the NICs secondary threshold | £22.5bn | £24.4bn | HMRC tax relief statistics 2025-26 | yes |
 | **Employee NICs exemption over State Pension age** | **£1.0bn** | £1.2bn | HMRC tax relief statistics 2025-26 | no |
 | **Self-employed NICs** | **£3.5bn** | £3.2bn | OBR | no |
-| **Child Benefit spending** | **£14.8bn** | £13.7bn | OBR | no |
-| Families paid Child Benefit | 7.20m | 6.87m | HMRC Aug 2025 | yes |
-| Child Benefit charge | £0.45bn | £0.36bn | HMRC 2024-25 provisional | yes, low priority |
-| Households on Universal Credit | 6.93m | 7.16m | DWP May 2026 | yes |
-| Universal Credit spending | £84bn | £88bn | OBR | yes, through DWP's averages |
+| **Child Benefit spending** | **£14.9bn** | £13.7bn | OBR | no |
+| Families paid Child Benefit | 7.24m | 6.87m | HMRC Aug 2025 | yes |
+| Child Benefit charge | £0.51bn | £0.36bn | HMRC 2024-25 provisional | yes, low priority |
+| Households on Universal Credit | 6.95m | 7.16m | DWP May 2026 | yes |
+| Universal Credit spending | £83bn | £88bn | OBR | yes, through DWP's averages |
 
 **Employer NICs lump sums.** Two employer reliefs depend on the employer, not the household, so they can't be given to a household in the population. Population totals take off HMRC's 2025-26 cost estimates (tax relief statistics, January 2026) as one figure each:
 
@@ -105,7 +106,8 @@ The zero rate for employees under 21 *is* modelled, because age is known.
 
 What this says, plainly:
 
-- **National Insurance now matches:** employer NICs within 0.3%, employee NICs 1.5% high. Getting there took five changes:
+- **Income tax matches: £357.7bn against the OBR's £359.6bn** (0.5% short), now that property, savings and dividend income is taxed. Before that it was £321bn.
+- **National Insurance matches:** employee NICs 1% short, employer NICs 2% short. Getting there took five changes:
   1. the under-21 employer zero rate (modelled)
   2. the Employment Allowance and apprentice relief (taken off as HMRC's published costs)
   3. people working past State Pension age (they pay no employee NICs)
@@ -113,7 +115,7 @@ What this says, plainly:
   5. property, savings and dividend income, so pay isn't inflated to fill HMRC's income bands
 
   Salary sacrifice turned out not to be a cause: HMRC's income figures are already after it.
-- **Income tax is £321bn against the OBR's £360bn.** That's expected, because we don't yet tax the £152bn of other income. Taxing it at ordinary rates would add at most £51bn; real tax on it is lower, because of the savings and dividend allowances and lower dividend rates. So the £39bn gap is consistent with what's missing. It closes when savings and dividend tax is modelled.
+- **Income taxpayers are probably too few at the bottom.** With frozen thresholds, more people are pulled into tax each year, and HMRC's band figures we calibrate to start at £15,000. The ready reckoner check shows the effect: costings of the basic rate and personal allowance come out about 13% low (COSTING.md). HMRC's projected number of taxpayers for 2026-27 would be a good extra target.
 - **Pension income is 20% above HMRC's figure**, but HMRC's figure only covers pensioners who pay tax, and most of the excess is State Pension paid to people below the tax threshold. The OBR's State Pension forecast (£154bn) would be a better check.
 - **Universal Credit is 3–4% short** on both households and spending.
 - **Child Benefit spending is 8% high**, though it isn't a target. It would make a good one.
@@ -124,15 +126,15 @@ HBAI ("Households below average income") is DWP's official measure of household 
 
 | Group | Median, ours | Median, HBAI | Mean, ours | Mean, HBAI | People, ours | People, HBAI |
 |---|---:|---:|---:|---:|---:|---:|
-| Children | £665 | £681 | £762 | £827 | 13.4m | 14.7m |
-| Working-age adults | £828 | £837 | £978 | £984 | 38.8m | 41.4m |
-| Pensioners | £699 | £704 | £801 | £830 | 13.0m | 12.2m |
+| Children | £677 | £681 | £810 | £827 | 13.5m | 14.7m |
+| Working-age adults | £851 | £837 | £1,023 | £984 | 39.3m | 41.4m |
+| Pensioners | £732 | £704 | £865 | £830 | 13.5m | 12.2m |
 
 (£ a week, equivalised.)
 
-- **Typical incomes match closely.** Medians are within 1–2% for all three groups. That's a strong sign the population is realistic in the middle of the distribution.
+- **Typical incomes match closely.** Medians are within 1–4% for all three groups (ours now include property, savings and dividend income, as HBAI's do). That's a strong sign the population is realistic in the middle of the distribution.
 - **Two differences roughly cancel, and we can't yet separate them.** HBAI's net income takes off council tax, which we don't model; that makes ours too high. It also adds disability benefits, Carer's Allowance, Pension Credit and others, which we don't model either; that makes ours too low.
-- **Means are lower than HBAI's for children (8%) and pensioners (3%).** Better-off families with children may be too few, and pensioners are missing the benefits above.
+- **Means are 2% below HBAI's for children and 4% above for working-age adults and pensioners.** Ours include all dividend income at the top, while HBAI's survey under-records it; the missing council tax deduction also pushes ours up.
 - **Head-counts differ by 6–9%.** HBAI counts 16–19 year-olds in education as children and 16–17 year-olds as working age; ours start adults at 18 and don't have the older children. We have 7% more pensioners than HBAI, partly because our State Pension age is 66 throughout.
 
 ## Rebuilding it

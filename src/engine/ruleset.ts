@@ -10,6 +10,11 @@ export interface RuleSet {
     taperThreshold: number;
     taperRate: number;
     bands: { ruk: Band[]; wales: Band[]; scotland: Band[] };
+    savingsStartingBand: number;
+    savingsAllowance: { basic: number; higher: number; additional: number };
+    dividendAllowance: number;
+    /** Dividend rates in the UK basic, higher and additional rate bands. */
+    dividendRates: [number, number, number];
   };
   ni: {
     statePensionAge: number;
@@ -87,6 +92,14 @@ export function ruleSet(year: string): RuleSet {
       taperThreshold: n("income_tax", "personal_allowance_taper_threshold"),
       taperRate: n("income_tax", "personal_allowance_taper_rate"),
       bands: { ruk: b("income_tax", "bands_ruk"), wales: b("income_tax", "bands_wales"), scotland: b("income_tax", "bands_scotland") },
+      savingsStartingBand: n("income_tax", "savings_starting_rate_band"),
+      savingsAllowance: {
+        basic: n("income_tax", "personal_savings_allowance_basic"),
+        higher: n("income_tax", "personal_savings_allowance_higher"),
+        additional: n("income_tax", "personal_savings_allowance_additional"),
+      },
+      dividendAllowance: n("income_tax", "dividend_allowance"),
+      dividendRates: [n("income_tax", "dividend_ordinary_rate"), n("income_tax", "dividend_upper_rate"), n("income_tax", "dividend_additional_rate")],
     },
     ni: {
       statePensionAge: n("national_insurance", "state_pension_age"),

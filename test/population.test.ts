@@ -30,9 +30,7 @@ describe("shipped population", () => {
     expect(Math.abs(get(totals) / published(name) - 1)).toBeLessThan(tolerance);
   });
 
-  it("income tax is below the OBR, by about the tax on savings and dividends we don't model yet", () => {
-    const ratio = totals.incomeTax / 1e9 / published("Income tax");
-    expect(ratio).toBeGreaterThan(0.85);
-    expect(ratio).toBeLessThan(0.95);
+  it("income tax, including savings, dividends and property income, is within 3% of the OBR", () => {
+    expect(Math.abs(totals.incomeTax / 1e9 / published("Income tax") - 1)).toBeLessThan(0.03);
   });
 });

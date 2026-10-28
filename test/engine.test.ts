@@ -95,6 +95,69 @@ describe("income tax and National Insurance", () => {
   });
 });
 
+describe("savings, dividends and property income", () => {
+  const tax = (a: Parameters<typeof adult>[0], region: "england" | "scotland" = "england") =>
+    calculate(household({ region, adults: [adult(a)] }), r).adults[0]!.incomeTax;
+
+  it("GOV.UK's example: £16,000 wages and £200 interest, all interest covered by the starting rate", () => {
+    // Wages use the allowance, leaving £3,430 taxable; the £5,000 starting band shrinks to £1,570, which covers the £200.
+    expect(tax({ employment: 16000, savingsInterest: 200 })).toBeCloseTo(686, 2);
+  });
+
+  it("GOV.UK's example: a basic rate taxpayer with £1,300 interest pays 20% on £300", () => {
+    // £30,000 wages: 3,486 on wages, then £1,000 savings allowance, then £300 × 20% = 60.
+    expect(tax({ employment: 30000, savingsInterest: 1300 })).toBeCloseTo(3546, 2);
+  });
+
+  it("a higher rate taxpayer gets a £500 savings allowance and pays 40% on the rest", () => {
+    // £60,000 wages (11,432) + £1,000 interest: £500 tax-free, £500 × 40% = 200.
+    expect(tax({ employment: 60000, savingsInterest: 1000 })).toBeCloseTo(11632, 2);
+  });
+
+  it("the starting rate for savings covers interest when other income is low", () => {
+    // £14,000 pension: 1,430 taxable (286 tax). Starting band 5,000 - 1,430 = 3,570, plus £1,000 allowance, covers £4,000.
+    expect(tax({ age: 70, pension: 14000, savingsInterest: 4000 })).toBeCloseTo(286, 2);
+  });
+
+  it("dividends: £500 allowance, then 10.75% in the basic rate band", () => {
+    // £30,000 wages (3,486) + £10,000 dividends: £9,500 × 10.75% = 1,021.25.
+    expect(tax({ employment: 30000, dividends: 10000 })).toBeCloseTo(4507.25, 2);
+  });
+
+  it("dividends straddling the higher rate threshold are split between 10.75% and 35.75%", () => {
+    // £45,000 wages: 32,430 taxable (6,486). Dividends start at 32,430; £500 allowance takes them to 32,930.
+    // 4,770 × 10.75% = 512.775 up to 37,700, then 4,730 × 35.75% = 1,690.975.
+    expect(tax({ employment: 45000, dividends: 10000 })).toBeCloseTo(6486 + 512.775 + 1690.975, 2);
+  });
+
+  it("with only dividends, the personal allowance covers them first", () => {
+    // £15,000 dividends: 2,430 above the allowance, £500 tax-free, 1,930 × 10.75% = 207.475.
+    expect(tax({ dividends: 15000 })).toBeCloseTo(207.475, 3);
+  });
+
+  it("dividends count towards the £100,000 allowance taper", () => {
+    // £100,000 wages + £20,000 dividends: income £120,000, allowance cut to £2,570.
+    // Wages: 97,430 taxable: 7,540 + 59,730 × 40% = 31,432. Dividends: £500 free, then 19,500 × 35.75% = 6,971.25.
+    expect(tax({ employment: 100000, dividends: 20000 })).toBeCloseTo(38403.25, 2);
+  });
+
+  it("Scotland: wages use Scottish bands, dividends use UK bands on top", () => {
+    // £50,000 wages: 8,982.05 (Scottish). Dividends from 37,430 + £500 allowance = 37,930, above the UK basic
+    // rate limit of 37,700, so 4,500 × 35.75% = 1,608.75.
+    expect(tax({ employment: 50000, dividends: 5000 }, "scotland")).toBeCloseTo(8982.05 + 1608.75, 2);
+  });
+
+  it("property income is taxed like earnings, including at Scottish rates", () => {
+    // £20,000 rent profit in Scotland: 7,430 taxable: 3,967 × 19% + 3,463 × 20% = 753.73 + 692.60.
+    expect(tax({ propertyIncome: 20000 }, "scotland")).toBeCloseTo(1446.33, 2);
+  });
+
+  it("none of these attract National Insurance", () => {
+    const res = calculate(household({ adults: [adult({ propertyIncome: 30000, savingsInterest: 5000, dividends: 20000 })] }), r).adults[0]!;
+    expect(res.employeeNI + res.selfEmployedNI + res.employerNI).toBe(0);
+  });
+});
+
 describe("Child Benefit and the charge", () => {
   it("two children, one earner on £70,000: half the Child Benefit is charged back", () => {
     // Child Benefit: (27.05 + 17.90) × 52 = 2,337.40. 10,000 over £60,000 = 50 × £200, so 50%: 1,168.70.

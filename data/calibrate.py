@@ -66,8 +66,9 @@ def load():
         "household": u["household"], "region": norm_region(u["regionDetail"]), "age": a["age"],
         "main_job": a["employment"], "second_job": a.get("secondJob", 0.0),
         "employment": a["employment"] + a.get("secondJob", 0.0), "self_employment": a["selfEmployment"], "pension": a["pension"],
-        "other": u.get("otherIncome", [0.0] * len(u["data"]["adults"]))[i],
-    } for u in seed["units"] for i, a in enumerate(u["data"]["adults"])])
+        "property": a.get("propertyIncome", 0.0), "interest": a.get("savingsInterest", 0.0), "dividends": a.get("dividends", 0.0),
+    } for u in seed["units"] for a in u["data"]["adults"]])
+    adults["other"] = adults[["property", "interest", "dividends"]].sum(axis=1)
     # Total income as HMRC defines it for its bands, including property, savings and dividend income.
     adults["total"] = adults[["employment", "self_employment", "pension", "other"]].sum(axis=1)
     return seed, units, adults
@@ -107,6 +108,7 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     spi = pd.read_csv(T / "hmrc_income_by_region_band_2023_24.csv")
     uk = spi[(spi["region"] == "United Kingdom") & (spi["band_lower"] != "all")].copy()
     uk["lo"] = uk["band_lower"].astype(float)
+    other_by_band = pd.read_csv(T / "hmrc_property_interest_dividends_by_band_2023_24.csv").set_index("band_lower")
     edges = sorted(uk["lo"]) + [np.inf]
     for r in uk.itertuples():
         if r.lo < 15_000:
@@ -116,10 +118,17 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         label = f"£{int(r.lo):,}+"
         g = "HMRC people and income by income band"
         targets.append(Target(g, f"{label} people", r.taxpayers_k * 1e3, household_row(adults, inb.astype(float), n), 1, 50_000))
-        for col, amount in [("employment", r.employment_gbp_m), ("self_employment", r.self_employment_gbp_m), ("pension", r.pension_gbp_m), ("other", r.other_gbp_m)]:
+        for col, amount in [("employment", r.employment_gbp_m), ("self_employment", r.self_employment_gbp_m), ("pension", r.pension_gbp_m)]:
             if pd.notna(amount):
                 targets.append(Target(g, f"{label} {col}", amount * 1e6 * EARNINGS_2023_24,
                                       household_row(adults, inb * adults[col].to_numpy(), n), 1, 2e9))
+        # Table 3.7: property (with HMRC's small "other income"), interest and dividends: amounts and people.
+        o = other_by_band.loc[r.band_lower]
+        g2 = "HMRC property, interest and dividends by income band"
+        for col, people, amount in [("property", o.property_people_k + o.other_people_k, o.property_gbp_m + o.other_gbp_m),
+                                    ("interest", o.interest_people_k, o.interest_gbp_m), ("dividends", o.dividends_people_k, o.dividends_gbp_m)]:
+            targets.append(Target(g2, f"{label} {col}", amount * 1e6 * EARNINGS_2023_24, household_row(adults, inb * adults[col].to_numpy(), n), 1, 1e9))
+            targets.append(Target(g2, f"{label} {col} people", people * 1e3, household_row(adults, (inb & (adults[col] > 0).to_numpy()).astype(float), n), 0.5, 50_000))
     # OBR: employees in 2026-27 (EFO March 2026, table 1.6), any age 16+, including those past State Pension age.
     targets.append(Target("OBR employees", "employees 2026-27", 29.825e6,
                           household_row(adults, (adults["employment"] > 0).astype(float).to_numpy(), n), 1, 1e6))

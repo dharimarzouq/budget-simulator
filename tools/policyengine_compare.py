@@ -28,7 +28,8 @@ REGIONS = {
     "northern_ireland": "NORTHERN_IRELAND",
 }
 
-ADULT = {"age": 35, "employment": 0, "selfEmployment": 0, "pension": 0, "pensionContributions": 0, "health": "none", "carer": False}
+ADULT = {"age": 35, "employment": 0, "selfEmployment": 0, "pension": 0, "pensionContributions": 0, "health": "none", "carer": False,
+         "propertyIncome": 0, "savingsInterest": 0, "dividends": 0}
 CHILD = {"age": 5, "bornBefore2017": False, "disability": "none"}
 
 
@@ -44,6 +45,9 @@ def situation(h: dict) -> dict:
             "self_employment_income": {YEAR: a["selfEmployment"]},
             "private_pension_income": {YEAR: a["pension"]},
             "employee_pension_contributions": {YEAR: a["pensionContributions"]},
+            "property_income": {YEAR: a["propertyIncome"]},
+            "savings_interest_income": {YEAR: a["savingsInterest"]},
+            "dividend_income": {YEAR: a["dividends"]},
             "uc_limited_capability_for_WRA": {YEAR: a["health"] != "none"},
             "is_carer_for_benefits": {YEAR: a["carer"]},
             "would_claim_carers_allowance": {YEAR: False},

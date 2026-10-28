@@ -26,6 +26,7 @@ SEED = 2026
 
 # Uprating to 2026-27, from the OBR March 2026 EFO detailed forecast tables (economy).
 EARNINGS_2024_25_TO_2026_27 = 169.0 / 156.623  # average weekly earnings index, table 1.6
+EARNINGS_2023_24_TO_2026_27 = 169.0 / 148.36
 RENT_GROWTH = {"Private rented": 1.04 * 1.04, "Social rented": 1.039 * 1.05}  # table 1.18, 2025-26 and 2026-27
 NEW_STATE_PENSION = 241.30 * 52  # full rate 2026-27, DWP benefit and pension rates
 OLD_STATE_PENSION = 184.90 * 52  # basic State Pension 2026-27, same source
@@ -66,11 +67,11 @@ ASSUMPTIONS = {
     "rent_sigma": 0.35,  # spread of rents around the regional mean
     "share_under5_with_childcare": 0.35,  # households with a child under 5 and all adults working
     "childcare_median_month": 700,
-    # Property, savings interest and dividend income. Not taxed by the engine yet, but it decides which HMRC
-    # income band a person falls in. HMRC: 22.4m of 36.7m taxpayers have some, £125bn in all (2023-24).
-    "share_with_other_income": 0.6,
-    "other_income_share_of_income": 0.05,  # median, as a share of the person's other income
-    "other_income_sigma": 1.6,
+    # Property, savings interest and dividends: who has each, and how much on average, follow HMRC's Table 3.7
+    # by income band. These are the spreads around those averages.
+    "property_sigma": 0.8,
+    "interest_sigma": 1.5,
+    "dividends_sigma": 1.8,
     "share_large_households_two_extra": 0.4,  # households of 3+ adults with 4+ adults
     "share_extra_adults_older": 0.25,  # extra adults who are older relatives rather than grown-up children
     "uc_take_up": 0.85,
@@ -127,6 +128,35 @@ class Builder:
                  4: "Families: Four children", 5: "Families: Five to Nine children [note 3]"}
         counts = np.array([float(cbf[c]) for c in sizes.values()])
         self.kids_p = counts / counts.sum()
+        # HMRC SPI 2023-24: for each band of total income, the share of taxpayers with property income, interest
+        # and dividends, and their average amounts, uprated to 2026-27 with earnings.
+        spi = pd.read_csv(TARGETS / "hmrc_income_by_region_band_2023_24.csv")
+        spi = spi[(spi["region"] == "United Kingdom") & (spi["band_lower"] != "all")].set_index("band_lower")
+        oth = pd.read_csv(TARGETS / "hmrc_property_interest_dividends_by_band_2023_24.csv")
+        oth = oth[oth["band_lower"] != "all"].set_index("band_lower")
+        self.other_bands = []
+        for lo in spi.index:
+            row, taxpayers = oth.loc[lo], spi.at[lo, "taxpayers_k"]
+            kinds = {}
+            for kind, people, amount in [("property", row.property_people_k + row.other_people_k, row.property_gbp_m + row.other_gbp_m),
+                                         ("interest", row.interest_people_k, row.interest_gbp_m),
+                                         ("dividends", row.dividends_people_k, row.dividends_gbp_m)]:
+                kinds[kind] = (min(1.0, people / taxpayers), amount / people * 1000 * EARNINGS_2023_24_TO_2026_27)
+            self.other_bands.append((float(lo) * EARNINGS_2023_24_TO_2026_27, kinds))
+
+    def other_income(self, base: float) -> dict:
+        """Property, interest and dividends for one adult, drawn from HMRC's figures for their income band."""
+        r = self.rng
+        kinds = self.other_bands[0][1]
+        for lo, k in self.other_bands:
+            if base >= lo:
+                kinds = k
+        out = {}
+        for kind, field in [("property", "propertyIncome"), ("interest", "savingsInterest"), ("dividends", "dividends")]:
+            share, mean = kinds[kind]
+            s = A[f"{kind}_sigma"]
+            out[field] = round(float(mean * np.exp(s * r.standard_normal() - s * s / 2)), 2) if r.random() < share else 0.0
+        return out
 
     # --- people -------------------------------------------------------------------------------
     def draw(self, kind: str) -> float:
@@ -230,13 +260,8 @@ class Builder:
                 units.append({"adults": [extra], "children": []})
 
         for i, u in enumerate(units):
-            # Kept outside the engine's household data, because the engine doesn't model it yet.
-            u["otherIncome"] = [
-                round(float(np.exp(np.log(max(300.0, A["other_income_share_of_income"] * (a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"])))
-                                   + A["other_income_sigma"] * r.standard_normal())), 2)
-                if r.random() < A["share_with_other_income"] else 0.0
-                for a in u["adults"]
-            ]
+            for a in u["adults"]:
+                a.update(self.other_income(a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"]))
             u["region"] = engine_region(region)
             u["rentMonthly"] = self.rent_month(region, tenure) if i == 0 else 0.0
             u["savings"] = self.savings_amount(kids_label) if i == 0 else 0.0
@@ -263,11 +288,9 @@ class Builder:
             for _ in range(n):
                 comp, units = self.benefit_units(region, cell.kids, cell.tenure)
                 for j, u in enumerate(units):
-                    other = u.pop("otherIncome")
                     out.append({
                         "id": f"{hh_id}-{j}", "household": hh_id, "unit": j, "weight": weight,
-                        "regionDetail": region, "tenure": cell.tenure, "composition": comp,
-                        "otherIncome": other, "data": u,
+                        "regionDetail": region, "tenure": cell.tenure, "composition": comp, "data": u,
                     })
                 hh_id += 1
         return out

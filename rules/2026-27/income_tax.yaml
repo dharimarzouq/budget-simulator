@@ -2,8 +2,10 @@ year: 2026-27
 area: income_tax
 label: Income tax
 limits:
-  - Covers earnings, self-employment profits and pension income ("non-savings, non-dividend" income) only. Savings and dividend rates come later.
-  - Ignores the marriage allowance, blind person's allowance and reliefs other than those stated.
+  - Income is taxed in the legal order - non-savings income (earnings, profits, pensions, property) first, then savings interest, then dividends. Savings and dividends use UK rates and bands everywhere, including Scotland.
+  - Property income is taxed as non-savings income in 2026-27. Separate property rates (22/42/47%) start in April 2027.
+  - For Scottish taxpayers, the personal savings allowance is worked out on UK bands. That's a simplification to check.
+  - Ignores the marriage allowance, blind person's allowance, finance cost relief for landlords and reliefs other than those stated.
 parameters:
   personal_allowance:
     label: Personal allowance
@@ -62,3 +64,62 @@ parameters:
     source: hmrc-employer-rates-2026-27
     legal: Income Tax Act 2007 s6C and s11A; rates and bands set by the Scottish Rate Resolution
     note: Thresholds are on taxable income, after the personal allowance. With the full allowance, the higher rate starts at £43,663 of income and the advanced rate at £75,001. Applies to non-savings, non-dividend income only.
+
+  savings_starting_rate_band:
+    label: Starting rate for savings band (taxed at 0%)
+    unit: gbp_per_year
+    value: 5000
+    source: govuk-savings-allowance
+    legal: Income Tax Act 2007 s7 and s12
+    note: Reduced £1 for each £1 of non-savings income above the personal allowance, so it's gone at £17,570 of other income.
+
+  personal_savings_allowance_basic:
+    label: Personal savings allowance, basic rate taxpayers
+    unit: gbp_per_year
+    value: 1000
+    source: govuk-savings-allowance
+    legal: Income Tax Act 2007 s12A and s12B
+
+  personal_savings_allowance_higher:
+    label: Personal savings allowance, higher rate taxpayers
+    unit: gbp_per_year
+    value: 500
+    source: govuk-savings-allowance
+    legal: Income Tax Act 2007 s12A and s12B
+
+  personal_savings_allowance_additional:
+    label: Personal savings allowance, additional rate taxpayers
+    unit: gbp_per_year
+    value: 0
+    source: govuk-savings-allowance
+    legal: Income Tax Act 2007 s12A and s12B
+
+  dividend_allowance:
+    label: Dividend allowance (taxed at 0%)
+    unit: gbp_per_year
+    value: 500
+    source: govuk-dividend-tax
+    legal: Income Tax Act 2007 s13A
+
+  dividend_ordinary_rate:
+    label: Dividend ordinary rate (basic rate band)
+    unit: rate
+    value: 0.1075
+    source: govuk-dividend-tax
+    legal: Income Tax Act 2007 s8, as amended for 2026-27 (Autumn Budget 2025)
+    note: Up from 8.75% in April 2026.
+
+  dividend_upper_rate:
+    label: Dividend upper rate (higher rate band)
+    unit: rate
+    value: 0.3575
+    source: govuk-dividend-tax
+    legal: Income Tax Act 2007 s8, as amended for 2026-27 (Autumn Budget 2025)
+    note: Up from 33.75% in April 2026.
+
+  dividend_additional_rate:
+    label: Dividend additional rate
+    unit: rate
+    value: 0.3935
+    source: govuk-dividend-tax
+    legal: Income Tax Act 2007 s8

@@ -11,6 +11,12 @@ export interface Adult {
   secondJob: number;
   selfEmployment: number; // taxable profits
   pension: number; // State Pension plus private and workplace pensions being paid out
+  /** Net rental profit, and other miscellaneous taxable income. Taxed like earnings in 2026-27. */
+  propertyIncome: number;
+  /** Interest on savings outside ISAs. */
+  savingsInterest: number;
+  /** Dividends outside ISAs and pensions. */
+  dividends: number;
   /** Employee pension contributions under a net pay arrangement: no income tax, but still National Insurance. */
   pensionContributions: number;
   /** Universal Credit health element: none, the new-claim rate, or the protected rate. */
@@ -39,7 +45,7 @@ export interface Household {
 }
 
 export function adult(overrides: Partial<Adult> = {}): Adult {
-  return { age: 35, employment: 0, secondJob: 0, selfEmployment: 0, pension: 0, pensionContributions: 0, health: "none", carer: false, ...overrides };
+  return { age: 35, employment: 0, secondJob: 0, selfEmployment: 0, pension: 0, propertyIncome: 0, savingsInterest: 0, dividends: 0, pensionContributions: 0, health: "none", carer: false, ...overrides };
 }
 
 export function child(overrides: Partial<Child> = {}): Child {

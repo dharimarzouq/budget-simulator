@@ -71,6 +71,8 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
    Progress, 28 October 2026: 6a–6c are done; see COSTING.md. Costings for NICs thresholds, the higher rate and the employer rate are within 5% of HMRC. The basic rate, personal allowance and basic rate band come out about 14% low, because property, savings and dividend income isn't taxed yet. Top-rate costings are far above HMRC's, because HMRC's include behaviour, which is 6d. Removing the two-child limit costs £3.3bn against the OBR's £3bn.
 
+   Progress, 28 October 2026: property, savings and dividend income is now taxed by the real 2026-27 rules: allowances, the starting rate for savings, dividend rates, the legal order, and UK bands for savings and dividends in Scotland. It's checked by hand-worked tests (including GOV.UK's examples) and 11 PolicyEngine households. Income tax across the population is now £357.7bn against the OBR's £359.6bn. Six new levers cover dividend rates, the dividend allowance, savings allowances and the starting rate band.
+
    **Levers in the first version** (all already in the rules):
    - **Income tax:** basic, higher and additional rates (England, Wales and NI separately from Scotland), personal allowance, higher-rate threshold, additional-rate threshold, personal allowance taper.
    - **National Insurance:** employee main and additional rates, employer rate, primary and secondary thresholds, upper earnings limit, self-employed rates.
@@ -83,7 +85,7 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
 ## Not in milestone 1 (written down so it isn't forgotten)
 
-Savings and dividend income, Marriage Allowance, council tax and Council Tax Reduction, Local Housing Allowance caps by area, disability benefits, pensioner benefits (Pension Credit, Winter Fuel Payment), Scottish Child Payment, the TV licence, VAT and other indirect taxes, spending departments (layer 4), and reform packs (land value tax comes in milestone 2).
+Separate property income rates (from April 2027), finance cost relief for landlords, Marriage Allowance, council tax and Council Tax Reduction, Local Housing Allowance caps by area, disability benefits, pensioner benefits (Pension Credit, Winter Fuel Payment), Scottish Child Payment, the TV licence, VAT and other indirect taxes, spending departments (layer 4), and reform packs (land value tax comes in milestone 2).
 
 ## Decisions I'll need from you along the way
 

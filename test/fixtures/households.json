@@ -52,6 +52,17 @@
     { "id": "cap-london-high-rent", "about": "Benefit cap: lone parent, two children, not working, £1,600 rent, in London", "region": "london", "adults": [{ "age": 30 }], "children": [{ "age": 4 }, { "age": 8 }], "rentMonthly": 1600 },
     { "id": "cap-earnings-exempt", "about": "Benefit cap: lone parent earning £12,000 (over the earnings threshold), £1,400 rent", "adults": [{ "employment": 12000 }], "children": [{ "age": 4 }, { "age": 8 }], "rentMonthly": 1400 },
     { "id": "cap-childcare", "about": "Benefit cap: lone parent earning £5,000, £500 childcare, £1,200 rent", "adults": [{ "employment": 5000 }], "children": [{ "age": 2 }, { "age": 4 }], "rentMonthly": 1200, "childcareMonthly": 500 },
-    { "id": "cap-single", "about": "Benefit cap: single, not working, £1,100 rent", "adults": [{}], "rentMonthly": 1100 }
+    { "id": "cap-single", "about": "Benefit cap: single, not working, £1,100 rent", "adults": [{}], "rentMonthly": 1100 },
+    { "id": "sav-starting-rate", "about": "£16,000 wages, £200 interest (GOV.UK example)", "adults": [{ "employment": 16000, "savingsInterest": 200 }] },
+    { "id": "sav-basic-psa", "about": "£30,000 wages, £1,300 interest (GOV.UK example)", "adults": [{ "employment": 30000, "savingsInterest": 1300 }] },
+    { "id": "sav-higher-psa", "about": "£60,000 wages, £1,000 interest", "adults": [{ "employment": 60000, "savingsInterest": 1000 }] },
+    { "id": "sav-pensioner", "about": "Pensioner, £14,000 pension, £4,000 interest", "adults": [{ "age": 70, "pension": 14000, "savingsInterest": 4000 }] },
+    { "id": "div-basic", "about": "£30,000 wages, £10,000 dividends", "adults": [{ "employment": 30000, "dividends": 10000 }] },
+    { "id": "div-straddle", "about": "£45,000 wages, £10,000 dividends", "adults": [{ "employment": 45000, "dividends": 10000 }] },
+    { "id": "div-only", "about": "£15,000 dividends only", "adults": [{ "dividends": 15000 }] },
+    { "id": "div-taper", "about": "£100,000 wages, £20,000 dividends", "adults": [{ "employment": 100000, "dividends": 20000 }] },
+    { "id": "div-scotland", "about": "Scotland, £50,000 wages, £5,000 dividends", "region": "scotland", "adults": [{ "employment": 50000, "dividends": 5000 }] },
+    { "id": "prop-scotland", "about": "Scotland, £20,000 property income", "region": "scotland", "adults": [{ "propertyIncome": 20000 }] },
+    { "id": "prop-landlord-higher", "about": "£55,000 wages, £15,000 property income, £3,000 interest, £8,000 dividends", "adults": [{ "employment": 55000, "propertyIncome": 15000, "savingsInterest": 3000, "dividends": 8000 }] }
   ]
 }
