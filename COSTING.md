@@ -54,7 +54,7 @@ For income tax lines, the behavioural column counts only the income tax effect; 
 | Change | Static (£m) | With behaviour (£m) | HMRC (£m) | Static ratio | With behaviour ratio | Notes |
 |---|---:|---:|---:|---:|---:|---|
 | Basic rate +1p | 7,257 | 7,176 | 8,073 | 0.90 | 0.89 | HMRC's 2026-27 liabilities imply about £7.7bn static (below); the rest is uncertainty in the comparison, which mixes liabilities and receipts |
-| Higher rate +1p | 2,241 | 1,478 | 2,104 | 1.06 | 0.70 | The SFC's elasticities give a bigger response than HMRC's figure implies, mostly from people on £100,000–£125,140, whose marginal rate in the personal allowance taper is already 62%. HMRC's figure sits inside our range (low £1,860m, high £1,097m) |
+| Higher rate +1p | 2,241 | 1,478 | 2,104 | 1.06 | 0.70 | HMRC's figure implies almost no response; the evidence suggests more. See "The higher rate" below. HMRC's figure sits inside our range (low £1,860m, high £1,097m) |
 | Additional rate +1p (yield) | 1,668 | 236 | 259 | 6.4 | **0.91** | Behaviour removes most of the static yield, as HMRC's does. Range: low £952m, high −£480m (at the high end, raising the rate loses money) |
 | Additional rate −1p (cost) | −1,668 | −325 | −328 | 5.1 | **0.99** | Range: low −£997m, high +£347m |
 | Personal allowance +£100 | −950 | −1,051 | −1,027 | 0.92 | 1.02 | |
@@ -79,6 +79,27 @@ For income tax lines, the behavioural column counts only the income tax effect; 
 
 **The additional rate is the test that matters most**: its static figure was 6.4 times HMRC's, and with the SFC's published elasticities, with nothing tuned to HMRC, it comes within 1–9%.
 
+### The higher rate: why ours responds more than HMRC's
+
+With behaviour, 1p on the higher rate raises £1,478m against HMRC's £2,104m. `tools/behaviour_by_band.mjs` breaks it down:
+
+| Total income | Static (£m) | Behaviour (£m) |
+|---|---:|---:|
+| £50,270–£60,000 | 79 | −83 |
+| £60,000–£80,000 | 398 | −130 |
+| £80,000–£100,000 | 368 | −139 |
+| £100,000–£125,140 (the personal allowance taper) | 385 | −326 |
+| £125,140–£150,000 | 309 | −67 |
+| Over £150,000 | 701 | −18 |
+
+Two things drive it:
+- **The taper (43% of the effect).** On £100,000–£125,140, 1p on the higher rate adds 1.5p to the marginal rate (they're also losing allowance), and they already keep only about 38p of each extra pound, so the share they keep falls by 3%. HMRC's records show people bunching at £100,000 (often through pension contributions), so a strong response here is real.
+- **The response is to all of a person's income,** not just the part above £50,270, as in the SFC's method and the standard economics. Just above the threshold, the response can exceed the extra tax.
+
+**What the evidence says.** HMRC's own study of Scottish taxpayers after Scotland's 2018-19 rate changes estimated elasticities of 0.31–0.35 for incomes of £43,431–£80,000 (statistically solid) and 0.27–0.46 for £80,000–£123,700 (less certain). Those are *higher* than the SFC's 0.1 and 0.2 that we use. So the evidence doesn't suggest our response is too big; if anything the SFC's figures are cautious there.
+
+**HMRC's figure implies almost no response** at the higher rate: £2,104m is close to the static yield. Its bulletin says the figures apply taxable income elasticities and allow for incorporation, but doesn't publish the values. In December 2025 the statistics regulator (OSR) asked HMRC to publish a fuller methodology. Until it does, the gap can't be explained further. Our low figure (half the elasticities, £1,860m) is near HMRC's.
+
 ### A second, static comparison for the rates
 
 HMRC's 2026-27 liabilities (Table 2.6) give the tax charged at each rate. Dividing by the rate gives the income taxed at that rate, and so what 1p on the rate raises before anyone responds. That's a like-for-like check for our static figures.
@@ -96,7 +117,7 @@ All three are 3–6% low. HMRC's lines here are after tax reductions (EIS relief
 - **Personal allowance, basic rate band, employer NICs, upper earnings limit, Child Benefit:** within 6% of HMRC. Trustworthy.
 - **Additional rate, with behaviour:** within 9% of HMRC, but the range is wide (a 1p rise could raise up to £1bn or lose money). Always show the range.
 - **Basic rate:** about 10% below HMRC, static or with behaviour.
-- **Higher rate, with behaviour:** 30% below HMRC; HMRC's figure is inside our low-to-high range. Show the range.
+- **Higher rate, with behaviour:** 30% below HMRC, which implies almost no response; HMRC's own evidence suggests responses at least as big as ours. HMRC's figure is inside our low-to-high range. Show the range.
 - **Employee NICs main rate and thresholds, employer threshold:** 9–16% high. Treat as overestimates (see POPULATION.md for why this can't yet be settled).
 - **Class 4 main rate:** 27% below HMRC's ready reckoner, but consistent with HMRC's profit statistics and the OBR's Class 4 total. Uncertain; show it with a wide range.
 - **Benefit changes:** static only, labelled as such.
