@@ -9,5 +9,7 @@ export default defineConfig({
     // starting Vite take over a minute.
     watch: { ignored: ["**/.venv/**", "**/.venv-pe/**", "**/data/**", "**/dist/**"] },
   },
-  optimizeDeps: { entries: ["index.html"] },
+  optimizeDeps: { entries: ["index.html", "how.html"] },
+  build: { rollupOptions: { input: { main: "index.html", how: "how.html" } } },
+  worker: { format: "es", plugins: () => [yaml()] },
 });

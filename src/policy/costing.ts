@@ -80,17 +80,39 @@ const bandValue = (x: number, bands: { threshold: number; rate: number }[]) => b
  * extra pound they keep (1 - marginal rate); the tax on that changed income is lost or gained at the new marginal
  * rate. Employer NICs and benefits are left static. Low and high figures scale the elasticities (see behaviour.yaml).
  */
-export function behaviouralEffect(pop: Population, before: RuleSet, after: RuleSet): Behaviour & { incomeTax: number; ni: number } {
+/** Each adult's marginal rates under one set of rules, in population order (two slots per unit), to reuse across costings. */
+export function marginalRatesFor(pop: Population, rules: RuleSet): { it: Float64Array; ni: Float64Array } {
+  const it = new Float64Array(pop.units.length * 2);
+  const ni = new Float64Array(pop.units.length * 2);
+  pop.units.forEach(({ data }, u) => {
+    const res = calculate(data, rules);
+    data.adults.forEach((_, i) => {
+      const m = marginalTaxRates(data, i, rules, res.adults[i]!);
+      it[u * 2 + i] = m.it;
+      ni[u * 2 + i] = m.ni;
+    });
+  });
+  return { it, ni };
+}
+
+const personalTax = (a: AdultResult) => a.incomeTax + a.employeeNI + a.selfEmployedNI;
+
+/**
+ * Pass `beforeRates` (from marginalRatesFor) to save working out today's marginal rates again. People whose own tax
+ * doesn't change are skipped: their marginal rate can only change if they sit within £100 of a threshold that moved.
+ */
+export function behaviouralEffect(pop: Population, before: RuleSet, after: RuleSet, beforeRates?: { it: Float64Array; ni: Float64Array }): Behaviour & { incomeTax: number; ni: number } {
   const tie = after.behaviour.taxableIncomeElasticity;
   let incomeTax = 0;
   let ni = 0;
-  for (const { weight: w, data } of pop.units) {
+  pop.units.forEach(({ weight: w, data }, u) => {
     const was = calculate(data, before);
     const now = calculate(data, after);
     data.adults.forEach((_, i) => {
       const income = now.adults[i]!.totalIncome;
       if (income <= 0) return;
-      const m0 = marginalTaxRates(data, i, before, was.adults[i]!);
+      if (Math.abs(personalTax(now.adults[i]!) - personalTax(was.adults[i]!)) < 0.005) return;
+      const m0 = beforeRates ? { it: beforeRates.it[u * 2 + i]!, ni: beforeRates.ni[u * 2 + i]! } : marginalTaxRates(data, i, before, was.adults[i]!);
       const m1 = marginalTaxRates(data, i, after, now.adults[i]!);
       const t0 = m0.it + m0.ni;
       const t1 = m1.it + m1.ni;
@@ -99,7 +121,7 @@ export function behaviouralEffect(pop: Population, before: RuleSet, after: RuleS
       incomeTax += w * incomeChange * m1.it;
       ni += w * incomeChange * m1.ni;
     });
-  }
+  });
   const central = incomeTax + ni;
   return { central, low: central * after.behaviour.rangeLow, high: central * after.behaviour.rangeHigh, incomeTax, ni };
 }
@@ -119,8 +141,11 @@ export interface Costing {
   withBehaviour: Behaviour;
 }
 
-/** Cost a policy. Pass the base run if you already have it, to save running today's rules again. */
-export function costPolicy(pop: Population, rules: RuleSet, policy: Policy, base: Run = run(pop, rules)): Costing {
+/**
+ * Cost a policy. Pass the base run if you already have it, to save running today's rules again. With
+ * `behaviour: false` the behavioural figures are left at zero (the page adds them afterwards, as they take longer).
+ */
+export function costPolicy(pop: Population, rules: RuleSet, policy: Policy, base: Run = run(pop, rules), options: { behaviour?: boolean } = {}): Costing {
   const changes = effectiveChanges(rules, policy);
   const reformedRules = applyPolicy(rules, changes);
   const reformed = changes.length ? run(pop, reformedRules) : base;
@@ -131,7 +156,7 @@ export function costPolicy(pop: Population, rules: RuleSet, policy: Policy, base
       ? changes.map((c) => ({ lever: c.lever, netRevenue: netRevenue(difference(run(pop, applyPolicy(rules, [c])).totals, base.totals)) }))
       : changes.map((c) => ({ lever: c.lever, netRevenue: total }));
   const interaction = total - perLever.reduce((s, l) => s + l.netRevenue, 0);
-  const b = changes.length ? behaviouralEffect(pop, rules, reformedRules) : { central: 0, low: 0, high: 0 };
+  const b = changes.length && options.behaviour !== false ? behaviouralEffect(pop, rules, reformedRules) : { central: 0, low: 0, high: 0 };
   const behaviour = { central: b.central, low: b.low, high: b.high };
   const withBehaviour = { central: total + behaviour.central, low: total + behaviour.low, high: total + behaviour.high };
   return { base, reformed, change, netRevenue: total, perLever, interaction, behaviour, withBehaviour };

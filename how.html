@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How we know · UK budget simulator</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <p class="small"><a href="./index.html">← Back to the budget</a></p>
+    <h1>How we know</h1>
+    <p>
+      Every figure on the budget page comes from two things: the 2026-27 rules, written down with their sources below, and a
+      made-up population of households weighted to match published UK totals. Costings are checked against HMRC's own; the
+      method, the checks, and where they fall short are written up in full in COSTING.md and POPULATION.md in the project.
+    </p>
+
+    <h2>The whole country</h2>
+    <p class="small">
+      <strong>Made-up households, not real people.</strong> About 39,000 synthetic families, weighted to match published UK
+      totals for 2026-27. These are this year's rules applied to them, next to the official figures.
+    </p>
+    <div id="population"><p class="small">Loading the population…</p></div>
+
+    <h2>Rules, 2026-27</h2>
+    <p class="small">Every rate and threshold the calculator uses, with where it comes from.</p>
+    <div id="rules"></div>
+
+    <script type="module" src="/src/how.ts"></script>
+  </body>
+</html>

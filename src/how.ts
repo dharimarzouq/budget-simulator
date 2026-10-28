@@ -1,7 +1,7 @@
+// The "How we know" page: every rule with its source, and the population's totals against published figures.
 import { checkRules, rules, sources } from "./rules";
 import type { Parameter } from "./rules/schema";
 import { ruleSet } from "./engine";
-import { readForm, renderForm, renderResult } from "./calculator";
 import { loadPopulation, populationTotals } from "./population";
 
 const gbp = (n: number) => "£" + n.toLocaleString("en-GB", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
@@ -37,7 +37,7 @@ function renderRules(el: HTMLElement) {
     }
     html += "</table>";
   }
-  el.innerHTML = html;
+  el.innerHTML = html.replace(/<table>/g, `<div class="scroll-x"><table>`).replace(/<\/table>/g, `</table></div>`);
 }
 
 // Why each total differs from the published figure, where we know (see POPULATION.md).
@@ -77,18 +77,12 @@ async function renderPopulation(el: HTMLElement, r: ReturnType<typeof ruleSet>) 
         <td class="num">${fmt(ours, unit)}</td><td class="num">${p ? fmt(p.value, unit) : ""}</td><td class="num">${diff}</td>
         <td class="small">${p ? esc(p.source) : ""}</td></tr>`;
     }
-    el.innerHTML = html + `</table><p class="small">${pop.units.length.toLocaleString("en-GB")} benefit units, worked out in your browser in ${ms.toFixed(0)} ms.</p>`;
+    el.innerHTML = `<div class="scroll-x">${html}</table></div><p class="small">${pop.units.length.toLocaleString("en-GB")} benefit units, worked out in your browser in ${ms.toFixed(0)} ms.</p>`;
   } catch (e) {
     el.innerHTML = `<p class="small">Couldn't load the population: ${esc(String(e))}</p>`;
   }
 }
 
 const r = ruleSet("2026-27");
-const form = document.getElementById("form") as HTMLFormElement;
-const result = document.getElementById("result")!;
-renderForm(form);
-const update = () => renderResult(result, readForm(form), r);
-form.addEventListener("input", update);
-update();
 renderRules(document.getElementById("rules")!);
 renderPopulation(document.getElementById("population")!, r);

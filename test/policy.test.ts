@@ -4,6 +4,7 @@ import { adult, calculate, child, household, ruleSet } from "../src/engine";
 import { decodePopulation } from "../src/population";
 import { costPolicy, run } from "../src/policy/costing";
 import { distribution } from "../src/policy/distribution";
+import { leverCheck, policyCheck } from "../src/policy/grades";
 import { LEVER, LEVERS } from "../src/policy/levers";
 import { applyPolicy, policyFromQuery, policyToQuery } from "../src/policy/policy";
 
@@ -112,6 +113,20 @@ describe("costing over the population", () => {
     const pensioners = d.familyTypes.find((g) => g.label === "Pensioners")!;
     expect(pensioners.lose).toBe(0);
     expect(d.regions.length).toBe(12);
+  });
+});
+
+describe("checks against published figures", () => {
+  it("every lever has a check with a reason, and a policy takes its weakest lever's check", () => {
+    for (const l of LEVERS) {
+      const c = leverCheck(l.id);
+      expect(c.why, l.id).not.toBe("Not checked.");
+      expect(["close", "fair", "gap"]).toContain(c.check);
+    }
+    expect(policyCheck([])).toBe("close");
+    expect(policyCheck([{ lever: "ni_employer", value: 0.16 }])).toBe("close");
+    expect(policyCheck([{ lever: "ni_employer", value: 0.16 }, { lever: "it_basic", value: 0.21 }])).toBe("fair");
+    expect(policyCheck([{ lever: "it_basic", value: 0.21 }, { lever: "ni_main", value: 0.09 }])).toBe("gap");
   });
 });
 

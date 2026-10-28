@@ -79,6 +79,8 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
    Progress, 28 October 2026: 6e is done. Winners and losers by income tenth (households ranked by HBAI-style equivalised income), family type and the 12 regions: average change in £ and as a % of income, and shares gaining, losing or seeing no real change (under £1 a week). See COSTING.md.
 
+   Progress, 28 October 2026: 6f is built in the Workbench style. Levers on the left (search, "changed only", per-lever reset), results on the right: static and behavioural figures with the range, the breakdown by tax and benefit and by lever, winners and losers (chart by tenth in £ or %, tables by family and region), and the household calculator under today's rules and the budget. Costing runs in a background worker: static figures first, behaviour a moment later. The budget lives in the address bar, so a link shares it. Rules and population checks moved to a "How we know" page. Confidence follows CLAUDE.md's grades (everything here is B, our microsimulation), with a separate "checks against HMRC" label per lever: close, fair or known gap.
+
    **Levers in the first version** (all already in the rules):
    - **Income tax:** basic, higher and additional rates (England, Wales and NI separately from Scotland), personal allowance, higher-rate threshold, additional-rate threshold, personal allowance taper.
    - **National Insurance:** employee main and additional rates, employer rate, primary and secondary thresholds, upper earnings limit, self-employed rates.
@@ -97,5 +99,5 @@ Separate property income rates (from April 2027), finance cost relief for landlo
 
 - Name and code licence (before any public repo)
 - Whether and when to create a GitHub repo (it's public, so that's your call)
-- Look-and-feel direction, before 6f (the page)
+- ~~Look-and-feel direction, before 6f (the page).~~ Decided 28 October 2026: "Workbench": levers on the left, live results on the right, dense numbers (monospace figures) and compact charts.
 - ~~Which behavioural estimates to use in 6d.~~ Decided: the Scottish Fiscal Commission's, with a low/high range.
