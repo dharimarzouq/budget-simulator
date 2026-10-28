@@ -67,6 +67,7 @@ def main() -> None:
         f"frs_households_income_detailed_composition_{tag}.csv": frs(year_uri, [FRS_F + "INC_BAND200_INYR", FRS_F + "COMPOS"]),
         f"frs_households_pensioners_composition_{tag}.csv": frs(year_uri, [FRS_F + "PEN", FRS_F + "COMPOS_KID"]),
         f"frs_households_pensioners_detailed_composition_{tag}.csv": frs(year_uri, [FRS_F + "PEN", FRS_F + "COMPOS"]),
+        f"frs_households_pensioners_composition_tenure_{tag}.csv": frs(year_uri, [FRS_F + "PEN", FRS_F + "COMPOS", FRS_F + "TENURE"]),
         f"frs_households_rent_region_tenure_{tag}.csv": frs(year_uri, [FRS_F + "REGION", FRS_F + "TENURE"], rent),
         f"frs_households_savings_composition_{tag}.csv": frs(year_uri, [FRS_F + "savings_band_inyr_new", FRS_F + "COMPOS_KID"]),
         f"frs_households_benefits_{tag}.csv": frs(year_uri, [FRS_F + "REC_CHB", FRS_F + "REC_UC", FRS_F + "REC_RP"]),
@@ -81,6 +82,12 @@ def main() -> None:
     adults_t = sx.cube(ad, {"adults": "str:count:FRSAD:V_F_FRSAD"}, [ad_f + "YEAR", ad_f + "TENURE", ad_f + "AGEBAND", ad_f + "EMPSTAT"], sx.only(ad_f + "YEAR", ad_year))
     tables[f"frs_adults_tenure_age_employment_{tag}.csv"] = adults_t.drop(columns=["Financial Year"]).rename(columns={"adults": "households"})
     tables[f"frs_households_composition_tenure_{tag}.csv"] = frs(year_uri, [FRS_F + "COMPOS", FRS_F + "TENURE"])
+    # FRS families (benefit units), the unit tax and benefits work on: type of family (with married or cohabiting
+    # couples told apart) by tenure. Counts lone parents who live with other adults, which household tables can't.
+    bu, bu_f, bu_n = "str:database:FRSBU", "str:field:FRSBU:V_F_FRSBU:", "str:count:FRSBU:V_F_FRSBU"
+    bu_year = dict(sx.field_items(bu, bu_n, bu_f + "YEAR"))[year_label]
+    fam = sx.cube(bu, {"households": bu_n}, [bu_f + "YEAR", bu_f + "BU_FAMILY", bu_f + "TENURE"], sx.only(bu_f + "YEAR", bu_year))
+    tables[f"frs_benefit_units_family_tenure_{tag}.csv"] = fam.drop(columns=["Financial Year"])
 
     # HBAI (admin-linked): equivalised net household income before housing costs, by type of person.
     # Held back from calibration; used only as a check on the whole income distribution.

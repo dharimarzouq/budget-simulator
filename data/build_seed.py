@@ -53,8 +53,11 @@ ASSUMPTIONS = {
     "side_profit_sigma": 1.0,
     "pt_profit_sigma": 1.0,
     "share_sick_health_element": 0.85,  # permanently sick or disabled: Universal Credit health element if they claim
-    "share_temp_sick_health_element": 0.3,
-    "share_unemployed_health_element": 0.1,
+    # Raised from 0.3 and 0.1, with other inactive added: single adults with the health element came out 20% under
+    # DWP's count. Many on it describe themselves in surveys as unemployed or inactive rather than sick.
+    "share_temp_sick_health_element": 0.5,
+    "share_unemployed_health_element": 0.3,
+    "share_inactive_health_element": 0.3,
     "share_family_carer": 0.25,  # looking after family or home: caring for someone 35+ hours a week
     "share_inactive_carer": 0.15,
     "retired_early_pension_median": 12_000,  # retired under State Pension age: private pension
@@ -118,18 +121,20 @@ ASSUMPTIONS = {
     "share_large_households_two_extra": 0.4,  # households of 3+ adults with 4+ adults
     "share_extra_adults_older": 0.05,  # other extra adults who are older relatives (grandparents are set from the FRS)
     "uc_take_up": 0.85,
-    # Couples who'd claim Marriage Allowance if it helped: about 78% of couples are married or in a civil partnership
-    # (ONS families and households), times a guessed take-up of 65%. Checked against HMRC's £590m cost.
-    "share_couples_claiming_marriage_allowance": 0.5,
+    # Married couples and civil partners who'd claim Marriage Allowance if it helped (who's married follows the FRS by
+    # type of family). A guess; calibration matches HMRC's £590m cost.
+    "marriage_allowance_take_up": 0.75,  # raised from 0.65: the cost came out 14% under HMRC's
     # Child Benefit. HMRC counts families who claimed and then opted out of payment; many higher earners never
     # claimed at all, and they're in neither HMRC count. HBAI's 14.7m children against 11.7m paid and 1.0m opted
     # out leaves about 2m children in families not claiming. Calibration balances these against the opt-out count,
     # the charge's revenue and HBAI's children.
-    "cb_opted_out_60k_80k": 0.3,  # families whose higher earner is in the charge's range
-    "cb_never_claimed_60k_80k": 0.3,
-    "cb_opted_out_over_80k": 0.45,
-    "cb_never_claimed_over_80k": 0.45,
-    "cb_never_claimed_other": 0.04,  # other families (e.g. not eligible because of immigration status, or never applied)
+    # Lowered from 0.3/0.3 and 0.45/0.45 once status followed adjusted net income (all income): the seed then started
+    # with twice HMRC's opted-out children, and calibration cut families paid to compensate.
+    "cb_opted_out_60k_80k": 0.2,  # families whose higher earner is in the charge's range
+    "cb_never_claimed_60k_80k": 0.2,
+    "cb_opted_out_over_80k": 0.35,
+    "cb_never_claimed_over_80k": 0.4,
+    "cb_never_claimed_other": 0.03,  # other families (e.g. not eligible because of immigration status, or never applied)
     # Parents' ages follow their children's: the oldest child's age plus the parent's age at that birth. ONS births
     # statistics put average ages at birth at about 31 for mothers and 34 for fathers; this is for either parent.
     "parent_age_at_birth_mean": 31.5,
@@ -173,17 +178,38 @@ class Builder:
     def __init__(self, free_age_p: np.ndarray | None = None):
         self.rng = np.random.default_rng(SEED)
         self.reductions_rng = np.random.default_rng(SEED + 2)
+        self.family_rng = np.random.default_rng(SEED + 3)  # lone parents in shared households, and marriage
+        # FRS 2024-25 families (benefit units). Lone parents outnumber one-adult households with children: the rest live
+        # with other adults (their own parents, a grown-up child). For each tenure, the share of households with
+        # children and two or more adults that are a lone parent plus others is the difference over those households.
+        fam = pd.read_csv(TARGETS / "frs_benefit_units_family_tenure_2024-25.csv")
+        fam.columns = ["family", "tenure", "units"]
+        lone = fam[fam["family"] == "Single with children"].set_index("tenure")["units"]
+        hh = pd.read_csv(TARGETS / "frs_households_composition_tenure_2024-25.csv")
+        hh.columns = ["comp", "tenure", "households"]
+        one = hh[hh["comp"] == "Household with children and one adult"].set_index("tenure")["households"]
+        multi = hh[hh["comp"].str.contains("with children") & ~hh["comp"].str.contains("one adult")].groupby("tenure")["households"].sum()
+        self.p_lone_in_shared = {t: max(0.0, float(lone[t] - one[t])) / float(multi[t]) for t in multi.index}
+        # Households of two or more adults without children that aren't a couple (flatmates, a grown-up child with a
+        # parent): one less the number of couples without children over the number of such households, per tenure.
+        couples = fam[fam["family"].str.contains("Couple without|Pensioner couple")].groupby("tenure")["units"].sum()
+        multi_nokids = hh[hh["comp"].str.contains("without children") & ~hh["comp"].str.contains("one ")].groupby("tenure")["households"].sum()
+        self.p_sharers = {t: max(0.0, 1 - float(couples[t]) / float(multi_nokids[t])) for t in multi_nokids.index}
+        # Share of couples married or in a civil partnership (the rest cohabit), by type of family.
+        married = lambda kind: float(fam[fam["family"] == f"{kind} married/civil partnered"]["units"].sum() / fam[fam["family"].str.startswith(kind)]["units"].sum())
+        self.p_married = {"pensioner": married("Pensioner couple"), "children": married("Couple with children"), "none": married("Couple without children")}
         self.age_log: list[tuple[int, float, str]] = []  # (age, starting weight, how the age was set), for the second pass
         self.weight = 1.0
         cells = pd.read_csv(TARGETS / "frs_households_region_composition_tenure_2024-25.csv")
         cells.columns = ["region", "kids", "tenure", "households"]
         self.cells = cells[cells["households"] > 0]
-        # FRS 2024-25: share of each kind of household with at least one adult over State Pension age.
-        pen = pd.read_csv(TARGETS / "frs_households_pensioners_detailed_composition_2024-25.csv")
-        pen.columns = ["pensioners", "composition", "households"]
+        # FRS 2024-25: share of households with at least one adult over State Pension age, for each kind of household
+        # in each tenure (49% of outright owners' families are pensioners, 3% of mortgagors').
+        pen = pd.read_csv(TARGETS / "frs_households_pensioners_composition_tenure_2024-25.csv")
+        pen.columns = ["pensioners", "composition", "tenure", "households"]
         self.p_pensioner = {
-            comp: g.loc[~g["pensioners"].str.contains("No ", case=False), "households"].sum() / g["households"].sum()
-            for comp, g in pen.groupby("composition")
+            key: g.loc[~g["pensioners"].str.contains("No ", case=False), "households"].sum() / max(1.0, g["households"].sum())
+            for key, g in pen.groupby(["composition", "tenure"])
         }
         rents = pd.read_csv(TARGETS / "frs_households_rent_region_tenure_2024-25.csv")
         rents.columns = ["region", "tenure", "households", "rent_week"]
@@ -195,7 +221,18 @@ class Builder:
         sizes = {1: "Families: One child", 2: "Families: Two children", 3: "Families: Three children",
                  4: "Families: Four children", 5: "Families: Five to Nine children [note 3]"}
         counts = np.array([float(cbf[c]) for c in sizes.values()])
-        self.kids_p = counts / counts.sum()
+        # Family size: FRS 2024-25 families by number of children, for couples and lone parents (14.6m children in
+        # all, matching HBAI). HMRC's paid families are smaller on average, as larger and better-off families claim less
+        # often. "Four or more" is split into four and five-plus in HMRC's proportions.
+        bk = pd.read_csv(TARGETS / "frs_benefit_units_children_2024-25.csv")
+        bk.columns = ["kind", "units"]
+        four, five = float(cbf[sizes[4]]), float(cbf[sizes[5]])
+        self.kids_p = {}
+        for kind, label in [("couple", "Couple"), ("lone", "Lone Parent")]:
+            g = bk[bk["kind"].str.startswith(label)].set_index("kind")["units"]
+            p = [g[f"{label} - One Child"], g[f"{label} - Two Children"], g[f"{label} - Three Children"],
+                 g[f"{label} - Four or more Children"] * four / (four + five), g[f"{label} - Four or more Children"] * five / (four + five)]
+            self.kids_p[kind] = np.array(p) / sum(p)
         # FRS 2024-25: working-age adults' employment status by tenure and age band.
         ft = pd.read_csv(TARGETS / "frs_adults_tenure_age_employment_2024-25.csv")
         ft.columns = ["tenure", "age", "status", "adults"]
@@ -238,6 +275,7 @@ class Builder:
         ashe = ashe[ashe["age"] != "All employees"]
         pcts = [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90]
         self.ashe = {}
+        self.ashe_mid: dict[str, list[tuple[float, float]]] = {}  # median pay at the middle of each age group, for smoothing
         for r in ashe.itertuples():
             vals = np.array([getattr(r, f"p{p}") for p in pcts]) * EARNINGS_2025_26_TO_2026_27
             us = np.array([0.0] + [p / 100 for p in pcts])
@@ -245,8 +283,11 @@ class Builder:
             below_90 = float(np.sum((qs[1:] + qs[:-1]) / 2 * np.diff(us)))  # integral of pay over the bottom 90%
             top_mean = (r.mean * EARNINGS_2025_26_TO_2026_27 - below_90) / 0.1
             alpha = top_mean / (top_mean - vals[-1]) if top_mean > vals[-1] * 1.05 else 20.0
-            lo = int(re.findall(r"\d+", r.age)[0])
-            self.ashe[(r.status, lo)] = (us, qs, alpha)
+            nums = [int(x) for x in re.findall(r"\d+", r.age)]
+            lo = nums[0]
+            mid = (nums[0] + nums[1]) / 2 if len(nums) == 2 else lo + 5  # "60+" taken as centred on 65
+            self.ashe[(r.status, lo)] = (us, qs, alpha, mid)
+            self.ashe_mid.setdefault(r.status, []).append((mid, float(r.median) * EARNINGS_2025_26_TO_2026_27))
         # Self-employed profits by age: HMRC's median income of taxpayers by age (SPI Table 3.2), relative to the
         # average across working ages.
         ag = pd.read_csv(TARGETS / "hmrc_income_by_age_2023_24.csv")
@@ -380,13 +421,18 @@ class Builder:
         """An employee's annual pay from ASHE's distribution for their age group, scaled for their region. Regions with
         more very high earners (London) get a heavier top tail."""
         key = max((k for k in self.ashe if k[0] == status and k[1] <= age), key=lambda k: k[1])
-        us, qs, alpha = self.ashe[key]
+        us, qs, alpha, mid = self.ashe[key]
+        # Within an age group, pay follows the line between neighbouring groups' medians (an 18-year-old earns less
+        # than a 21-year-old), extended at the young end along the first two groups' slope.
+        xs, ys = zip(*sorted(self.ashe_mid[status]))
+        line = lambda x: float(np.interp(x, xs, ys)) if x >= xs[0] else ys[0] + (ys[1] - ys[0]) / (xs[1] - xs[0]) * (x - xs[0])
+        smooth = max(0.5, line(age) / line(mid))
         u = self.rng.random()
         if u < 0.9:
             pay = float(np.interp(u, us, qs))
         else:
             pay = float(qs[-1] * (1 - (u - 0.9) / 0.1) ** (-1 / max(1.3, alpha / self.region_tail[region.lower()] ** 0.5)))
-        return pay * self.region_pay[region.lower()]
+        return pay * smooth * self.region_pay[region.lower()]
 
     def working_age_adult(self, age: int, tenure: str, region: str, how: str = "fixed") -> dict:
         """A working-age adult whose work status follows the FRS for their tenure and age band."""
@@ -415,6 +461,8 @@ class Builder:
             a["carer"] = bool(r.random() < A["share_family_carer"])
         elif status == "Other inactive":
             a["carer"] = bool(r.random() < A["share_inactive_carer"])
+            if not a["carer"] and self.family_rng.random() < A["share_inactive_health_element"]:
+                a["health"] = health(1.0)
         elif status == "Retired":
             a["pension"] = round(self.lognormal(A["retired_early_pension_median"], 0.8), 2)
         if a["employment"] and r.random() < A["share_employees_second_job"]:
@@ -467,9 +515,9 @@ class Builder:
         return int(np.clip(kids[0]["age"] + round(at_birth), max(18, kids[0]["age"] + 16), 64))
 
     # --- households ---------------------------------------------------------------------------
-    def children(self) -> list[dict]:
+    def children(self, kind: str) -> list[dict]:
         r = self.rng
-        n = int(r.choice([1, 2, 3, 4, 5], p=self.kids_p))
+        n = int(r.choice([1, 2, 3, 4, 5], p=self.kids_p[kind]))
         kids = []
         for _ in range(n):
             age = int(r.choice(self.child_ages, p=self.child_age_p))
@@ -503,12 +551,14 @@ class Builder:
         comps = comps[comps.index.str.contains("without children") != has_kids]
         comp = str(r.choice(comps.index, p=(comps / comps.sum()).to_numpy()))
         large = not ("one adult" in comp or "one female" in comp or "one male" in comp or "two adults" in comp)
-        has_pensioner = r.random() < self.p_pensioner.get(comp, 0)
+        has_pensioner = r.random() < self.p_pensioner.get((comp, tenure), 0)
         # Without children, the pensioner leads the household. With children, they're a grandparent living with
         # the family (only in households of three or more adults; with fewer it's too rare to model).
         pensioner_hh = has_pensioner and not has_kids
         grandparent = has_pensioner and has_kids and large
-        kids = self.children() if has_kids else []
+        single = "one adult" in comp or "one female" in comp or "one male" in comp
+        lone_shared = has_kids and not single and self.family_rng.random() < self.p_lone_in_shared.get(tenure, 0.0)
+        kids = self.children("lone" if single or lone_shared else "couple") if has_kids else []
 
         def adult():
             if pensioner_hh:
@@ -517,8 +567,21 @@ class Builder:
                 return self.working_age_adult(self.parent_age(kids), tenure, region, "parent")
             return self.working_age_adult(self.working_age(), tenure, region, "free")
 
-        if "one adult" in comp or "one female" in comp or "one male" in comp:
+        if single:
             units = [{"adults": [adult()], "children": kids}]
+        elif lone_shared:
+            # A lone parent sharing the household: with a grown-up child of their own if old enough, otherwise
+            # with their own parent. Each is a separate family for tax and benefits.
+            first = adult()
+            if first["age"] >= 40 and self.family_rng.random() < 0.5:
+                other = self.working_age_adult(int(self.family_rng.integers(18, min(30, first["age"] - 17) + 1)), tenure, region)
+            else:
+                age = min(95, first["age"] + int(self.family_rng.integers(22, 33)))
+                other = self.pensioner(age, region) if age >= 66 else self.working_age_adult(age, tenure, region)
+            units = [{"adults": [first], "children": kids}, {"adults": [other], "children": []}]
+        elif not kids and not pensioner_hh and self.family_rng.random() < self.p_sharers.get(tenure, 0.0):
+            # Adults sharing a home without being a couple: each their own family.
+            units = [{"adults": [adult()], "children": []}, {"adults": [adult()], "children": []}]
         else:
             first = adult()
             if pensioner_hh and r.random() >= A["share_pensioner_couples_both"]:
@@ -575,14 +638,20 @@ class Builder:
                 if under5 and working and r.random() < A["share_under5_with_childcare"] else 0.0
             )
             u["claimsUniversalCredit"] = bool(r.random() < A["uc_take_up"])
-            u["claimsMarriageAllowance"] = bool(r.random() < A["share_couples_claiming_marriage_allowance"])
+            draw = r.random()  # kept so the main random stream doesn't shift
+            if len(u["adults"]) == 2:
+                kind = "pensioner" if any(a["age"] >= 66 for a in u["adults"]) else "children" if u["children"] else "none"
+                u["married"] = bool(self.family_rng.random() < self.p_married[kind])
+            u["claimsMarriageAllowance"] = bool(u.get("married", False) and draw < A["marriage_allowance_take_up"])
             self.child_benefit_status(u, r)
         return comp, units
 
     @staticmethod
     def child_benefit_status(u: dict, r: np.random.Generator) -> None:
-        """Claiming, opted out or never claimed, by the higher earner's income (see the assumptions)."""
-        top = max(a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"] for a in u["adults"])
+        """Claiming, opted out or never claimed, by the higher earner's adjusted net income (all income, less pension
+        contributions and deductions: what the charge is worked out on). See the assumptions."""
+        top = max(a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"] + a.get("propertyIncome", 0) + a.get("savingsInterest", 0)
+                  + a.get("dividends", 0) - a.get("pensionContributions", 0) - a.get("otherDeductions", 0) for a in u["adults"])
         band = "over_80k" if top > 80_000 else "60k_80k" if top > 60_000 else None
         opted, never = (A[f"cb_opted_out_{band}"], A[f"cb_never_claimed_{band}"]) if band else (0.0, A["cb_never_claimed_other"])
         x = r.random()

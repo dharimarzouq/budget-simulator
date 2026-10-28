@@ -61,6 +61,8 @@ def load():
         "disabled_child": any(c["disability"] != "none" for c in u["data"]["children"]),
         "claims_cb": u["data"].get("claimsChildBenefit", True),
         "cb_opted_out": u["data"].get("childBenefitStatus") == "opted_out",
+        "married": u["data"].get("married", False),
+        "pensioner_unit": any(a["age"] >= 66 for a in u["data"]["adults"]),
         "rent": u["data"]["rentMonthly"],
         "outside": u.get("outside", False),
     } for u in seed["units"]])
@@ -103,6 +105,28 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         mask = (first["region"] == norm_region(r.region)) & (first["tenure"] == r.tenure)
         row = household_row(first, mask.astype(float).to_numpy(), n) * ((with_kids_hh) == ("with children" in r.kids and "without" not in r.kids))
         targets.append(Target("FRS households by region, children, tenure", f"{norm_region(r.region)} / {r.kids} / {r.tenure}", r.households, row, 0.5, 20_000))
+
+    # --- FRS 2024-25: families (benefit units) by type and tenure ----------------------------
+    # Single men and women are merged (the population doesn't model sex); couples are split into married or civil
+    # partners and cohabiting. A family counts as pensioners if either adult is over State Pension age.
+    bu = pd.read_csv(T / "frs_benefit_units_family_tenure_2024-25.csv")
+    bu.columns = ["family", "tenure", "units"]
+    bu["family"] = bu["family"].str.replace(r"Single (male|female) ", "Single ", regex=True)
+    bu = bu.groupby(["family", "tenure"], as_index=False)["units"].sum()
+    couple, kids, pen = (units["adults"] == 2).to_numpy(), (units["kids"] > 0).to_numpy(), units["pensioner_unit"].to_numpy()
+    married, inside = units["married"].to_numpy(), (~units["outside"]).to_numpy()
+    kinds = {
+        "Pensioner couple married/civil partnered": couple & pen & married, "Pensioner couple cohabiting": couple & pen & ~married,
+        "Single pensioner": ~couple & pen,
+        "Couple with children married/civil partnered": couple & ~pen & kids & married, "Couple with children cohabiting": couple & ~pen & kids & ~married,
+        "Couple without children married/civil partnered": couple & ~pen & ~kids & married, "Couple without children cohabiting": couple & ~pen & ~kids & ~married,
+        "Single with children": ~couple & ~pen & kids, "Single without children": ~couple & ~pen & ~kids,
+    }
+    for r in bu.itertuples():
+        mask = kinds[r.family] & inside & (units["tenure"] == r.tenure).to_numpy()
+        # Half weight: a survey, and DWP's administrative counts (more lone parents on Universal Credit alone than the
+        # FRS finds in total) take priority where they disagree.
+        targets.append(Target("FRS families by type and tenure", f"{r.family} / {r.tenure}", r.units, household_row(units, mask.astype(float), n), 0.5, 30_000))
 
     # --- FRS 2024-25: household counts by gross income band and composition -----------------
     inc = pd.read_csv(T / "frs_households_income_detailed_composition_2024-25.csv")
@@ -336,12 +360,14 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     for kind, cols, mask in types[1:]:
         targets.append(Target("HMRC 2026-27 tax reductions", f"{kind} taxpayers", line("Allowances given as Income Tax reductions", cols),
                               household_row(adults, mask * adults["reductions"].to_numpy(), n), 1, 2e8))
+    # HMRC tax relief statistics: Marriage Allowance cost £590m in 2025-26 (same allowance in 2026-27).
+    targets.append(Target("HMRC Marriage Allowance cost", "2025-26", 590e6, household_row(units, units["marriage_allowance"].to_numpy(), n), 1, 50e6))
     # Scottish Fiscal Commission, January 2026: Scottish income tax on non-savings, non-dividend income in 2026-27,
     # £21,508m. The official forecast for this exact year; Scotland's own rates make it a separate check on how
     # income is spread there.
     scottish = (units["region"] == "scotland").to_numpy()
     targets.append(Target("SFC Scottish income tax forecast", "non-savings, non-dividend 2026-27", 21.508e9,
-                          household_row(units, scottish * units["non_savings_tax"].to_numpy(), n), 1, 1e9))
+                          household_row(units, scottish * units["non_savings_tax"].to_numpy(), n), 2, 1e9))
     opted = pd.read_csv(T / "hmrc_child_benefit_opted_out_children_by_age_region_2025_08.csv").iloc[0, 1]
     targets.append(Target("Child Benefit opt-outs", "children in opted-out families", float(opted),
                           household_row(units, (units["cb_opted_out"] * units["kids"]).astype(float).to_numpy(), n), 1, 100_000))
@@ -350,7 +376,14 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     hbai = pd.read_csv(T / "hbai_income_by_person_type_2024-25.csv").set_index("Type of Individual by Age Category")
     targets.append(Target("HBAI children", "children", float(hbai.at["Child", "households"]),
                           household_row(units, units["kids"].astype(float).to_numpy(), n), 1, 500_000))
-    targets.append(Target("Child Benefit charge", "revenue (2024-25, provisional)", 360e6, household_row(units, units["child_benefit_charge"].to_numpy(), n), 0.3, 100e6))
+    # HMRC's provisional 2024-25 figures (310,000 people, £360m), uprated to 2026-27 by HMRC's own projected growth in
+    # taxpayers above £50,000 (Table 2.5: 8.24m in 2024-25 to 9.55m in 2026-27) and, for revenue, by the rise in Child
+    # Benefit (eldest child £25.60 a week in 2024-25, £27.05 in 2026-27). The charge's £60,000-£80,000 range is frozen.
+    growth = 9.553 / 8.239
+    payer = (units["child_benefit_charge"] > 0).astype(float).to_numpy()
+    targets.append(Target("Child Benefit charge", "people paying it (2024-25, uprated)", 310e3 * growth, household_row(units, payer, n), 1, 30_000))
+    targets.append(Target("Child Benefit charge", "revenue (2024-25, uprated)", 360e6 * growth * 27.05 / 25.60,
+                          household_row(units, units["child_benefit_charge"].to_numpy(), n), 1, 50e6))
     return targets
 
 

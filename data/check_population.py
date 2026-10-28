@@ -136,7 +136,9 @@ def main(population: str, results: str) -> None:
         ("Self-employed NICs", (w * d["self_employed_ni"]).sum() / 1e9, obr("obr_income_tax_nics_2026_03.csv", "Class 4"), "£bn", "OBR March 2026", ""),
         ("Child Benefit", (w * d["child_benefit"]).sum() / 1e9, obr("obr_welfare_2026_03.csv", "Child benefit"), "£bn", "OBR March 2026", ""),
         ("Families paid Child Benefit", w[d["child_benefit"] > 0].sum() / 1e6, float(cb_fam["Total number of families [note 1]"]) / 1e6, "m", "HMRC August 2025", ""),
-        ("Child Benefit charge", (w * d["child_benefit_charge"]).sum() / 1e9, 0.36, "£bn", "HMRC 2024-25 (provisional)", ""),
+        ("Child Benefit charge", (w * d["child_benefit_charge"]).sum() / 1e9, 0.36 * 9.553 / 8.239 * 27.05 / 25.60, "£bn", "HMRC 2024-25 (provisional), uprated",
+         "uprated by HMRC's projected growth in taxpayers above £50,000 and by Child Benefit rates"),
+        ("People paying the Child Benefit charge", w[d["child_benefit_charge"] > 0].sum() / 1e6, 0.31 * 9.553 / 8.239, "m", "HMRC 2024-25 (provisional), uprated", ""),
         ("Households on Universal Credit", w[d["uc_award_month"] > 0].sum() / 1e6, uc_t["households"].sum() / 1e6, "m", "DWP May 2026 (GB)", "ours includes Northern Ireland"),
         ("Universal Credit spending", (w * d["uc_award_month"]).sum() * 12 / 1e9, obr("obr_welfare_2026_03.csv", "Universal credit"), "£bn", "OBR March 2026", ""),
     ]
