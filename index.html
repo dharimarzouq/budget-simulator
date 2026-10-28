@@ -4,6 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>UK budget simulator</title>
+    <meta name="description" content="Change UK taxes and benefits for 2026-27 and see what it raises or costs, who gains and loses, and what it does to borrowing and the fiscal rules. Estimates from made-up households weighted to published totals." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="UK budget simulator" />
+    <meta property="og:description" content="Change UK taxes and benefits for 2026-27 and see what it raises or costs, who gains and loses, and what it does to borrowing and the fiscal rules." />
+    <meta name="twitter:card" content="summary" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body class="bench-page">
@@ -14,13 +19,18 @@
       </div>
       <nav>
         <button type="button" id="share">Copy link to this budget</button>
+        <button type="button" id="copy-summary">Copy summary</button>
         <button type="button" id="reset">Reset all</button>
         <a href="./how.html">How we know</a>
       </nav>
     </header>
 
     <div class="bench">
-      <aside id="levers-panel">
+      <aside id="levers-panel" aria-label="Levers">
+        <div class="phone-only levers-head">
+          <strong>Levers <span id="changed-count-phone" class="small"></span></strong>
+          <button type="button" id="close-levers">Done</button>
+        </div>
         <details id="levers-drawer" open>
           <summary>Levers <span id="changed-count" class="small"></span></summary>
           <div class="lever-tools">
@@ -61,6 +71,12 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <!-- Phones: what the budget does, kept in view, and the way into the levers. -->
+    <div id="summary-bar" class="summary-bar">
+      <div id="summary-text" class="summary-text">Today's budget</div>
+      <button type="button" id="open-levers" aria-controls="levers-panel" aria-expanded="false">Levers</button>
     </div>
 
     <script type="module" src="/src/app.ts"></script>

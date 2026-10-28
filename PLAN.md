@@ -99,6 +99,16 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
 8. **Polish.** Look-and-feel pass, phone layout, accessibility, sharing links, and a methods write-up for the "how we know" page.
 
+   Progress, 28 October 2026: done, to the plan Ari approved.
+   - **Phones:** a bar pinned to the bottom shows what the budget raises or costs and whether the main fiscal rule is met; the levers open over the page, with Done or Escape to close.
+   - **Layout:** three columns only from 1600px wide. Narrower, the tax chart sits under the headline figures (a change from the plan, which put it at the top: there it pushed the headline off the first screen). On phones it comes after borrowing.
+   - **Explanations:** lever notes, checks and grades open in place from an "i" button instead of only on hover.
+   - **Accessibility:** visible keyboard focus; the tax chart can be read with the arrow keys; sliders read out their value ("21%"); contrast measured in both themes, with light mode's green darkened to pass.
+   - **Numbers:** £bn to one decimal place, £m under £1bn, real minus signs throughout.
+   - **Sharing:** link previews have a title and description (the same for every budget: the site has no server to tailor them), and "Copy summary" gives a few plain lines.
+   - **Progress:** the response figure shows how far it has got, and loading says what it's doing. With no changes, the response figure is skipped instead of computed.
+   - **How we know:** a plain-language "How it works" section.
+
 ## Not in milestone 1 (written down so it isn't forgotten)
 
 Separate property income rates (from April 2027), finance cost relief for landlords, investment reliefs (EIS, SEIS, VCTs) and Gift Aid as rules of their own (they're in the population only as a total of tax reductions), council tax and Council Tax Reduction, Local Housing Allowance caps by area, disability benefits, pensioner benefits (Pension Credit, Winter Fuel Payment), Scottish Child Payment, the TV licence, VAT and other indirect taxes, spending departments (layer 4), and reform packs (land value tax comes in milestone 2).

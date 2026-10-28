@@ -14,6 +14,10 @@ export type Reply =
   | { type: "static"; id: number; change: Effects; netRevenue: number; distribution: Distribution }
   | { type: "levers"; id: number; perLever: { lever: string; netRevenue: number }[]; interaction: number }
   | { type: "behaviour"; id: number; behaviour: Behaviour }
+  /** How far through the behavioural figure, 0 to 1. */
+  | { type: "progress"; id: number; done: number }
+  /** While the population loads, what's happening. */
+  | { type: "loading"; stage: string }
   | { type: "error"; message: string };
 
 const rules = ruleSet("2026-27");
@@ -58,10 +62,17 @@ async function work() {
       post({ type: "levers", id, perLever, interaction: total - perLever.reduce((s, l) => s + l.netRevenue, 0) });
       await tick();
       if (latest) continue;
-      baseRates ??= marginalRatesFor(pop, rules);
+      if (!changes.length) {
+        post({ type: "behaviour", id, behaviour: { central: 0, low: 0, high: 0 } });
+        continue;
+      }
+      // The first time, today's marginal rates have to be worked out too: that's the first half of the progress.
+      const first = !baseRates;
+      const report = (from: number, size: number) => (done: number) => post({ type: "progress", id, done: from + done * size });
+      baseRates ??= marginalRatesFor(pop, rules, report(0, 0.5));
       await tick();
       if (latest) continue;
-      const b = changes.length ? behaviouralEffect(pop, rules, applyPolicy(rules, changes), baseRates) : { central: 0, low: 0, high: 0 };
+      const b = behaviouralEffect(pop, rules, applyPolicy(rules, changes), baseRates, first ? report(0.5, 0.5) : report(0, 1));
       if (![b.central, b.low, b.high].every(Number.isFinite)) throw new Error("these settings give a behavioural figure that can't be worked out. Please report it.");
       if (!latest) post({ type: "behaviour", id, behaviour: { central: b.central, low: b.low, high: b.high } });
     }
@@ -79,6 +90,7 @@ self.onmessage = async (ev: MessageEvent<Request>) => {
       const res = await fetch(msg.url);
       if (!res.ok) throw new Error(`Couldn't load the population (${res.status})`);
       pop = decodePopulation(await res.json());
+      post({ type: "loading", stage: `Working out today's figures for ${pop.units.length.toLocaleString("en-GB")} made-up families…` });
       base = run(pop, rules);
       post({ type: "ready", units: pop.units.length, households: new Set(pop.units.filter((u) => !u.outside).map((u) => u.household)).size });
       void work();

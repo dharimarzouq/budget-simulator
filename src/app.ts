@@ -16,9 +16,38 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 const $ = (id: string) => document.getElementById(id)!;
 
 // ---- formatting --------------------------------------------------------------------------------
-const bn = (x: number, sign = true) => (Math.abs(x) < 5e6 ? "£0.00bn" : `${x < 0 ? "−" : sign && x > 0 ? "+" : ""}£${Math.abs(x / 1e9).toFixed(2)}bn`);
+/** £ a year in billions to one decimal place; under £1bn in millions, so small costings don't show as nothing. */
+function bn(x: number, sign = true): string {
+  const s = x < 0 ? "−" : sign && x > 0 ? "+" : "";
+  const a = Math.abs(x);
+  if (a >= 0.95e9) return `${s}£${(a / 1e9).toFixed(1)}bn`;
+  if (a >= 0.5e6) return `${s}£${Math.round(a / 1e6).toLocaleString("en-GB")}m`;
+  return "£0";
+}
 const pounds = (x: number, sign = false) => `${x < 0 ? "−" : sign && x > 0 ? "+" : ""}£${Math.round(Math.abs(x)).toLocaleString("en-GB")}`;
 const share = (x: number) => `${Math.round(x * 100)}%`;
+/** A % change with a real minus sign, and no sign on zero. */
+const signedPct = (x: number) => (Math.abs(x) < 0.005 ? "0.00%" : `${x < 0 ? "−" : "+"}${Math.abs(x).toFixed(2)}%`);
+
+// ---- explanations that open in place -----------------------------------------------------------
+let infoCount = 0;
+/** A small "i" button and the explanation it opens. Put `panel` where the text should appear (it can be apart from the button). */
+function info(about: string, text: string): { button: string; panel: string } {
+  const id = `info-${++infoCount}`;
+  return {
+    button: `<button type="button" class="info" aria-expanded="false" aria-controls="${id}" aria-label="About ${esc(about)}">i</button>`,
+    panel: `<span class="info-text" id="${id}" hidden>${esc(text)}</span>`,
+  };
+}
+document.addEventListener("click", (ev) => {
+  const b = (ev.target as HTMLElement).closest<HTMLButtonElement>("button.info");
+  if (!b) return;
+  const panel = document.getElementById(b.getAttribute("aria-controls")!);
+  if (!panel) return;
+  const open = b.getAttribute("aria-expanded") !== "true";
+  b.setAttribute("aria-expanded", String(open));
+  panel.hidden = !open;
+});
 const PER: Record<string, string> = { gbp_per_year: "", gbp_per_month: " a month", gbp_per_week: " a week" };
 
 function showValue(l: Lever, v: LeverValue): string {
@@ -35,8 +64,7 @@ const currentPolicy = (): Policy => effectiveChanges(rules, [...policy].map(([le
 function policyChanged() {
   const q = policyToQuery(currentPolicy());
   history.replaceState(null, "", q ? `?${q}` : location.pathname);
-  const n = currentPolicy().length;
-  $("changed-count").textContent = n ? `(${n} changed)` : "";
+  showCount();
   requestCosting();
   updateHousehold();
 }
@@ -75,8 +103,11 @@ function leverRow(l: Lever): string {
   const today = l.get(rules);
   const v = policy.get(l.id) ?? today;
   const removal = REMOVAL_FOR[l.id];
-  const removeButton = removal ? `<button type="button" class="remove" data-remove="${removal.id}" title="${esc(removal.means)}">Remove</button>` : "";
-  const name = `<div class="name"><span title="${esc(l.note ?? "")}">${esc(l.label)}</span><span class="today">today ${esc(showValue(l, today))}${removeButton}</span></div>`;
+  const removeButton = removal
+    ? `<button type="button" class="remove" data-remove="${removal.id}" aria-label="Remove: ${esc(removal.label)}" title="${esc(removal.means)}">Remove</button>`
+    : "";
+  const note = l.note ? info(l.label, l.note) : undefined;
+  const name = `<div class="name"><span>${esc(l.label)}${note?.button ?? ""}</span><span class="today">today ${esc(showValue(l, today))}${removeButton}</span></div>${note?.panel ?? ""}`;
   if (removal && policy.get(removal.id)) {
     return `<div class="lever removed" data-id="${l.id}"><div class="name"><span>${esc(l.label)}</span><span class="today">today ${esc(showValue(l, today))}</span></div>
       <div class="removed-note"><strong>Removed.</strong> ${esc(removal.means)}</div>
@@ -89,7 +120,7 @@ function leverRow(l: Lever): string {
   const { min, max, step, scale } = range(l);
   const shown = +((v as number) * scale).toFixed(4);
   return `<div class="lever" data-id="${l.id}">${name}
-    <input type="range" min="${min}" max="${max}" step="${step}" value="${shown}" data-range="${l.id}" aria-label="${esc(l.label)}">
+    <input type="range" min="${min}" max="${max}" step="${step}" value="${shown}" data-range="${l.id}" aria-label="${esc(l.label)}" aria-valuetext="${esc(showValue(l, v))}">
     <input type="number" step="${l.unit === "rate" ? "any" : step}" value="${shown}" data-number="${l.id}" aria-label="${esc(l.label)}${l.unit === "rate" ? ", %" : ", £"}">
     ${undo}</div>`;
 }
@@ -106,8 +137,7 @@ function renderLevers() {
       ${LEVERS.filter((l) => l.group === g).map((l) => leverRow(l).replace('class="lever', covered.has(l.id) ? 'data-gone class="lever' : 'class="lever')).join("")}</details>`)
     .join("");
   for (const id of policy.keys()) if (LEVER[id]) refreshLeverRow(id);
-  const n = currentPolicy().length;
-  $("changed-count").textContent = n ? `(${n} changed)` : "";
+  showCount();
 }
 
 function refreshLeverRow(id: string) {
@@ -123,7 +153,17 @@ function refreshLeverRow(id: string) {
       const input = row.querySelector(sel) as HTMLInputElement;
       if (document.activeElement !== input) input.value = shown;
     }
+    row.querySelector("[data-range]")!.setAttribute("aria-valuetext", showValue(l, v)); // read out as "21%", not "21"
   }
+}
+
+/** How many changes, beside the levers and on the phone's Levers button. */
+function showCount() {
+  const n = currentPolicy().length;
+  const text = n ? `(${n} changed)` : "";
+  $("changed-count").textContent = text;
+  $("changed-count-phone").textContent = text;
+  $("open-levers").textContent = document.body.classList.contains("levers-open") ? "Show results" : n ? `Levers (${n})` : "Levers";
 }
 
 function filterLevers() {
@@ -215,13 +255,54 @@ function wireLevers() {
     }
     setTimeout(() => (($("share") as HTMLButtonElement).textContent = "Copy link to this budget"), 2000);
   });
-  if (window.matchMedia("(max-width: 900px)").matches) ($("levers-drawer") as HTMLDetailsElement).open = false;
+  $("copy-summary").addEventListener("click", async () => {
+    const button = $("copy-summary") as HTMLButtonElement;
+    try {
+      await navigator.clipboard.writeText(summaryText());
+      button.textContent = "Summary copied";
+    } catch {
+      button.textContent = "Couldn't copy";
+    }
+    setTimeout(() => (button.textContent = "Copy summary"), 2000);
+  });
+
+  // Phones: the levers open over the page; the bar at the bottom keeps the result in view.
+  const openLevers = (open: boolean) => {
+    document.body.classList.toggle("levers-open", open);
+    $("open-levers").setAttribute("aria-expanded", String(open));
+    showCount();
+    // Not the search box: on a phone that would pop up the keyboard.
+    $(open ? "close-levers" : "open-levers").focus({ preventScroll: true });
+  };
+  $("open-levers").addEventListener("click", () => openLevers(!document.body.classList.contains("levers-open")));
+  $("close-levers").addEventListener("click", () => openLevers(false));
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && document.body.classList.contains("levers-open")) openLevers(false);
+  });
 }
+
+// ---- where the tax chart goes ----------------------------------------------------------------------
+// Wide screens: a column of its own. Otherwise inside the results, after the headline figures (on phones, after
+// borrowing too), so what the budget raises or costs is always the first thing in view.
+const phone = window.matchMedia("(max-width: 900px)");
+const wide = window.matchMedia("(min-width: 1600px)");
+function placeTaxChart() {
+  const panel = $("tax-panel");
+  if (wide.matches) $("results").before(panel);
+  else if (phone.matches) $("fiscal").closest("section")!.after(panel);
+  else $("headline").after(panel);
+}
+wide.addEventListener("change", placeTaxChart);
+phone.addEventListener("change", () => {
+  placeTaxChart();
+  if (!phone.matches) document.body.classList.remove("levers-open");
+});
 
 // ---- costing, via the worker -------------------------------------------------------------------
 const worker = new Worker(new URL("./costing.worker.ts", import.meta.url), { type: "module" });
 let requestId = 0;
 let lastStatic: Extract<Reply, { type: "static" }> | undefined;
+let lastBehaviour: Extract<Reply, { type: "behaviour" }>["behaviour"] | undefined;
 let timer: number | undefined;
 let ready = false;
 
@@ -241,6 +322,11 @@ worker.onmessage = (ev: MessageEvent<Reply>) => {
     $("headline").innerHTML = `<div class="empty">Something went wrong working out the costing: ${esc(m.message.replace(/^Error: /, ""))}</div>`;
     return;
   }
+  if (m.type === "loading") {
+    if (!currentPolicy().length) return; // the empty-state message stays
+    $("headline").innerHTML = `<div class="empty">${esc(m.stage)}</div>`;
+    return;
+  }
   if (m.type === "ready") {
     ready = true;
     requestCosting();
@@ -249,6 +335,7 @@ worker.onmessage = (ev: MessageEvent<Reply>) => {
   if (m.id !== requestId) return; // an older request; a newer one is on its way
   if (m.type === "static") {
     lastStatic = m;
+    lastBehaviour = undefined;
     $("results").classList.remove("pending");
     renderHeadline(m, undefined);
     renderFiscal(m, undefined);
@@ -256,7 +343,11 @@ worker.onmessage = (ev: MessageEvent<Reply>) => {
     renderWinners(m.distribution.deciles, m.distribution.familyTypes, m.distribution.regions, m.distribution.all);
   } else if (m.type === "levers" && lastStatic) {
     renderBreakdown(lastStatic, m);
+  } else if (m.type === "progress") {
+    const el = document.getElementById("behaviour-progress");
+    if (el) el.textContent = `${Math.round(m.done * 100)}% done`;
   } else if (m.type === "behaviour" && lastStatic) {
+    lastBehaviour = m.behaviour;
     renderHeadline(lastStatic, m.behaviour);
     renderFiscal(lastStatic, m.behaviour);
   }
@@ -274,20 +365,24 @@ const SOURCES = {
   how: `<a href="./how.html">How we know</a>`,
 };
 
-function checkBadge(c: Check) {
-  return `<span class="check-badge check-${c}" title="${esc(CHECK_MEANING[c])}">${CHECK_LABEL[c]}</span>`;
+/** A check label with its explanation, which opens in place: the general meaning, then why for this change. */
+function checkBadge(c: Check, why?: string) {
+  const i = info(`the check: ${CHECK_LABEL[c]}`, why ? `${why} (${CHECK_LABEL[c]}: ${CHECK_MEANING[c]})` : CHECK_MEANING[c]);
+  return `<span class="check-badge check-${c}">${CHECK_LABEL[c]}</span>${i.button}${i.panel}`;
 }
+
+const EMPTY = `<div class="empty">This is the budget as it stands for 2026-27. Change a lever to see what it raises or costs, and who gains and loses.</div>`;
 
 function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
   const changes = currentPolicy();
   if (!changes.length) {
-    $("headline").innerHTML = `<div class="empty">This is the budget as it stands for 2026-27. Change a lever on the left to see what it raises or costs, and who gains and loses.</div>`;
+    $("headline").innerHTML = EMPTY;
     return;
   }
   const check = policyCheck(changes);
   const raised = (x: number) => `<span class="${x < 0 ? "neg" : "pos"}">${bn(x)}</span>`;
   const behaviour = !b
-    ? `<div class="value small">working it out…</div><div class="sub">takes a few seconds</div>`
+    ? `<div class="value small">working it out… <span id="behaviour-progress"></span></div><div class="sub">the other figures don't wait for it</div>`
     : b.low === 0 && b.high === 0
       ? `<div class="value">${raised(s.netRevenue)}</div><div class="sub">${
           changes.some((c) => !/^(uc|cb)_/.test(REMOVAL[c.lever]?.lever ?? c.lever)) // any tax change
@@ -300,7 +395,34 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
     <div class="metric"><div class="label">Raised a year, nobody responding (static)</div><div class="value">${raised(s.netRevenue)}</div><div class="sub">positive raises money, negative costs it</div></div>
     <div class="metric"><div class="label">Allowing for how people respond</div>${behaviour}</div>
     <div class="metric"><div class="label">Households losing / gaining</div><div class="value">${share(all.lose)} / ${share(all.gain)}</div><div class="sub">by more than £1 a week</div></div>
-    <div class="metric"><div class="label">How far to trust it</div><div class="value"><span class="grade" title="${esc(GRADE_MEANING[COSTING_GRADE])}">${COSTING_GRADE}</span> ${checkBadge(check)}</div><div class="sub">grade B: our microsimulation; checks against HMRC: ${CHECK_LABEL[check]}</div></div>`;
+    <div class="metric"><div class="label">How far to trust it</div><div class="value small"><span class="grade">${COSTING_GRADE}</span>${grade.button} ${checkBadge(check)}</div>${grade.panel}<div class="sub">grade ${COSTING_GRADE}: our own model; checks against HMRC: ${CHECK_LABEL[check]}</div></div>`;
+}
+const grade = info(`grade ${COSTING_GRADE}`, `Grade ${COSTING_GRADE}: ${GRADE_MEANING[COSTING_GRADE]} The scale: A ${GRADE_MEANING.A} B ${GRADE_MEANING.B} C ${GRADE_MEANING.C} D ${GRADE_MEANING.D}`);
+
+/** A few plain lines describing the budget, for pasting into a message. */
+function summaryText(): string {
+  const changes = currentPolicy();
+  const lines = ["UK budget simulator, 2026-27 (estimates from made-up households weighted to published UK totals)"];
+  if (!changes.length || !lastStatic) {
+    lines.push(changes.length ? "Still working out the figures." : "No changes: today's budget.");
+  } else {
+    lines.push(`Changes: ${changes.map((c) => (REMOVAL[c.lever] ? changeLabel(c.lever) : `${LEVER[c.lever]!.label} ${showValue(LEVER[c.lever]!, LEVER[c.lever]!.get(rules))} → ${showValue(LEVER[c.lever]!, c.value)}`)).join("; ")}`);
+    const s = lastStatic.netRevenue;
+    const total = s + (lastBehaviour?.central ?? 0);
+    lines.push(`${total < 0 ? "Costs" : "Raises"} ${bn(Math.abs(total), false)} a year${lastBehaviour ? `, allowing for how people respond (${bn(Math.abs(s), false)} before that)` : " before allowing for how people respond"}`);
+    const path = fiscalPath(lastStatic.change, lastBehaviour?.central ?? 0);
+    const m = path.stabilityMargin;
+    lines.push(`Main fiscal rule (current budget in surplus in 2029-30): ${m < 0 ? "missed" : "met"} by £${Math.abs(m).toFixed(1)}bn (OBR forecast: met by £${FORECAST.fiscal_rules.stability.margin.toFixed(1)}bn)`);
+    const all = lastStatic.distribution.all;
+    lines.push(`Households: ${share(all.lose)} lose and ${share(all.gain)} gain more than £1 a week`);
+  }
+  lines.push(location.href);
+  return lines.join("\n");
+}
+
+/** Phones: one line on the bar at the bottom. */
+function showSummary(text: string) {
+  $("summary-text").innerHTML = text;
 }
 
 // ---- borrowing and debt ------------------------------------------------------------------------
@@ -317,16 +439,23 @@ function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
   const years = path.years.map((y) => y.year);
   const rules = FORECAST.fiscal_rules;
 
-  const margin = (x: number) => `<span class="${x < 0 ? "neg" : "pos"}">${x < 0 ? `missed by ${bnFixed(-x)}` : `met by ${bnFixed(x)}`}</span>`;
+  const marginText = (x: number) => (x < 0 ? `missed by ${bnFixed(-x)}` : `met by ${bnFixed(x)}`);
+  const margin = (x: number) => `<span class="${x < 0 ? "neg" : "pos"}">${marginText(x)}</span>`;
   const range = (pick: (p: Path) => number) => {
     const [a, c] = lowHigh.map(pick).sort((x, y) => x - y);
-    return `range ${bnFixed(a!)} to ${bnFixed(c!)}`;
+    return `between ${marginText(a!)} and ${marginText(c!)}`;
   };
+  const raised = changed ? s.netRevenue + behaviour : 0;
+  showSummary(
+    changed
+      ? `${raised < 0 ? "Costs" : "Raises"} <strong>${bn(Math.abs(raised), false)}</strong> a year${b ? "" : " (static)"}<br>Main fiscal rule: <span class="${path.stabilityMargin < 0 ? "neg" : "pos"}">${marginText(path.stabilityMargin)}</span>`
+      : `Today's budget<br>Main fiscal rule: ${marginText(rules.stability.margin)}`,
+  );
   const rule = (label: string, obr: number, ours: number, withEconomy: number, pick: (p: Path) => number) => `
     <div class="metric rule">
       <div class="label">${esc(label)}</div>
       <div class="value">${changed ? margin(ours) : margin(obr)}</div>
-      <div class="sub">${changed ? `OBR forecast: ${obr < 0 ? "missed" : "met"} by ${bnFixed(Math.abs(obr))}` : "OBR forecast, today's policies"}</div>
+      <div class="sub">${changed ? `OBR forecast: ${marginText(obr)}` : "OBR forecast, today's policies"}</div>
       ${changed ? `<div class="sub">with the effect on the economy: ${margin(withEconomy)} (${range(pick)})</div>` : ""}
     </div>`;
 
@@ -396,7 +525,7 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
   for (const ch of changes) {
     const g = leverCheck(ch.lever);
     const own = levers?.perLever.find((p) => p.lever === ch.lever);
-    html += `<tr><td>${changeText(ch.lever)}</td>${own ? signed(own.netRevenue) : `<td class="num small">working…</td>`}<td title="${esc(g.why)}">${checkBadge(g.check)}</td></tr>`;
+    html += `<tr><td>${changeText(ch.lever)}</td>${own ? signed(own.netRevenue) : `<td class="num small">working…</td>`}<td>${checkBadge(g.check, g.why)}</td></tr>`;
   }
   if (changes.length > 1) html += `<tr><td>Interaction<div class="working">Changes overlap: e.g. a tax rise reduces Universal Credit, a rate rise on a bigger allowance raises less.</div></td>${levers ? signed(levers.interaction) : `<td class="num small">working…</td>`}<td></td></tr>`;
   html += `</table></div>`;
@@ -404,7 +533,7 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
     <p>Every made-up household is run through the 2026-27 rules twice, as they are and with your changes, and the differences are added up, weighted to stand for the whole UK. "Static" means nobody changes what they earn or claim. The figure allowing for responses uses ${SOURCES.sfc}, rising with income, with a low and high figure at half and one and a half times them. Benefits and employer National Insurance stay static.</p>
     <p>Confidence grade ${COSTING_GRADE}: ${esc(GRADE_MEANING[COSTING_GRADE])} (A would be an official costing, C international evidence, D an informed guess.)</p>
     <p>How each change checks against ${SOURCES.rr} and other published figures:</p>
-    <ul>${changes.map((ch) => `<li>${esc(changeLabel(ch.lever))}:${CHECK_LABEL[leverCheck(ch.lever).check]}. ${esc(leverCheck(ch.lever).why)}</li>`).join("")}</ul>
+    <ul>${changes.map((ch) => `<li>${esc(changeLabel(ch.lever))}: ${CHECK_LABEL[leverCheck(ch.lever).check]}. ${esc(leverCheck(ch.lever).why)}</li>`).join("")}</ul>
     <p>Close: ${esc(CHECK_MEANING.close)} Fair: ${esc(CHECK_MEANING.fair)} Known gap: ${esc(CHECK_MEANING.gap)} More in ${SOURCES.how}.</p></details>`;
   $("breakdown").innerHTML = html;
 }
@@ -417,7 +546,7 @@ function renderWinners(deciles: Group[], family: Group[], regions: Group[], all:
     return;
   }
   const value = (g: Group) => (winnersMode === "pounds" ? g.meanChange : g.percentOfIncome);
-  const fmt = (x: number) => (winnersMode === "pounds" ? pounds(x, true) : `${x > 0 ? "+" : ""}${x.toFixed(2)}%`);
+  const fmt = (x: number) => (winnersMode === "pounds" ? pounds(x, true) : signedPct(x));
   const W = 640, H = 220, m = { l: 56, r: 8, t: 12, b: 34 };
   const vals = deciles.map(value);
   const hi = Math.max(0, ...vals), lo = Math.min(0, ...vals);
@@ -436,7 +565,7 @@ function renderWinners(deciles: Group[], family: Group[], regions: Group[], all:
   svg += `<text x="${m.l}" y="${H - 2}">poorest tenth</text><text x="${W - m.r}" y="${H - 2}" text-anchor="end">richest tenth</text></svg>`;
 
   const table = (title: string, groups: Group[]) => `<table><tr><th>${title}</th><th class="num">Average</th><th class="num">% income</th><th class="num">Lose</th><th class="num">Gain</th></tr>
-    ${groups.map((g) => `<tr><td>${esc(g.label)}</td><td class="num ${g.meanChange < -26 ? "neg" : g.meanChange > 26 ? "pos" : ""}">${pounds(g.meanChange, true)}</td><td class="num">${g.percentOfIncome.toFixed(2)}%</td><td class="num">${share(g.lose)}</td><td class="num">${share(g.gain)}</td></tr>`).join("")}</table>`;
+    ${groups.map((g) => `<tr><td>${esc(g.label)}</td><td class="num ${g.meanChange < -26 ? "neg" : g.meanChange > 26 ? "pos" : ""}">${pounds(g.meanChange, true)}</td><td class="num">${signedPct(g.percentOfIncome)}</td><td class="num">${share(g.lose)}</td><td class="num">${share(g.gain)}</td></tr>`).join("")}</table>`;
 
   $("winners").innerHTML = `
     <div class="toggle" role="group" aria-label="Show change as">
@@ -480,7 +609,7 @@ renderLevers();
 filterLevers();
 wireLevers();
 redrawTaxChart = initTaxChart($("tax-chart"), rules, () => applyPolicy(rules, currentPolicy()));
+placeTaxChart();
 updateHousehold();
-$("headline").innerHTML = currentPolicy().length
-  ? `<div class="empty">Loading 39,000 made-up households to cost your budget…</div>`
-  : `<div class="empty">This is the budget as it stands for 2026-27. Change a lever on the left to see what it raises or costs, and who gains and loses.</div>`;
+$("headline").innerHTML = currentPolicy().length ? `<div class="empty">Loading 39,000 made-up households to cost your budget…</div>` : EMPTY;
+showSummary(currentPolicy().length ? "Working out your budget…" : `Today's budget<br>Main fiscal rule: met by £${FORECAST.fiscal_rules.stability.margin.toFixed(1)}bn`);

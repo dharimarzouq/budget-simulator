@@ -1,6 +1,6 @@
 :root {
   --surface: #fcfcfb; --surface-2: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #dddcd6;
-  --grid: #ebeae5; --series: #2a78d6; --link: #1c5cab; --loss: #b4331f; --gain: #2f7d32; --accent-bg: #e6f1fb;
+  --grid: #ebeae5; --series: #2a78d6; --link: #1c5cab; --loss: #b4331f; --gain: #2a6f2d; --accent-bg: #e6f1fb;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
@@ -32,13 +32,15 @@ details summary { cursor: pointer; }
 /* Top bar and the two columns */
 .top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
 .top nav { display: flex; gap: 8px; align-items: center; }
-/* Two columns (levers beside the chart and results), three on wide screens, one on phones. */
-.bench { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); grid-template-areas: "levers chart" "levers results";
-  grid-template-rows: auto 1fr; gap: 0 24px; align-items: start; margin-top: 12px; }
+/* Two columns (levers beside the results), three on wide screens (the tax chart in a column of its own), one on phones.
+   Below three columns the chart moves into the results: after the headline, or after borrowing on phones (app.ts). */
+.bench { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); grid-template-areas: "levers results";
+  gap: 0 24px; align-items: start; margin-top: 12px; }
+#results #tax-panel { max-width: 760px; }
 #levers-panel { grid-area: levers; }
 #tax-panel { grid-area: chart; }
 #results { grid-area: results; }
-@media (min-width: 1400px) {
+@media (min-width: 1600px) {
   .bench { grid-template-columns: minmax(0, 320px) minmax(0, 1fr) minmax(0, 1.15fr); grid-template-areas: "levers chart results"; grid-template-rows: auto; }
   #tax-panel { position: sticky; top: 8px; }
 }
@@ -61,20 +63,33 @@ label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .lever .remove:hover { color: var(--loss); border-color: var(--loss); }
 .lever.removed { grid-template-columns: minmax(0, 1fr) auto; background: var(--surface-2); padding-left: 6px; padding-right: 6px; }
 .lever.removed .removed-note { color: var(--ink-2); font-size: 12px; }
-.bubble { position: fixed; z-index: 10; display: none; pointer-events: none; background: var(--ink); color: var(--surface); border-radius: 4px;
+.bubble { position: fixed; z-index: 40; display: none; pointer-events: none; background: var(--ink); color: var(--surface); border-radius: 4px;
   padding: 3px 8px; font-size: 13px; font-family: var(--mono); white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 0.2); }
 .bubble span { opacity: 0.8; }
 
 /* Results */
-#headline { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+#headline { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .metric { background: var(--surface-2); border-radius: 6px; padding: 10px 12px; }
 .metric .label { font-size: 12px; color: var(--ink-2); }
 .metric .value { font-family: var(--mono); font-size: 20px; font-variant-numeric: tabular-nums; }
-.metric .sub { font-size: 12px; color: var(--ink-2); font-family: var(--mono); }
+.metric .sub { font-size: 12px; color: var(--ink-2); }
+.metric .value.small { font-family: inherit; font-size: 14px; }
 .empty { color: var(--ink-2); padding: 12px; background: var(--surface-2); border-radius: 6px; grid-column: 1 / -1; }
 .grade { display: inline-block; font-family: var(--mono); font-weight: 600; border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; }
 .check-badge { display: inline-block; font-size: 12px; border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; white-space: nowrap; vertical-align: middle; }
-.check-close { color: var(--gain); } .check-fair { color: var(--series); } .check-gap { color: var(--loss); }
+.check-close { color: var(--gain); } .check-fair { color: var(--link); } .check-gap { color: var(--loss); }
+
+/* Explanations that open in place: a tap, click or keypress, never only a hover. */
+button.info { width: 18px; height: 18px; padding: 0; margin-left: 4px; border-radius: 50%; font-size: 11px; line-height: 16px; font-style: italic;
+  font-family: Georgia, serif; color: var(--ink-2); vertical-align: middle; flex: none; }
+button.info[aria-expanded="true"] { background: var(--ink); color: var(--surface); }
+.info-text { display: block; margin: 4px 0; padding: 6px 8px; font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 4px; }
+.info-text[hidden] { display: none; }
+.lever .info-text { grid-column: 1 / -1; }
+
+/* Keyboard focus is always visible. */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.chart svg:focus-visible { outline-offset: 4px; }
 .neg { color: var(--loss); } .pos { color: var(--gain); }
 .working { color: var(--ink-2); font-size: 13px; }
 .show-working { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
@@ -92,6 +107,11 @@ label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .updating { display: none; position: sticky; top: 0; z-index: 5; width: max-content; margin: 0 0 6px auto; padding: 2px 8px;
   font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 4px; }
 .pending .updating { display: block; }
+
+/* How it works (the How we know page) */
+details.how { border-bottom: 1px solid var(--rule); padding: 4px 0; margin: 0; }
+details.how > summary { font-weight: 600; padding: 6px 0; }
+details.how p, details.how ul { max-width: 72ch; }
 
 /* Borrowing and debt */
 .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -120,10 +140,26 @@ legend { font-weight: 600; padding: 0 4px; }
 .headline strong { display: block; font-size: 24px; color: var(--ink); font-family: var(--mono); font-variant-numeric: tabular-nums; }
 details { margin-top: 8px; }
 
+/* Phones: a bar pinned to the bottom keeps the result in view; the levers open over the page, above the bar. */
+.summary-bar, .phone-only { display: none; }
 @media (max-width: 900px) {
-  .bench { grid-template-columns: minmax(0, 1fr); grid-template-areas: "levers" "chart" "results"; grid-template-rows: auto; }
-  #levers-panel { position: static; max-height: none; border-right: 0; padding-right: 0; border-bottom: 1px solid var(--rule); }
+  :root { --bar: 56px; }
+  body { padding-bottom: calc(var(--bar) + 16px); }
+  .bench { grid-template-columns: minmax(0, 1fr); grid-template-areas: "results"; grid-template-rows: auto; }
+  #levers-panel { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: var(--bar); z-index: 25; max-height: none; overflow-y: auto;
+    border: 0; padding: 0 16px 16px; background: var(--surface); }
+  body.levers-open #levers-panel { display: block; }
+  body.levers-open { overflow: hidden; }
+  #levers-drawer > summary { display: none; }
+  .levers-head { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;
+    padding: 10px 0; margin-bottom: 4px; background: var(--surface); border-bottom: 1px solid var(--rule); }
+  .summary-bar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--bar); gap: 10px; align-items: center;
+    justify-content: space-between; padding: 0 16px; background: var(--surface-2); border-top: 1px solid var(--rule); }
+  .summary-text { font-size: 13px; line-height: 1.3; min-width: 0; }
+  .summary-text strong { font-family: var(--mono); }
+  .summary-bar button { flex: none; font-size: 14px; padding: 6px 14px; background: var(--ink); color: var(--surface); border-color: var(--ink); }
   .calc { grid-template-columns: minmax(0, 1fr); }
+  .top nav { flex-wrap: wrap; }
 }
 @media (max-width: 600px) {
   /* Charts are drawn 640 wide and scaled down, so their labels need to start bigger. */

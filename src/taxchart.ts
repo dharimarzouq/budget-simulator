@@ -71,7 +71,7 @@ export function initTaxChart(el: HTMLElement, rules: RuleSet, reformed: () => Ru
         ? rs.slice(0, -1).map((v, i) => `${x(i * STEP)},${y(v)} ${x((i + 1) * STEP)},${y(v)}`).join(" ")
         : rs.map((v, i) => `${x(i * STEP)},${y(v)}`).join(" ");
 
-    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${mode === "marginal" ? "Marginal" : "Average"} tax rate by ${p.income.toLowerCase()}, today and under your budget">`;
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" tabindex="0" aria-label="${mode === "marginal" ? "Marginal" : "Average"} tax rate by ${p.income.toLowerCase()}, today and under your budget. Use the left and right arrow keys to read the rates at each income.">`;
     for (let v = bottom; v <= top + 1e-9; v += 0.1) {
       svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>`;
       svg += `<text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`;
@@ -87,17 +87,22 @@ export function initTaxChart(el: HTMLElement, rules: RuleSet, reformed: () => Ru
     for (let i = 0; i < n; i += 20) {
       table += `<tr><td class="num">${pounds(i * STEP)}</td><td class="num">${pct(a[i]!)}</td><td class="num">${pct(b[i]!)}</td><td class="num">${change(today[i]! - budget[i]!)}</td></tr>`;
     }
-    chart.innerHTML = svg + `<div class="tip"></div>` + table + `</table></details>`;
+    chart.innerHTML = svg + `<div class="tip" aria-live="polite"></div>` + table + `</table></details>`;
 
     const svgEl = chart.querySelector("svg")!;
     const tip = chart.querySelector<HTMLElement>(".tip")!;
     const cross = svgEl.querySelector("[data-cross]")!;
     const dotA = svgEl.querySelector("[data-dot-a]")!;
     const dotB = svgEl.querySelector("[data-dot-b]")!;
+    let at = Math.round(50000 / STEP); // where the arrow keys start: £50,000
     const show = (clientX: number) => {
       const box = svgEl.getBoundingClientRect();
       const sx = ((clientX - box.left) / box.width) * W;
-      const i = Math.max(0, Math.min(n - 1, Math.round((((sx - m.l) / (W - m.l - m.r)) * MAX) / STEP)));
+      showAt(Math.round((((sx - m.l) / (W - m.l - m.r)) * MAX) / STEP));
+    };
+    const showAt = (index: number) => {
+      const i = (at = Math.max(0, Math.min(n - 1, index)));
+      const box = svgEl.getBoundingClientRect();
       const cx = mode === "marginal" ? x(i * STEP + STEP / 2) : x(i * STEP);
       cross.setAttribute("x1", String(cx));
       cross.setAttribute("x2", String(cx));
@@ -114,9 +119,20 @@ export function initTaxChart(el: HTMLElement, rules: RuleSet, reformed: () => Ru
     };
     svgEl.addEventListener("pointermove", (ev) => show(ev.clientX));
     svgEl.addEventListener("pointerdown", (ev) => show(ev.clientX));
-    svgEl.addEventListener("pointerleave", () => {
+    const hide = () => {
       for (const e of [cross, dotA, dotB]) e.setAttribute("visibility", "hidden");
       tip.style.display = "none";
+    };
+    svgEl.addEventListener("pointerleave", hide);
+    // Keyboard: arrows move £500 (£10,000 with Shift), Home and End go to the ends.
+    svgEl.addEventListener("focus", () => showAt(at));
+    svgEl.addEventListener("blur", hide);
+    svgEl.addEventListener("keydown", (ev) => {
+      const big = ev.shiftKey ? 20 : 1;
+      const next = { ArrowRight: at + big, ArrowLeft: at - big, Home: 0, End: n - 1 }[ev.key];
+      if (next === undefined) return;
+      ev.preventDefault();
+      showAt(next);
     });
   };
 

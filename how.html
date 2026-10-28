@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>How we know · UK budget simulator</title>
+    <meta name="description" content="How the UK budget simulator works out its figures: the rules and their sources, the made-up households, costing, behaviour, borrowing and the fiscal rules, and how far to trust each figure." />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -14,6 +15,89 @@
       made-up population of households weighted to match published UK totals. Costings are checked against HMRC's own; the
       method, the checks, and where they fall short are written up in full in COSTING.md and POPULATION.md in the project.
     </p>
+
+    <h2>How it works</h2>
+    <details class="how" open>
+      <summary>Made-up households</summary>
+      <p>
+        There's no list of every household in the UK, and the survey data that comes closest isn't open. So the simulator
+        uses about 32,600 made-up households (39,600 families, in the benefits sense of a single adult or a couple and their
+        children). Each is built to look like a kind of household the UK really has: ages, pay, pensions, self-employment,
+        savings, rent, children, health conditions, which nation and region.
+      </p>
+      <p>
+        Each household then gets a weight: how many real households it stands for. The weights are adjusted, as little as
+        possible, until the totals match about 800 published figures at once, from HMRC (who pays income tax and how much,
+        by income and region), DWP (who gets Universal Credit), the Family Resources Survey's published tables (households
+        by type, tenure and income), and the OBR. Published sources don't always agree with each other, so some can't be met
+        exactly; the checks below show how close it gets. These are not real people.
+      </p>
+    </details>
+    <details class="how">
+      <summary>Costing a change</summary>
+      <p>
+        Every household is run through the 2026-27 rules twice: as they are, and with your changes. The difference in tax
+        paid and benefits received, times each household's weight, added up, is what the change raises or costs in a year.
+        That's the "static" figure: it assumes nobody earns, claims or arranges their affairs any differently. Each change
+        is also costed on its own; changes overlap (a tax rise reduces Universal Credit, which is worked out on pay after
+        tax), so the parts don't quite add up to the whole, and the difference is shown as the interaction.
+      </p>
+      <p>
+        Winners and losers compare each household's income after tax and benefits, before and after, ranked by income
+        adjusted for household size, the way DWP's official statistics do it. A change of less than £1 a week counts as no
+        real change.
+      </p>
+    </details>
+    <details class="how">
+      <summary>How people respond</summary>
+      <p>
+        When a tax on extra income goes up, people tend to report less of it: they work a little less, pay more into
+        pensions, take income in other forms or at other times. The second headline figure allows for that, using the
+        Scottish Fiscal Commission's published estimates of how strongly taxable income responds, which rise with income
+        (people on higher incomes have more ways to respond). The low and high figures use half and one and a half times
+        those estimates, because nobody knows them precisely. Benefit changes and employer National Insurance are left
+        static.
+      </p>
+    </details>
+    <details class="how">
+      <summary>Borrowing, debt and the fiscal rules</summary>
+      <p>
+        The starting point is the OBR's forecast published with Budget 2026 (28 October 2026). Your changes are assumed to
+        start next April. Their cost is carried forward each year in line with the OBR's forecast for the tax or benefit it
+        sits in, and the extra borrowing adds to debt and to interest on the debt, at the rates the OBR publishes. That's
+        then checked against the two fiscal rules in the Charter for Budget Responsibility: the day-to-day budget in surplus
+        in 2029-30, and debt falling as a share of the economy in 2029-30.
+      </p>
+      <p>
+        Official costings leave the economy as forecast, and so do the main figures here. A second, rougher line allows for
+        the budget's effect on the size of the economy using the OBR's published fiscal multipliers, and what that does to
+        tax and spending. It's shown separately, with a range, because those effects are much less certain.
+      </p>
+    </details>
+    <details class="how">
+      <summary>How far to trust a figure</summary>
+      <p>
+        Every costing gets a grade: A for an official costing by the OBR or HMRC, B for this kind of model of made-up
+        households weighted to published totals, C for figures resting on general evidence from elsewhere, D for an informed
+        guess. The page's own costings are B; the effect on the economy is C.
+      </p>
+      <p>
+        Each change also says how well that kind of change checks against published costings, mostly HMRC's "ready
+        reckoner" of standard tax changes: <strong>close</strong> (within about 6% of HMRC), <strong>fair</strong> (within
+        about 15%, or HMRC's figure inside our range), or <strong>known gap</strong> (a known difference; treat as rough).
+        Removing a tax altogether is always a known gap: it's far beyond the small changes anyone publishes checks for.
+      </p>
+    </details>
+    <details class="how">
+      <summary>What isn't modelled yet</summary>
+      <ul>
+        <li>Taxes other than income tax and National Insurance: VAT, corporation tax, capital gains and inheritance tax, council tax and the rest.</li>
+        <li>Benefits other than Universal Credit and Child Benefit: the State Pension, Pension Credit, disability benefits, Council Tax Reduction, Scottish Child Payment.</li>
+        <li>Local Housing Allowance limits on help with rent, and government spending on services.</li>
+        <li>The rules announced for April 2027 onwards, such as higher tax on property and savings income: later years are carried forward from this year's rules.</li>
+        <li>People moving in or out of the UK, or between Scotland and the rest of the UK, in response to tax changes.</li>
+      </ul>
+    </details>
 
     <h2>The whole country</h2>
     <p class="small">

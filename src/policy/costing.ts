@@ -84,10 +84,11 @@ const bandValue = (x: number, bands: { threshold: number; rate: number }[]) => b
  * rate. Employer NICs and benefits are left static. Low and high figures scale the elasticities (see behaviour.yaml).
  */
 /** Each adult's marginal rates under one set of rules, in population order (two slots per unit), to reuse across costings. */
-export function marginalRatesFor(pop: Population, rules: RuleSet): { it: Float64Array; ni: Float64Array } {
+export function marginalRatesFor(pop: Population, rules: RuleSet, progress?: (done: number) => void): { it: Float64Array; ni: Float64Array } {
   const it = new Float64Array(pop.units.length * 2);
   const ni = new Float64Array(pop.units.length * 2);
   pop.units.forEach(({ data }, u) => {
+    if (progress && u % 2000 === 0) progress(u / pop.units.length);
     const res = calculate(data, rules);
     data.adults.forEach((_, i) => {
       const m = marginalTaxRates(data, i, rules, res.adults[i]!);
@@ -103,12 +104,16 @@ const personalTax = (a: AdultResult) => a.incomeTax + a.employeeNI + a.selfEmplo
 /**
  * Pass `beforeRates` (from marginalRatesFor) to save working out today's marginal rates again. People whose own tax
  * doesn't change are skipped: their marginal rate can only change if they sit within £100 of a threshold that moved.
+ * `progress` is told the share of the population done so far, now and then.
  */
-export function behaviouralEffect(pop: Population, before: RuleSet, after: RuleSet, beforeRates?: { it: Float64Array; ni: Float64Array }): Behaviour & { incomeTax: number; ni: number } {
+export function behaviouralEffect(
+  pop: Population, before: RuleSet, after: RuleSet, beforeRates?: { it: Float64Array; ni: Float64Array }, progress?: (done: number) => void,
+): Behaviour & { incomeTax: number; ni: number } {
   const tie = after.behaviour.taxableIncomeElasticity;
   let incomeTax = 0;
   let ni = 0;
   pop.units.forEach(({ weight: w, data }, u) => {
+    if (progress && u % 2000 === 0) progress(u / pop.units.length);
     const was = calculate(data, before);
     const now = calculate(data, after);
     data.adults.forEach((_, i) => {
