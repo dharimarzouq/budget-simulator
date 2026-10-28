@@ -128,6 +128,18 @@ def ashe_pay_by_age() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def spi_self_employment_ranges() -> pd.DataFrame:
+    """HMRC SPI Table 3.10: taxpayers with self-employment income, by range of that income: people and amounts."""
+    raw = pd.read_excel(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", engine="odf", sheet_name="Table_3_10", header=None)
+    t = read_table(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", "Table_3_10", raw.iloc[4, 0])
+    col = lambda kind: next(c for c in t.columns if str(c).startswith("Self-employment income") and kind in str(c))
+    return pd.DataFrame({
+        "band_lower": t.iloc[:, 0].replace({"All ranges": "all", "All Ranges": "all"}),
+        "people_k": t[col("Numb")].to_numpy(),
+        "amount_gbp_m": t[col("Amou")].to_numpy(),
+    })
+
+
 def t37_header() -> str:
     raw = pd.read_excel(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", engine="odf", sheet_name="Table_3_7", header=None)
     return raw.iloc[4, 0]
@@ -229,6 +241,9 @@ def main() -> None:
     ashe = ashe_pay_by_age()
     ashe.to_csv(OUT / "ons_ashe_annual_pay_by_age_2026.csv", index=False)
     print("ASHE 2026 Table 6.7a:", ashe[["status", "age", "jobs_k", "median", "mean", "p10", "p90"]].to_string(index=False))
+    se = spi_self_employment_ranges()
+    se.to_csv(OUT / "hmrc_self_employment_by_range_2023_24.csv", index=False)
+    print("Table 3.10:", se.to_string(index=False))
     ages = spi_by_age()
     ages.to_csv(OUT / "hmrc_income_by_age_2023_24.csv", index=False)
     print("Table 3.2:", ages.to_string(index=False))

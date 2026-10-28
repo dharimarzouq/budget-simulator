@@ -213,6 +213,18 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         targets.append(Target(g, f"{r.region} taxpayers", r.taxpayers_k * 1e3 * people_scale, household_row(adults, (mask & payer).astype(float), n), 1, 100_000))
         targets.append(Target(g, f"{r.region} income", r.total_income_gbp_m * 1e6 * income_scale,
                               household_row(adults, mask * payer * adults["total"].to_numpy(), n), 1, 5e9))
+    # SPI 2023-24, Table 3.10: taxpayers with self-employment income by range of that income, ranges and amounts uprated
+    # with earnings. These pin down the profits Class 4 applies to.
+    se = pd.read_csv(T / "hmrc_self_employment_by_range_2023_24.csv")
+    se = se[(se["band_lower"] != "all") & (se["band_lower"] != "0")].copy()
+    se["lo"] = se["band_lower"].astype(float)
+    se_edges = list(se["lo"]) + [np.inf]
+    profits = adults["self_employment"].to_numpy()
+    for i, r in enumerate(se.itertuples()):
+        inb = (profits >= r.lo * EARNINGS_2023_24) & (profits < se_edges[i + 1] * EARNINGS_2023_24) & payer
+        g = "HMRC self-employed taxpayers by range of profits"
+        targets.append(Target(g, f"£{int(r.lo):,}+ people", r.people_k * 1e3, household_row(adults, inb.astype(float), n), 0.5, 50_000))
+        targets.append(Target(g, f"£{int(r.lo):,}+ profits", r.amount_gbp_m * 1e6 * EARNINGS_2023_24, household_row(adults, inb * profits, n), 1, 1e9))
     by_age = pd.read_csv(T / "hmrc_income_by_age_2023_24.csv")
     by_age = by_age[by_age["age_range"] != "Totals"]
     for r in by_age.itertuples():

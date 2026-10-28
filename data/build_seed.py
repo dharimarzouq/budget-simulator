@@ -77,9 +77,7 @@ ASSUMPTIONS = {
     "profit_top_tail_min": 80_000,
     "profit_top_tail_alpha": 1.2,
     "share_pensioners_new_state_pension": 0.6,  # rest on the old basic pension
-    "share_pensioners_working": 0.2,  # pensioners under 75 with a job; set so their NICs exemption comes near HMRC's £1.2bn
-    "pensioner_pay_median": 13_000,  # lowered from £18,000 so their NICs exemption matches HMRC's £1.2bn cost
-    "pensioner_pay_sigma": 0.9,
+    # Pensioners' work follows the FRS for their age band (65-74, 75-84, 85+), with pay from ASHE's 60+ group.
     "share_pensioners_private_pension": 0.65,
     # Raised from £7,000, with a thinner top tail: before calibration, pension income in HMRC's £20,000-£50,000 bands
     # came out 20-40% under HMRC's and far over it above £70,000. £10,000 overshot pensioners' median income in HBAI by 7%.
@@ -194,6 +192,11 @@ class Builder:
         fa = pd.read_csv(TARGETS / "frs_adults_age_employment_2024-25.csv")
         fa.columns = ["age", "status", "adults"]
         bands = fa.groupby("age")["adults"].sum()
+        # Work status of people over State Pension age, by FRS age band (65-74 includes 65-year-olds).
+        self.pensioner_status = {}
+        for band, g in fa[fa["age"].isin(["65 to 74", "75 to 84", "85 or over"])].groupby("age"):
+            g = g[g["adults"] > 0]
+            self.pensioner_status[band] = (list(g["status"]), (g["adults"] / g["adults"].sum()).to_numpy())
         spans = {"16 to 24 (adult)": (18, 24), "25 to 34": (25, 34), "35 to 44": (35, 44), "45 to 54": (45, 54), "55 to 59": (55, 59), "60 to 64": (60, 65)}
         self.age_bands = [spans[b] for b in spans]
         w = np.array([bands[b] for b in spans])
@@ -387,10 +390,19 @@ class Builder:
         r = self.rng
         state = NEW_STATE_PENSION if r.random() < A["share_pensioners_new_state_pension"] else OLD_STATE_PENSION
         private = self.draw("private_pension") if r.random() < A["share_pensioners_private_pension"] else 0.0
-        working = age < 75 and r.random() < A["share_pensioners_working"]
-        pay = float(np.exp(np.log(A["pensioner_pay_median"]) + A["pensioner_pay_sigma"] * r.standard_normal())) * self.region_pay[region.lower()] if working else 0.0
-        side = self.lognormal(A["side_profit_median"], A["side_profit_sigma"]) if r.random() < A["share_side_self_employment"] else 0.0
-        return {"age": age, "employment": round(pay, 2), "secondJob": 0.0, "selfEmployment": round(side, 2), "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
+        statuses, p = self.pensioner_status["65 to 74" if age < 75 else "75 to 84" if age < 85 else "85 or over"]
+        status = statuses[r.choice(len(statuses), p=p)]
+        pay = profit = 0.0
+        if status == "Full-time employee":
+            pay = self.ashe_pay("full-time", age, region)
+        elif status == "Part-time employee":
+            pay = self.ashe_pay("part-time", age, region)
+        elif status == "Full-time self-employed":
+            f, tail = self.pay_factor(age, region)
+            profit = self.draw("profit", tail) * f
+        elif status == "Part-time self-employed":
+            profit = self.lognormal(A["pt_profit_median"], A["pt_profit_sigma"]) * self.pay_factor(age, region)[0]
+        return {"age": age, "employment": round(pay, 2), "secondJob": 0.0, "selfEmployment": round(profit, 2), "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
 
     def working_age(self, young=False) -> int:
         """An age from 18 to 65, following the FRS's count of adults in each age band."""

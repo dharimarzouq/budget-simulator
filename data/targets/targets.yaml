@@ -156,6 +156,15 @@ ons_ashe_annual_pay_by_age_2026.csv:
   use: seed (pay for full-time and part-time employees by age, drawn from the percentiles and mean, uprated one year with OBR earnings growth)
   notes:
     - Job-based, so someone with two jobs appears twice. Leaves out people who changed jobs during the year.
+hmrc_self_employment_by_range_2023_24.csv:
+  source: hmrc-spi-2023-24
+  table: "3.10: Income of individuals with self-employment sources"
+  year: 2023-24
+  population: UK income taxpayers with self-employment income
+  units: thousands of people; £ million; band_lower is self-employment income in £
+  use: calibration (people and amounts in each range from £1, ranges and amounts uprated with earnings)
+  notes:
+    - The £0 range (nil profits or losses) has no amount published and isn't used.
 hmrc_income_by_age_2023_24.csv:
   source: hmrc-spi-2023-24
   table: "3.2: Distribution of median and mean income and tax, by age range and sex"
