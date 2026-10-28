@@ -31,14 +31,15 @@ def main() -> None:
     units = []
     for u in pop["units"]:
         d = u["data"]
-        flags = (1 if d.get("claimsUniversalCredit", True) else 0) | (2 if d.get("claimsChildBenefit", True) else 0)
+        flags = ((1 if d.get("claimsUniversalCredit", True) else 0) | (2 if d.get("claimsChildBenefit", True) else 0)
+                 | (4 if d.get("claimsMarriageAllowance", True) else 0))
         units.append([
             round(u["weight"], 1), u["household"], REGIONS.index(d["region"]),
             round(d["rentMonthly"]), round(d["childcareMonthly"]), round(d["savings"]), flags,
             [[a["age"], round(a["employment"]), round(a.get("secondJob", 0)), round(a["selfEmployment"]), round(a["pension"]),
               HEALTH.index(a["health"]), int(a["carer"]),
               round(a.get("propertyIncome", 0)), round(a.get("savingsInterest", 0)), round(a.get("dividends", 0)),
-              round(a.get("pensionContributions", 0))] for a in d["adults"]],
+              round(a.get("pensionContributions", 0)), round(a.get("otherDeductions", 0))] for a in d["adults"]],
             [[c["age"], int(c["bornBefore2017"]), DISABILITY.index(c["disability"])] for c in d["children"]],
         ])
     check = pd.read_csv(HERE / "build" / "seed_results_check.csv").set_index("measure")
@@ -46,8 +47,8 @@ def main() -> None:
         "about": "Synthetic population: made-up households, not real people, weighted to match published UK totals for 2026-27. See POPULATION.md.",
         "year": "2026-27",
         "fields": {
-            "unit": ["weight", "household", "region", "rentMonthly", "childcareMonthly", "savings", "flags (1 claims UC, 2 claims Child Benefit)", "adults", "children"],
-            "adult": ["age", "employment", "secondJob", "selfEmployment", "pension", "health", "carer", "propertyIncome", "savingsInterest", "dividends", "pensionContributions"],
+            "unit": ["weight", "household", "region", "rentMonthly", "childcareMonthly", "savings", "flags (1 claims UC, 2 claims Child Benefit, 4 claims Marriage Allowance)", "adults", "children"],
+            "adult": ["age", "employment", "secondJob", "selfEmployment", "pension", "health", "carer", "propertyIncome", "savingsInterest", "dividends", "pensionContributions", "otherDeductions"],
             "child": ["age", "bornBefore2017", "disability"],
         },
         "codes": {"region": REGIONS, "health": HEALTH, "disability": DISABILITY},

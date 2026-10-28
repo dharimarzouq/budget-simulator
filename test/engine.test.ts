@@ -52,6 +52,36 @@ describe("income tax and National Insurance", () => {
     expect(res.netIncome).toBeCloseTo(60000 - 7486 - 3210.6 - 10000, 2);
   });
 
+  it("other deductions come off earnings first, then savings, then dividends", () => {
+    // Pay 60,000 less deductions 10,000: taxable 37,430 × 20% = 7,486, the same as a 10,000 pension contribution.
+    const res = calculate(household({ adults: [adult({ employment: 60000, otherDeductions: 10000 })] }), r);
+    expect(res.adults[0]!.incomeTax).toBeCloseTo(7486, 2);
+    // Deductions larger than non-savings income eat into dividends: pension 10,000 + dividends 30,000, deductions
+    // 15,000. Dividends left 25,000; allowance 12,570 leaves 12,430 taxable, 500 at 0%, 11,930 × 10.75% = 1,282.475.
+    const big = calculate(household({ adults: [adult({ age: 70, pension: 10000, dividends: 30000, otherDeductions: 15000 })] }), r);
+    expect(big.adults[0]!.incomeTax).toBeCloseTo(1282.475, 2);
+  });
+
+  it("Marriage Allowance: £1,260 of allowance moves to a basic-rate partner, cutting their tax by up to £252", () => {
+    // Pay 40,000: tax (40,000 - 12,570) × 20% = 5,486, less 252. Partner on 8,000 still pays nothing.
+    const couple = (a: number, b: number, extra: Partial<Parameters<typeof household>[0]> = {}) =>
+      calculate(household({ adults: [adult({ employment: a }), adult({ employment: b })], ...extra }), r);
+    const res = couple(40000, 8000);
+    expect(res.adults[0]!.incomeTax).toBeCloseTo(5486 - 252, 2);
+    expect(res.adults[1]!.incomeTax).toBe(0);
+    // A higher-rate partner can't receive it.
+    expect(couple(60000, 8000).adults[0]!.incomeTax).toBeCloseTo((50270 - 12570) * 0.2 + (60000 - 50270) * 0.4, 2);
+    // A partner on 12,000 pays (12,000 - 11,310) × 20% = 138 after transferring, but the couple still gains 114.
+    const close = couple(40000, 12000);
+    expect(close.adults[0]!.incomeTax + close.adults[1]!.incomeTax).toBeCloseTo(5486 - 252 + 138, 2);
+    // Not claimed: no change.
+    expect(couple(40000, 8000, { claimsMarriageAllowance: false }).adults[0]!.incomeTax).toBeCloseTo(5486, 2);
+    // Scotland: relief at the starter rate, 19% × 1,260 = 239.40.
+    const scot = couple(30000, 0, { region: "scotland" });
+    const scotNone = couple(30000, 0, { region: "scotland", claimsMarriageAllowance: false });
+    expect(scotNone.adults[0]!.incomeTax - scot.adults[0]!.incomeTax).toBeCloseTo(239.4, 2);
+  });
+
   it("£30,000 self-employed", () => {
     // Class 4: 17,430 × 6% = 1,045.80. No employer NI.
     const res = calculate(household({ adults: [adult({ selfEmployment: 30000 })] }), r);

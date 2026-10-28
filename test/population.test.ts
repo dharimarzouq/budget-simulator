@@ -35,8 +35,8 @@ describe("shipped population", () => {
     expect(Math.abs(get(totals) / published(name) - 1)).toBeLessThan(tolerance);
   });
 
-  // About 3% high: reliefs we don't model (Marriage Allowance, Gift Aid, EIS and others) explain about a quarter.
-  it("income tax is within 4% of HMRC's 2026-27 liabilities (the like-for-like figure; the OBR's is receipts)", () => {
-    expect(Math.abs(totals.incomeTax / 1e9 / published("Income tax liabilities") - 1)).toBeLessThan(0.04);
+  // About 2% high: reliefs we don't model yet (EIS, Gift Aid and others) and probably Scotland. See POPULATION.md.
+  it("income tax is within 3% of HMRC's 2026-27 liabilities (the like-for-like figure; the OBR's is receipts)", () => {
+    expect(Math.abs(totals.incomeTax / 1e9 / published("Income tax liabilities") - 1)).toBeLessThan(0.03);
   });
 });

@@ -5,7 +5,7 @@ Usage (from the project folder, after setting up .venv-pe as in tools/README.md)
 
 Reads test/fixtures/households.json, writes test/fixtures/policyengine.json.
 Things we don't model yet are switched off in PolicyEngine where it has a switch
-(Council Tax, Pension Credit, Carer's Allowance, Marriage Allowance, childcare schemes), so differences
+(Council Tax, Pension Credit, Carer's Allowance, childcare schemes), so differences
 point at real rule differences. Rents are social rents so no Local Housing Allowance
 cap applies, matching our engine for now.
 """
@@ -51,7 +51,7 @@ def situation(h: dict) -> dict:
             "uc_limited_capability_for_WRA": {YEAR: a["health"] != "none"},
             "is_carer_for_benefits": {YEAR: a["carer"]},
             "would_claim_carers_allowance": {YEAR: False},
-            "would_claim_marriage_allowance": {YEAR: False},
+            "would_claim_marriage_allowance": {YEAR: h.get("claimsMarriageAllowance", True)},
         }
     childcare = h.get("childcareMonthly", 0) * 12
     for i, c in enumerate(h.get("children", [])):
@@ -77,6 +77,7 @@ def situation(h: dict) -> dict:
         "benunits": {
             "benunit": {
                 "members": adults + children,
+                "is_married": {YEAR: len(adults) == 2},  # our engine treats every couple as married (see income_tax.yaml)
                 "would_claim_uc": {YEAR: True},
                 "would_claim_child_benefit": {YEAR: True},
                 "would_claim_uc_childcare": {YEAR: True},

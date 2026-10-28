@@ -20,29 +20,29 @@ Two things to know about HMRC's figures:
 
 | Change | Ours (£m) | HMRC (£m) | Ratio | Why they differ |
 |---|---:|---:|---:|---|
-| Basic rate +1p | 7,380 | 8,073 | 0.91 | Ours is static and HMRC's 2026-27 liabilities imply about 7.7bn (below); the rest is uncertainty in the comparison, which mixes liabilities and receipts |
-| Higher rate +1p | 2,244 | 2,104 | 1.07 | Some behaviour in HMRC's figure |
-| Additional rate +1p (yield) | 1,692 | 259 | 6.5 | HMRC's includes behaviour: top earners shift and defer income. **Ours is static and overstates this.** See 6d |
-| Additional rate −1p (cost) | −1,692 | −328 | 5.2 | Same |
-| Personal allowance +£100 | −950 | −1,027 | 0.92 | Worth about £20 to each taxpayer, so it scales with the number of taxpayers, which is 2% short |
-| Personal allowance +1% | −1,193 | −1,174 | 1.02 | |
-| Basic rate band +1% | −637 | −651 | 0.98 | |
-| Basic rate band +10% | −5,944 | −6,116 | 0.97 | |
-| Basic rate band −10% | 6,945 | 7,046 | 0.99 | |
-| Employee NICs main rate +1pp | 6,208 | 5,350 | 1.16 | Employees' pay matches ASHE, but HMRC's figure implies less employee NICs than even the OBR forecasts; see POPULATION.md |
-| Employee NICs additional rate +1pp | 3,035 | 2,000 | 1.52 | Behaviour, plus pay at the top that's taxable but not liable to NICs (share schemes, some benefits in kind) |
-| Employer NICs rate +1pp | 11,546 | 11,150 | 1.04 | A calibration target; HMRC's includes employer NICs on benefits in kind (Class 1A), which we don't model |
-| Class 4 main rate +1pp | 373 | 514 | 0.73 | Our profits match HMRC's own count of self-employed taxpayers by range of profits (SPI Table 3.10), which implies a main-rate base of about £40bn (ours £37bn); HMRC's figure implies £51bn. Total self-employed NICs match the OBR. So HMRC's ready-reckoner figure, not the population, is the odd one out, for reasons not published |
-| Class 4 additional rate +1pp | 468 | 347 | 1.35 | Behaviour in HMRC's figure, and a heavier top tail of profits (to match HMRC's self-employed with over £1m) |
-| Employee threshold +£2 a week | −229 | −210 | 1.09 | |
-| Employer threshold +£2 a week | −472 | −420 | 1.12 | |
-| Upper earnings limit +£10 a week | 211 | 220 | 0.96 | |
-| Lower profits limit +£104 | −16 | −15 | 1.09 | |
-| Upper profits limit +£520 | 7 | 10 | 0.69 | |
-| Child Benefit first child +£1 a week | −331 | −335 | 0.99 | |
+| Basic rate +1p | 7,326 | 8,073 | 0.91 | Ours is static and HMRC's 2026-27 liabilities imply about 7.7bn (below); the rest is uncertainty in the comparison, which mixes liabilities and receipts |
+| Higher rate +1p | 2,217 | 2,104 | 1.05 | Some behaviour in HMRC's figure |
+| Additional rate +1p (yield) | 1,647 | 259 | 6.3 | HMRC's includes behaviour: top earners shift and defer income. **Ours is static and overstates this.** See 6d |
+| Additional rate −1p (cost) | −1,647 | −328 | 5.0 | Same |
+| Personal allowance +£100 | −952 | −1,027 | 0.93 | Worth about £20 to each taxpayer, so it scales with the number of taxpayers, which is 2% short |
+| Personal allowance +1% | −1,197 | −1,174 | 1.02 | |
+| Basic rate band +1% | −643 | −651 | 0.99 | |
+| Basic rate band +10% | −5,957 | −6,116 | 0.97 | |
+| Basic rate band −10% | 7,006 | 7,046 | 0.99 | |
+| Employee NICs main rate +1pp | 6,183 | 5,350 | 1.16 | Employees' pay matches ASHE, but HMRC's figure implies less employee NICs than even the OBR forecasts; see POPULATION.md |
+| Employee NICs additional rate +1pp | 3,051 | 2,000 | 1.53 | Behaviour, plus pay at the top that's taxable but not liable to NICs (share schemes, some benefits in kind) |
+| Employer NICs rate +1pp | 11,524 | 11,150 | 1.03 | A calibration target; HMRC's includes employer NICs on benefits in kind (Class 1A), which we don't model |
+| Class 4 main rate +1pp | 371 | 514 | 0.72 | Our profits match HMRC's own count of self-employed taxpayers by range of profits (SPI Table 3.10), which implies a main-rate base of about £40bn (ours £37bn); HMRC's figure implies £51bn. Total self-employed NICs match the OBR. So HMRC's ready-reckoner figure, not the population, is the odd one out, for reasons not published |
+| Class 4 additional rate +1pp | 458 | 347 | 1.32 | Behaviour in HMRC's figure, and a heavier top tail of profits (to match HMRC's self-employed with over £1m) |
+| Employee threshold +£2 a week | −230 | −210 | 1.09 | |
+| Employer threshold +£2 a week | −473 | −420 | 1.13 | |
+| Upper earnings limit +£10 a week | 209 | 220 | 0.95 | |
+| Lower profits limit +£104 | −16 | −15 | 1.08 | |
+| Upper profits limit +£520 | 7 | 10 | 0.71 | |
+| Child Benefit first child +£1 a week | −333 | −335 | 1.00 | |
 | Child Benefit other children +£1 a week | −239 | −230 | 1.04 | |
 
-(Updated 28 October 2026, after employees' pay began to be drawn from ASHE 2026.)
+(Updated 28 October 2026, after employees' pay began to be drawn from ASHE 2026, and the engine gained other deductions and Marriage Allowance.)
 
 ### A second, static comparison for the rates
 
@@ -50,11 +50,11 @@ HMRC's 2026-27 liabilities (Table 2.6) give the tax charged at each rate. Dividi
 
 | 1p on the… | Ours | Implied by HMRC's 2026-27 liabilities | Ratio |
 |---|---:|---:|---:|
-| Basic rate | £7.37bn | £7.73bn (£154.7bn ÷ 20) | 0.95 |
-| Higher rate | £2.24bn | £2.32bn (£92.9bn ÷ 40) | 0.97 |
-| Additional rate | £1.71bn | £1.77bn (£79.5bn ÷ 45) | 0.97 |
+| Basic rate | £7.33bn | £7.73bn (£154.7bn ÷ 20) | 0.95 |
+| Higher rate | £2.22bn | £2.32bn (£92.9bn ÷ 40) | 0.96 |
+| Additional rate | £1.65bn | £1.77bn (£79.5bn ÷ 45) | 0.93 |
 
-All three are 3–5% low. The additional rate's static figure is close, so its 6× gap with the ready reckoner is HMRC's behavioural adjustment (top earners shifting and deferring income), which is step 6d. (A puzzle: these are a little low while total income tax is 2% high. Reliefs and the order income is taxed in move tax between rates, so the two checks don't have to agree exactly.)
+All three are 4–7% low. The additional rate's static figure is close, so its 6× gap with the ready reckoner is HMRC's behavioural adjustment (top earners shifting and deferring income), which is step 6d. (A puzzle: these are a little low while total income tax is 2% high. Reliefs and the order income is taxed in move tax between rates, so the two checks don't have to agree exactly.)
 
 ### What this means for trusting a costing
 

@@ -106,20 +106,26 @@ export function bandTax(amount: number, bands: Band[]): { tax: number; working: 
 /** Pay from all jobs. */
 const pay = (a: Adult) => a.employment + (a.secondJob ?? 0);
 
-function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
+/** `allowanceGiven` is personal allowance transferred to a partner (Marriage Allowance). */
+function adultTax(a: Adult, h: Household, r: RuleSet, allowanceGiven = 0): AdultResult {
   const it = r.incomeTax;
   const ni = r.ni;
   const lines: Line[] = [];
 
   // Income is taxed in the legal order: non-savings income, then savings interest, then dividends.
   const property = a.propertyIncome ?? 0;
-  const savings = a.savingsInterest ?? 0;
-  const dividends = a.dividends ?? 0;
-  const nonSavings = Math.max(0, pay(a) + a.selfEmployment + a.pension + property - a.pensionContributions);
-  const totalIncome = pay(a) + a.selfEmployment + a.pension + property + savings + dividends;
+  const deductions = a.otherDeductions ?? 0;
+  const totalIncome = pay(a) + a.selfEmployment + a.pension + property + (a.savingsInterest ?? 0) + (a.dividends ?? 0);
+  // Other deductions come off non-savings income first, then savings interest, then dividends.
+  const beforeDeductions = Math.max(0, pay(a) + a.selfEmployment + a.pension + property - a.pensionContributions);
+  const nonSavings = Math.max(0, beforeDeductions - deductions);
+  let deductionsLeft = Math.max(0, deductions - beforeDeductions);
+  const savings = Math.max(0, (a.savingsInterest ?? 0) - deductionsLeft);
+  deductionsLeft = Math.max(0, deductionsLeft - (a.savingsInterest ?? 0));
+  const dividends = Math.max(0, (a.dividends ?? 0) - deductionsLeft);
   const adjustedNetIncome = nonSavings + savings + dividends;
   const allowanceLost = Math.min(it.personalAllowance, it.taperRate * Math.max(0, adjustedNetIncome - it.taperThreshold));
-  const personalAllowance = it.personalAllowance - allowanceLost;
+  const personalAllowance = Math.max(0, it.personalAllowance - allowanceLost - allowanceGiven);
 
   // The personal allowance is used against non-savings income first, then savings, then dividends.
   let allowanceLeft = personalAllowance;
@@ -152,8 +158,10 @@ function adultTax(a: Adult, h: Household, r: RuleSet): AdultResult {
     working:
       `Income ${gbp(totalIncome)}` +
       (a.pensionContributions ? ` less pension contributions ${gbp(a.pensionContributions)}` : "") +
+      (deductions ? ` less other deductions ${gbp(deductions)}` : "") +
       ` less personal allowance ${gbp(personalAllowance)}` +
       (allowanceLost ? ` (cut by ${gbp(allowanceLost)} because income is over ${gbp(it.taperThreshold)})` : "") +
+      (allowanceGiven ? ` (after transferring ${gbp(allowanceGiven)} to their partner as Marriage Allowance)` : "") +
       ` leaves ${gbp(taxableIncome)} taxable. ${pieces.join("; ")}.`,
   });
 
@@ -373,8 +381,46 @@ function applyBenefitCap(
   return { cap, benefits, reduction, working };
 }
 
+/**
+ * Marriage Allowance (Income Tax Act 2007 ss55A to 55E). A partner with income below the personal allowance can
+ * transfer part of it to a partner who pays no more than the basic rate (no more than the intermediate rate in
+ * Scotland). The receiving partner's tax falls by the amount transferred at the basic rate (taken as the starter rate
+ * in Scotland). Claimed only when it leaves the couple better off.
+ */
+function marriageAllowance(h: Household, r: RuleSet, adults: AdultResult[]): AdultResult[] {
+  if (h.adults.length !== 2 || h.claimsMarriageAllowance === false) return adults;
+  const it = r.incomeTax;
+  const bands = h.region === "scotland" ? it.bands.scotland : h.region === "wales" ? it.bands.wales : it.bands.ruk;
+  const higherFrom = bands.find((b) => b.rate >= 0.4)?.threshold ?? Infinity;
+  const reliefRate = bands[0]!.rate;
+  let best = adults;
+  let bestGain = 0;
+  for (const i of [0, 1]) {
+    const from = adults[i]!;
+    const to = adults[1 - i]!;
+    if (from.adjustedNetIncome >= it.personalAllowance || to.incomeTax <= 0 || to.taxableIncome > higherFrom) continue;
+    const fromAfter = adultTax(h.adults[i]!, h, r, it.marriageAllowanceTransfer);
+    const relief = Math.min(reliefRate * it.marriageAllowanceTransfer, to.incomeTax);
+    const gain = relief - (fromAfter.incomeTax - from.incomeTax);
+    if (gain <= bestGain) continue;
+    bestGain = gain;
+    const toAfter: AdultResult = {
+      ...to,
+      incomeTax: to.incomeTax - relief,
+      nonSavingsTax: Math.max(0, to.nonSavingsTax - relief),
+      lines: [...to.lines, {
+        label: "Marriage Allowance",
+        amount: -relief,
+        working: `Partner transfers ${gbp(it.marriageAllowanceTransfer)} of personal allowance; tax cut by ${pct(reliefRate)} of it, up to the tax due.`,
+      }],
+    };
+    best = i === 0 ? [fromAfter, toAfter] : [toAfter, fromAfter];
+  }
+  return best;
+}
+
 export function calculate(h: Household, r: RuleSet): Result {
-  const adults = h.adults.map((a) => adultTax(a, h, r));
+  const adults = marriageAllowance(h, r, h.adults.map((a) => adultTax(a, h, r)));
   const cb = childBenefit(h, r);
   const charge = childBenefitCharge(cb.amount, adults, r);
   const uc = universalCredit(h, adults, cb.amount, r);

@@ -2,6 +2,9 @@
   "_about": "Test households run through both our engine and PolicyEngine UK. Money is pounds a year unless the name says monthly. Fields left out take the engine's defaults (adult aged 35, England, nothing else).",
   "households": [
     { "id": "single-0", "about": "Single, 30, not working, no rent", "adults": [{ "age": 30 }] },
+    { "id": "ma-couple-40k-8k", "about": "Married couple, £40,000 and £8,000 pay: Marriage Allowance", "adults": [{ "employment": 40000 }, { "employment": 8000 }] },
+    { "id": "ma-couple-scot-30k", "about": "Married couple in Scotland, £30,000 pay and no income: Marriage Allowance", "region": "scotland", "adults": [{ "employment": 30000 }, {}] },
+    { "id": "ma-couple-12k", "about": "Married couple, £40,000 and £12,000 pay: transferring still helps", "adults": [{ "employment": 40000 }, { "employment": 12000 }] },
     { "id": "single-8k", "about": "Single, £8,000 pay", "adults": [{ "employment": 8000 }] },
     { "id": "single-12570", "about": "Single, pay exactly at the personal allowance", "adults": [{ "employment": 12570 }] },
     { "id": "single-20k", "about": "Single, £20,000 pay", "adults": [{ "employment": 20000 }] },

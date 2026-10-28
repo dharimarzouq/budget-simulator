@@ -19,6 +19,9 @@ export interface Adult {
   dividends: number;
   /** Employee pension contributions under a net pay arrangement: no income tax, but still National Insurance. */
   pensionContributions: number;
+  /** Other deductions from income before tax: trading and property losses, qualifying interest, and similar
+   * reliefs (HMRC's "other interest, charges and deductions"). */
+  otherDeductions?: number;
   /** Universal Credit health element: none, the new-claim rate, or the protected rate. */
   health: "none" | "lcwra" | "lcwra_protected";
   /** Cares for someone at least 35 hours a week. */
@@ -42,6 +45,8 @@ export interface Household {
   /** Whether the household claims the benefits it's entitled to. Defaults to yes. */
   claimsUniversalCredit?: boolean;
   claimsChildBenefit?: boolean;
+  /** Whether a couple claims Marriage Allowance when it would help (only married couples and civil partners can). */
+  claimsMarriageAllowance?: boolean;
 }
 
 export function adult(overrides: Partial<Adult> = {}): Adult {

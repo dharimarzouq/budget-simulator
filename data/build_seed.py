@@ -10,6 +10,7 @@ reported in POPULATION.md. Money is 2026-27 pounds.
 """
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -22,7 +23,7 @@ BUILD = HERE / "build"
 
 N_HOUSEHOLDS = 30_000
 MIN_PER_CELL = 40
-SEED = 2026
+SEED = int(os.environ.get("POPULATION_SEED", 2026))  # set POPULATION_SEED to test how much results depend on the draws
 
 # Uprating to 2026-27, from the OBR March 2026 EFO detailed forecast tables (economy).
 EARNINGS_2024_25_TO_2026_27 = 169.0 / 156.623  # average weekly earnings index, table 1.6
@@ -66,6 +67,10 @@ ASSUMPTIONS = {
     "outside_start_total": 2_500_000,  # starting guess for how many people; calibration can scale it up to 10x or down
     "outside_pay_median": 16_000,  # lowered from £24,000: they're mostly part-year workers, and at £24,000 the population's total pay overshot the national accounts
     "outside_pay_sigma": 0.6,
+    # Extra households with a very high earner, in each of HMRC's ranges from £200,000 (see top_income_households).
+    "top_seeds_per_range": 150,
+    "top_start_share": 0.5,  # they start out standing for half of HMRC's count in their range
+    "top_mix_concentration": 3.0,  # how closely each person's mix of income follows the range's average (higher = closer)
     "share_employees_second_job": 0.045,  # ONS: about 1.29m people (3.7% of the employed) had a second job in 2026; 6% gave 1.7m after calibration
     "second_job_median": 5_000,
     "second_job_sigma": 0.9,
@@ -96,6 +101,7 @@ ASSUMPTIONS = {
     # Property, savings interest and dividends: who has each, and how much on average, follow HMRC's Table 3.7
     # by income band. These are the spreads around those averages.
     "pension_contribution_sigma": 0.8,  # spread of pension contributions around HMRC's band average
+    "other_deductions_sigma": 1.2,  # spread of other deductions (losses and the like vary a lot) around HMRC's band average
     "property_sigma": 0.8,
     "interest_sigma": 2.2,  # widened from 1.5: tax on savings came out 39% under HMRC's, so interest is more concentrated
     "dividends_sigma": 1.5,  # narrowed from 1.8: tax on dividends came out 13% over
@@ -103,6 +109,9 @@ ASSUMPTIONS = {
     "share_large_households_two_extra": 0.4,  # households of 3+ adults with 4+ adults
     "share_extra_adults_older": 0.05,  # other extra adults who are older relatives (grandparents are set from the FRS)
     "uc_take_up": 0.85,
+    # Couples who'd claim Marriage Allowance if it helped: about 78% of couples are married or in a civil partnership
+    # (ONS families and households), times a guessed take-up of 65%. Checked against HMRC's £590m cost.
+    "share_couples_claiming_marriage_allowance": 0.5,
     # Child Benefit. HMRC counts families who claimed and then opted out of payment; many higher earners never
     # claimed at all, and they're in neither HMRC count. HBAI's 14.7m children against 11.7m paid and 1.0m opted
     # out leaves about 2m children in families not claiming. Calibration balances these against the opt-out count,
@@ -281,6 +290,10 @@ class Builder:
             people = row.net_pay_people_k + row.relief_at_source_people_k
             amount = row.net_pay_gbp_m + row.relief_at_source_gbp_m
             self.pension_bands.append((float(lo) * EARNINGS_2023_24_TO_2026_27, min(0.95, people / taxpayers), amount / people * 1000 * EARNINGS_2023_24_TO_2026_27))
+        # Same table: other interest, charges and deductions (losses, qualifying interest and similar).
+        self.deduction_bands = [(float(lo) * EARNINGS_2023_24_TO_2026_27, pc.at[lo, "other_deductions_people_k"] / spi.at[lo, "taxpayers_k"],
+                                 pc.at[lo, "other_deductions_gbp_m"] / pc.at[lo, "other_deductions_people_k"] * 1000 * EARNINGS_2023_24_TO_2026_27)
+                                for lo in spi.index]
 
     def pension_contribution(self, earnings: float, total: float) -> float:
         """Pension contributions deducted before tax, for someone in work, following HMRC's figures for their band."""
@@ -294,6 +307,19 @@ class Builder:
             return 0.0
         sg = A["pension_contribution_sigma"]
         return round(min(0.4 * earnings, mean * float(np.exp(sg * self.rng.standard_normal() - sg * sg / 2))), 2)
+
+    def other_deductions(self, total: float) -> float:
+        """Other deductions before tax (losses, qualifying interest), following HMRC's figures for the income band."""
+        if total < self.deduction_bands[0][0]:
+            return 0.0
+        share, mean = self.deduction_bands[0][1:]
+        for lo, s, m in self.deduction_bands:
+            if total >= lo:
+                share, mean = s, m
+        if self.rng.random() >= share:
+            return 0.0
+        sg = A["other_deductions_sigma"]
+        return round(min(0.5 * total, mean * float(np.exp(sg * self.rng.standard_normal() - sg * sg / 2))), 2)
 
     def other_income(self, base: float) -> dict:
         """Property, interest and dividends for one adult, drawn from HMRC's figures for their income band."""
@@ -517,6 +543,7 @@ class Builder:
                 earnings = a["employment"] + a["secondJob"] + a["selfEmployment"]
                 total = earnings + a["pension"] + a["propertyIncome"] + a["savingsInterest"] + a["dividends"]
                 a["pensionContributions"] = self.pension_contribution(earnings, total)
+                a["otherDeductions"] = self.other_deductions(total)
             u["region"] = engine_region(region)
             u["rentMonthly"] = self.rent_month(region, tenure) if i == 0 else 0.0
             u["savings"] = self.savings_amount(kids_label) if i == 0 else 0.0
@@ -527,13 +554,19 @@ class Builder:
                 if under5 and working and r.random() < A["share_under5_with_childcare"] else 0.0
             )
             u["claimsUniversalCredit"] = bool(r.random() < A["uc_take_up"])
-            top = max(a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"] for a in u["adults"])
-            band = "over_80k" if top > 80_000 else "60k_80k" if top > 60_000 else None
-            opted, never = (A[f"cb_opted_out_{band}"], A[f"cb_never_claimed_{band}"]) if band else (0.0, A["cb_never_claimed_other"])
-            x = r.random()
-            u["childBenefitStatus"] = "opted_out" if x < opted else "never_claimed" if x < opted + never else "claims"
-            u["claimsChildBenefit"] = u["childBenefitStatus"] == "claims"
+            u["claimsMarriageAllowance"] = bool(r.random() < A["share_couples_claiming_marriage_allowance"])
+            self.child_benefit_status(u, r)
         return comp, units
+
+    @staticmethod
+    def child_benefit_status(u: dict, r: np.random.Generator) -> None:
+        """Claiming, opted out or never claimed, by the higher earner's income (see the assumptions)."""
+        top = max(a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"] for a in u["adults"])
+        band = "over_80k" if top > 80_000 else "60k_80k" if top > 60_000 else None
+        opted, never = (A[f"cb_opted_out_{band}"], A[f"cb_never_claimed_{band}"]) if band else (0.0, A["cb_never_claimed_other"])
+        x = r.random()
+        u["childBenefitStatus"] = "opted_out" if x < opted else "never_claimed" if x < opted + never else "claims"
+        u["claimsChildBenefit"] = u["childBenefitStatus"] == "claims"
 
     def build(self) -> list[dict]:
         total = self.cells["households"].sum()
@@ -552,6 +585,68 @@ class Builder:
                     })
                 hh_id += 1
         out += self.outside_households(hh_id)
+        out += self.top_income_households(hh_id + A["outside_seeds"])
+        return out
+
+    def top_income_households(self, first_id: int) -> list[dict]:
+        """Extra households with one very high earner in each of HMRC's top income ranges, so the top of the
+        distribution doesn't depend on a handful of lucky draws. Their own random numbers, so adding them changes
+        nothing else. Each range's starting weight is a share of HMRC's 2026-27 count; calibration sets the rest."""
+        r = np.random.default_rng(SEED + 1)
+        saved_rng, self.rng = self.rng, r
+        # Region: HMRC's count of taxpayers on £200,000 or more in each region (SPI Table 3.11).
+        spi = pd.read_csv(TARGETS / "hmrc_income_by_region_band_2023_24.csv")
+        top = spi[(spi["band_lower"] == "200000") & ~spi["region"].isin(["United Kingdom", "England"])]
+        frs_name = {region_name(x).lower(): region_name(x) for x in self.cells["region"]}
+        frs_name["east of england"] = frs_name.get("east", "East")
+        regions = [frs_name[x.lower()] for x in top["region"]]
+        region_p = (top["taxpayers_k"] / top["taxpayers_k"].sum()).to_numpy()
+        # Mix of income in each range (SPI Tables 3.11 and 3.7, UK): shares of pay, profits, pensions, property, interest, dividends.
+        uk = spi[spi["region"] == "United Kingdom"].set_index("band_lower")
+        oth = pd.read_csv(TARGETS / "hmrc_property_interest_dividends_by_band_2023_24.csv").set_index("band_lower")
+        def mix(*bands: str) -> np.ndarray:
+            v = np.array([sum(float(uk.at[b, c]) for b in bands) for c in ["employment_gbp_m", "self_employment_gbp_m", "pension_gbp_m"]]
+                         + [sum(float(oth.at[b, c]) for b in bands) for c in ["property_gbp_m", "interest_gbp_m", "dividends_gbp_m"]])
+            v[3] += sum(float(oth.at[b, "other_gbp_m"]) for b in bands)
+            return v / v.sum()
+        r25 = pd.read_csv(TARGETS / "hmrc_income_tax_by_range_2026_27.csv").set_index("band_lower")
+        ranges = [  # 2026-27 range, upper edge, SPI 2023-24 bands for the mix, count in HMRC's 2026-27 projection
+            ("200000", 500_000, ("200000", "300000")), ("500000", 1_000_000, ("500000",)),
+            ("1000000", 2_000_000, ("1000000",)), ("2000000", None, ("1000000",)),
+        ]
+        out, k = [], 0
+        for lo, hi, spi_bands in ranges:
+            shares = mix(*spi_bands)
+            count = float(r25.at[lo, "taxpayers_k"]) * 1e3
+            mean = float(r25.at[lo, "total_income_gbp_m"]) * 1e6 / count
+            for _ in range(A["top_seeds_per_range"]):
+                region = regions[r.choice(len(regions), p=region_p)]
+                cells = self.cells[(self.cells["region"].map(region_name) == region) & self.cells["tenure"].isin(["Owned outright", "Buying with a mortgage"])]
+                cell = cells.iloc[r.choice(len(cells), p=(cells["households"] / cells["households"].sum()).to_numpy())]
+                self.weight = A["top_start_share"] * count / A["top_seeds_per_range"]
+                comp, units = self.benefit_units(region, cell["kids"], cell["tenure"])
+                while units[0]["adults"][0]["age"] >= 66:  # a working-age high earner; HMRC's age targets rebalance from there
+                    comp, units = self.benefit_units(region, cell["kids"], cell["tenure"])
+                # Income: spread evenly (in logs) across the range; above £2m, a Pareto tail matching HMRC's mean.
+                if hi:
+                    total = float(np.exp(r.uniform(np.log(float(lo)), np.log(hi))))
+                else:
+                    alpha = mean / (mean - float(lo))
+                    total = float(lo) * (1 - r.random()) ** (-1 / alpha)
+                parts = total * r.dirichlet(shares * A["top_mix_concentration"] + 1e-3)
+                a = units[0]["adults"][0]
+                a.update({"employment": round(parts[0], 2), "secondJob": 0.0, "selfEmployment": round(parts[1], 2), "pension": round(parts[2], 2),
+                          "propertyIncome": round(parts[3], 2), "savingsInterest": round(parts[4], 2), "dividends": round(parts[5], 2),
+                          "health": "none", "carer": False})
+                a["pensionContributions"] = self.pension_contribution(parts[0] + parts[1], total)
+                a["otherDeductions"] = self.other_deductions(total)
+                self.child_benefit_status(units[0], r)
+                hh = first_id + k
+                for j, u in enumerate(units):
+                    out.append({"id": f"{hh}-{j}", "household": hh, "unit": j, "weight": self.weight,
+                                "regionDetail": region, "tenure": cell["tenure"], "composition": comp, "data": u, "top_seed": True})
+                k += 1
+        self.rng = saved_rng
         return out
 
     def outside_households(self, first_id: int) -> list[dict]:
@@ -566,7 +661,9 @@ class Builder:
             a = {"age": int(r.integers(18, 65)), "employment": round(self.lognormal(A["outside_pay_median"], A["outside_pay_sigma"]) * self.region_pay[region.lower()], 2),
                  "secondJob": 0.0, "selfEmployment": 0.0, "pension": 0.0, "pensionContributions": 0.0, "health": "none", "carer": False}
             a.update(self.other_income(a["employment"]))
-            a["pensionContributions"] = self.pension_contribution(a["employment"], a["employment"] + a["propertyIncome"] + a["savingsInterest"] + a["dividends"])
+            total = a["employment"] + a["propertyIncome"] + a["savingsInterest"] + a["dividends"]
+            a["pensionContributions"] = self.pension_contribution(a["employment"], total)
+            a["otherDeductions"] = self.other_deductions(total)
             data = {"region": engine_region(region), "adults": [a], "children": [], "rentMonthly": 0.0, "childcareMonthly": 0.0,
                     "savings": 0.0, "claimsUniversalCredit": False, "claimsChildBenefit": False}
             out.append({"id": f"{first_id + k}-0", "household": first_id + k, "unit": 0, "weight": A["outside_start_total"] / n,

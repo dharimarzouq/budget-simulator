@@ -9,6 +9,7 @@ export interface RuleSet {
     personalAllowance: number;
     taperThreshold: number;
     taperRate: number;
+    marriageAllowanceTransfer: number;
     bands: { ruk: Band[]; wales: Band[]; scotland: Band[] };
     savingsStartingBand: number;
     savingsAllowance: { basic: number; higher: number; additional: number };
@@ -91,6 +92,7 @@ export function ruleSet(year: string): RuleSet {
       personalAllowance: n("income_tax", "personal_allowance"),
       taperThreshold: n("income_tax", "personal_allowance_taper_threshold"),
       taperRate: n("income_tax", "personal_allowance_taper_rate"),
+      marriageAllowanceTransfer: n("income_tax", "marriage_allowance_transfer"),
       bands: { ruk: b("income_tax", "bands_ruk"), wales: b("income_tax", "bands_wales"), scotland: b("income_tax", "bands_scotland") },
       savingsStartingBand: n("income_tax", "savings_starting_rate_band"),
       savingsAllowance: {

@@ -21,12 +21,16 @@ try {
     "id", "gross", "employment", "self_employment", "pension", "income_tax", "employee_ni", "self_employed_ni", "employer_ni",
     "child_benefit", "child_benefit_charge", "uc_award_month", "uc_maximum_month", "benefit_cap_month", "net",
     "taxpayers", "top_income", "non_savings_tax", "savings_tax", "dividend_tax", "adult0_tax", "adult1_tax",
+    "marriage_allowance",
   ];
   const lines = [columns.join(",")];
   for (const u of units) {
     const h = household(u.data);
     const res = calculate(h, r);
     const sum = (f) => res.adults.reduce((s, a) => s + f(a), 0);
+    // Tax saved by Marriage Allowance: the couple's tax without it, less their tax with it.
+    const claimsMA = h.adults.length === 2 && h.claimsMarriageAllowance !== false;
+    const withoutMA = claimsMA ? calculate({ ...h, claimsMarriageAllowance: false }, r) : res;
     const row = [
       u.id,
       res.grossIncome,
@@ -50,6 +54,7 @@ try {
       sum((a) => a.dividendTax),
       res.adults[0]?.incomeTax ?? 0,
       res.adults[1]?.incomeTax ?? 0,
+      withoutMA.adults.reduce((s, a) => s + a.incomeTax, 0) - sum((a) => a.incomeTax),
     ];
     lines.push(row.map((v) => (typeof v === "number" ? Math.round(v * 100) / 100 : v)).join(","));
   }

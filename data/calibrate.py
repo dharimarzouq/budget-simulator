@@ -74,6 +74,7 @@ def load():
         "employment": a["employment"] + a.get("secondJob", 0.0), "self_employment": a["selfEmployment"], "pension": a["pension"],
         "property": a.get("propertyIncome", 0.0), "interest": a.get("savingsInterest", 0.0), "dividends": a.get("dividends", 0.0),
         "pension_contributions": a.get("pensionContributions", 0.0),
+        "other_deductions": a.get("otherDeductions", 0.0),
     } for u in seed["units"] for i, a in enumerate(u["data"]["adults"])])
     adults["other"] = adults[["property", "interest", "dividends"]].sum(axis=1)
     # Total income as HMRC defines it for its bands, including property, savings and dividend income.
@@ -141,6 +142,9 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         targets.append(Target("HMRC pension contributions by income band", f"{label} pension contributions",
                               (pcr.net_pay_gbp_m + pcr.relief_at_source_gbp_m) * 1e6 * EARNINGS_2023_24,
                               household_row(adults, inb * adults["pension_contributions"].to_numpy(), n), 1, 1e9))
+        targets.append(Target("HMRC other deductions by income band", f"{label} other deductions",
+                              pcr.other_deductions_gbp_m * 1e6 * EARNINGS_2023_24,
+                              household_row(adults, inb * adults["other_deductions"].to_numpy(), n), 1, 2e8))
         # Table 3.7: property (with HMRC's small "other income"), interest and dividends: amounts and people.
         o = other_by_band.loc[r.band_lower]
         g2 = "HMRC property, interest and dividends by income band"

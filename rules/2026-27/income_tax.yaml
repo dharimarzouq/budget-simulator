@@ -5,7 +5,8 @@ limits:
   - Income is taxed in the legal order - non-savings income (earnings, profits, pensions, property) first, then savings interest, then dividends. Savings and dividends use UK rates and bands everywhere, including Scotland.
   - Property income is taxed as non-savings income in 2026-27. Separate property rates (22/42/47%) start in April 2027.
   - For Scottish taxpayers, the personal savings allowance is worked out on UK bands. That's a simplification to check.
-  - Ignores the marriage allowance, blind person's allowance, finance cost relief for landlords and reliefs other than those stated.
+  - Marriage Allowance treats every couple as married or in a civil partnership; in the population, who claims it (which leaves out cohabiting couples) is part of the take-up.
+  - Ignores the blind person's allowance, finance cost relief for landlords and reliefs other than those stated.
 parameters:
   personal_allowance:
     label: Personal allowance
@@ -28,6 +29,14 @@ parameters:
     value: 0.5
     source: hmrc-employer-rates-2026-27
     legal: Income Tax Act 2007 s35(2) (reduced by half the excess)
+
+  marriage_allowance_transfer:
+    label: Marriage Allowance, personal allowance a spouse or civil partner can transfer
+    unit: gbp_per_year
+    value: 1260
+    source: govuk-marriage-allowance
+    legal: Income Tax Act 2007 ss55A to 55E (10% of the personal allowance, rounded up to the next £10)
+    note: The partner who transfers it must have income below the personal allowance; the partner who receives it must pay tax at no more than the basic rate (the intermediate rate in Scotland). Their tax falls by the transfer at the basic rate, up to £252 a year. For Scottish taxpayers the engine uses the starter rate (19%); that reading of the rules is still to be confirmed.
 
   bands_ruk:
     label: Income tax bands, England and Northern Ireland

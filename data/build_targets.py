@@ -87,6 +87,8 @@ def spi_pension_contributions() -> pd.DataFrame:
         "net_pay_gbp_m": t[col("Contributions to Net Pay", "Amount")].to_numpy(),
         "relief_at_source_people_k": t[col("Contributions to Relief at Source", "Number")].to_numpy(),
         "relief_at_source_gbp_m": t[col("Contributions to Relief at Source", "Amount")].to_numpy(),
+        "other_deductions_people_k": t[col("All other interest", "Number")].to_numpy(),
+        "other_deductions_gbp_m": t[col("All other interest", "Amount")].to_numpy(),
     })
 
 

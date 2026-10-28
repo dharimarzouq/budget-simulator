@@ -1,4 +1,9 @@
 {
   "_about": "Differences from PolicyEngine UK that we understand and accept, by household id (or * for all) and line. Each needs a reason.",
-  "differences": {}
+  "differences": {
+    "ma-couple-scot-30k": {
+      "income tax": "Marriage Allowance for a Scottish taxpayer. The law gives a fixed cut in tax (Income Tax Act 2007 s55B); we take it at the Scottish starter rate, 19% × £1,260 = £239.40, a reading still to be confirmed. PolicyEngine instead adds £1,260 to the partner's allowance, which saves tax at their top rate (here 21% on part), £256.74. Outside Scotland the two methods agree for basic-rate taxpayers.",
+      "net income": "Follows from the income tax difference."
+    }
+  }
 }

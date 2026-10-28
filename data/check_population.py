@@ -120,6 +120,7 @@ def main(population: str, results: str) -> None:
         ("Income tax on savings", (w * d["savings_tax"]).sum() / 1e9, src("savings"), "£bn", "HMRC liabilities 2026-27, table 2.6", ""),
         ("Income tax on dividends", (w * d["dividend_tax"]).sum() / 1e9, src("dividends"), "£bn", "HMRC liabilities 2026-27, table 2.6", ""),
         ("Income taxpayers 2026-27", (w * d["taxpayers"]).sum() / 1e6, liab("all", "taxpayers_k") / 1e3, "m", "HMRC liabilities 2026-27", ""),
+        ("Marriage Allowance", (w * d["marriage_allowance"]).sum() / 1e9, 0.59, "£bn", "HMRC tax relief statistics 2025-26", "cost: tax saved by couples who claim"),
         ("Employee NICs", (w * d["employee_ni"]).sum() / 1e9, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employee"), "£bn", "OBR March 2026", ""),
         ("Employer NICs", (w * d["employer_ni"]).sum() / 1e9 - lump_sums, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employer"), "£bn", "OBR March 2026",
          f"less £{lump_sums:.1f}bn Employment Allowance and apprentice relief (HMRC 2025-26 costs, not per household)"),

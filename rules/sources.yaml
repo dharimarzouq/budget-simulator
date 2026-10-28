@@ -104,6 +104,12 @@ hmrc-child-benefit-2025:
   published: 2026-04-23
   accessed: 2026-10-27
 
+govuk-marriage-allowance:
+  title: "Marriage Allowance"
+  publisher: GOV.UK
+  url: https://www.gov.uk/marriage-allowance
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-28
 ons-ashe-2026-provisional:
   title: "Annual Survey of Hours and Earnings 2026 (provisional): Age group, ASHE Table 6"
   publisher: Office for National Statistics
