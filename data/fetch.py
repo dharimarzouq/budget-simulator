@@ -23,6 +23,7 @@ FILES = {
     "hmrc_ready_reckoner_2025_06.ods": "https://assets.publishing.service.gov.uk/media/68552862b46781eacfd71d71/June_2025_TRR_ODS__1_.ods",
     "hmrc_income_tax_liabilities_2026_07.ods": "https://assets.publishing.service.gov.uk/media/6a5a49b47eb057103bd946a4/Collated_Income_Tax_liabilities_statistics_tables_-_2.1_to_2.6.ods",
     "hmrc_child_benefit_aug_2025_main_tables.ods": "https://assets.publishing.service.gov.uk/media/6a8d696901bbff0bf8f97903/Child_Benefit_August_2025_Main_Tables.ods",
+    "ons_ashe_table6_2026_provisional.zip": "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2026provisional/ashetable62026provisional.zip",
 }
 
 

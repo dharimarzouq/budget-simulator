@@ -104,6 +104,12 @@ hmrc-child-benefit-2025:
   published: 2026-04-23
   accessed: 2026-10-27
 
+ons-ashe-2026-provisional:
+  title: "Annual Survey of Hours and Earnings 2026 (provisional): Age group, ASHE Table 6"
+  publisher: Office for National Statistics
+  url: https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-28
 ons-paye-rti-2026-10:
   title: "Earnings and employment from Pay As You Earn Real Time Information, UK: October 2026"
   publisher: Office for National Statistics and HM Revenue and Customs

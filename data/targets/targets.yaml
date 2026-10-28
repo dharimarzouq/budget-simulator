@@ -147,6 +147,15 @@ hmrc_income_tax_by_source_2026_27.csv:
   year: 2026-27
   units: £ million
   use: check (tax on earnings and other non-savings income, savings, dividends)
+ons_ashe_annual_pay_by_age_2026.csv:
+  source: ons-ashe-2026-provisional
+  table: "6.7a: Annual pay - Gross, by age group (full-time and part-time employee jobs)"
+  year: tax year to April 2026 (2025-26), provisional
+  population: employee jobs on adult rates, in the same job for more than a year
+  units: £ a year; jobs in thousands (ONS says the job counts are indicative only)
+  use: seed (pay for full-time and part-time employees by age, drawn from the percentiles and mean, uprated one year with OBR earnings growth)
+  notes:
+    - Job-based, so someone with two jobs appears twice. Leaves out people who changed jobs during the year.
 hmrc_income_by_age_2023_24.csv:
   source: hmrc-spi-2023-24
   table: "3.2: Distribution of median and mean income and tax, by age range and sex"

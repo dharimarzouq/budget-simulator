@@ -169,7 +169,12 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     # more people than that are paid at some point in a year, so it isn't a like-for-like target.)
     inside = (~adults["outside"]).to_numpy()
     targets.append(Target("OBR employees", "employees 2026-27", 29.825e6,
-                          household_row(adults, ((adults["employment"] > 0).to_numpy() & inside).astype(float), n), 1, 1e6))
+                          household_row(adults, ((adults["employment"] > 0).to_numpy() & inside).astype(float), n), 2, 1e6))
+    # OBR: wages and salaries in 2026-27 (EFO March 2026, table 1.6), from the national accounts. In 2023-24 they
+    # (£1,108bn) were close to HMRC's taxable pay (£1,080bn for taxpayers, plus pay below the personal allowance),
+    # so they stand in for total taxable pay, everyone included.
+    targets.append(Target("OBR wages and salaries", "all pay 2026-27", 1298.5e9,
+                          household_row(adults, adults["employment"].to_numpy(), n), 2, 1e10))
     # FRS 2024-25: adults by age band (the survey's adults include some 16-17 year-olds; ours start at 18).
     fa = pd.read_csv(T / "frs_adults_age_employment_2024-25.csv")
     fa.columns = ["age", "status", "adults"]
@@ -186,6 +191,14 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
                           household_row(adults, 0.08 * below(12_570).to_numpy() * under_spa, n), 1, 1e9))
     targets.append(Target("HMRC NICs threshold costs", "secondary threshold (employers)", 24.4e9,
                           household_row(adults, 0.15 * below(5_000).to_numpy(), n), 1, 1e9))
+    # HMRC's ready reckoner (June 2025), 2026-27: 1 percentage point on the employer rate raises £11,150m, so the pay
+    # it applies to is £1,115bn (above the secondary threshold; above the upper secondary threshold for under-21s).
+    # The employee main rate's figure (£5,350m) isn't used: it implies less employee NICs than the OBR forecasts
+    # (about £47bn against £51.5bn), so it can't be a plain static base.
+    jobs = [adults["main_job"].to_numpy(), adults["second_job"].to_numpy()]
+    st = np.where(adults["age"].to_numpy() < 21, 50_270, 5_000)
+    employer_base = sum(np.maximum(j - st, 0) for j in jobs)
+    targets.append(Target("HMRC NICs pay base (ready reckoner)", "employer rate base", 1115e9, household_row(adults, employer_base, n), 1, 1e10))
     # SPI 2023-24 by region (Table 3.11) and by age (Table 3.2). Used for their shares only: each is scaled so it adds
     # up to HMRC's 2026-27 projection of all taxpayers and their total income (Table 2.5), which already allows for
     # frozen thresholds bringing more people into tax.

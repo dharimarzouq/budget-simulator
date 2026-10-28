@@ -102,6 +102,32 @@ def spi_by_age() -> pd.DataFrame:
     })
 
 
+def ashe_pay_by_age() -> pd.DataFrame:
+    """ONS ASHE 2026 (provisional), Table 6.7a: annual gross pay of full-time and part-time employee jobs by age group:
+    number of jobs, median, mean and percentiles. Annual pay is for the year to April 2026, for employees in the same
+    job for over a year."""
+    import zipfile
+    with zipfile.ZipFile(RAW / "ons_ashe_table6_2026_provisional.zip") as z:
+        name = next(n for n in z.namelist() if "6.7a" in n)
+        with z.open(name) as f:
+            book = pd.read_excel(f, sheet_name=["Full-Time", "Part-Time"], header=None)
+    rows = []
+    for status, raw in book.items():
+        header = raw.index[raw[0] == "Description"][0]
+        pcts = {int(float(raw.at[header, c])): c for c in raw.columns[7:17] if pd.notna(raw.at[header, c])}
+        for i in range(header + 1, len(raw)):
+            label = raw.at[i, 0]
+            if not isinstance(label, str) or label == "Not Classified" or label.startswith(("a ", "b ", "c ", "KEY", "The ", "Source")):
+                continue
+            num = lambda v: None if isinstance(v, str) else float(v)
+            row = {"status": status.lower(), "age": label.strip().rstrip("b"), "jobs_k": num(raw.at[i, 2]),
+                   "median": num(raw.at[i, 3]), "mean": num(raw.at[i, 5])}
+            row.update({f"p{p}": num(raw.at[i, c]) for p, c in sorted(pcts.items())})
+            row["p50"] = row["median"]
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def t37_header() -> str:
     raw = pd.read_excel(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", engine="odf", sheet_name="Table_3_7", header=None)
     return raw.iloc[4, 0]
@@ -200,6 +226,9 @@ def main() -> None:
     pc = spi_pension_contributions()
     pc.to_csv(OUT / "hmrc_pension_contributions_by_band_2023_24.csv", index=False)
     print("Table 3.8:", pc[pc["band_lower"] == "all"].to_dict("records"))
+    ashe = ashe_pay_by_age()
+    ashe.to_csv(OUT / "ons_ashe_annual_pay_by_age_2026.csv", index=False)
+    print("ASHE 2026 Table 6.7a:", ashe[["status", "age", "jobs_k", "median", "mean", "p10", "p90"]].to_string(index=False))
     ages = spi_by_age()
     ages.to_csv(OUT / "hmrc_income_by_age_2023_24.csv", index=False)
     print("Table 3.2:", ages.to_string(index=False))

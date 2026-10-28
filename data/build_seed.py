@@ -27,6 +27,7 @@ SEED = 2026
 # Uprating to 2026-27, from the OBR March 2026 EFO detailed forecast tables (economy).
 EARNINGS_2024_25_TO_2026_27 = 169.0 / 156.623  # average weekly earnings index, table 1.6
 EARNINGS_2023_24_TO_2026_27 = 169.0 / 148.36
+EARNINGS_2025_26_TO_2026_27 = 169.0 / 163.804  # ASHE 2026's annual pay is for the year to April 2026
 # Interest and dividends don't grow with earnings. HMRC projects tax on savings up 48% from 2023-24 to 2026-27
 # (more interest, frozen allowances) and on dividends up 25% (mostly the April 2026 rate rise). These factors are
 # set so the population's tax on each comes out near HMRC's 2026-27 projections (Income Tax liabilities, Table 2.6).
@@ -40,16 +41,9 @@ OLD_STATE_PENSION = 184.90 * 52  # basic State Pension 2026-27, same source
 ASSUMPTIONS = {
     # Working-age adults' status (full- or part-time employee or self-employed, unemployed, sick, caring, student,
     # retired...) follows the FRS for their tenure and age band. Pay and profits within each status:
-    "ft_pay_median": 36_000,  # full-time employees, 2026-27. Below ASHE's median (about £39,000 in 2025): the FRS's full-time group includes younger and newer workers; set so NICs and the employee count both come out close
-    "ft_pay_sigma": 0.5,
-    # HMRC's medians by age are for taxpayers only, which leaves out low-paid young people and so flattens the rise
-    # with age. The age factors are raised to this power; set so taxpayers' income by age comes near HMRC's.
-    "age_pay_steepness": 1.5,
-    "ft_pay_top_tail_share": 0.06,  # full-time employees drawn from a Pareto tail instead
-    "ft_pay_top_tail_min": 80_000,
-    "ft_pay_top_tail_alpha": 1.6,
-    "pt_pay_median": 13_000,  # part-time employees (ASHE 2025 median about £13,000)
-    "pt_pay_sigma": 0.6,
+    # Full- and part-time employees' pay is drawn from ASHE 2026 by age group (see Builder.ashe_pay); the only guess
+    # is the shape below the 10th percentile, a straight line down from this fraction of it.
+    "ashe_bottom_fraction": 0.5,
     "pt_profit_median": 8_000,  # part-time self-employed
     # Side self-employment for employees and pensioners: HMRC counts more people with self-employment income in
     # each band than have it as their main job, with smaller profits each.
@@ -70,16 +64,18 @@ ASSUMPTIONS = {
     # in no household-based target; calibration sizes the group against HMRC's taxpayer counts.
     "outside_seeds": 2_000,
     "outside_start_total": 2_500_000,  # starting guess for how many people; calibration can scale it up to 10x or down
-    "outside_pay_median": 24_000,  # spread wide enough to reach HMRC's £20,000-£50,000 bands, where most of the gap is
+    "outside_pay_median": 16_000,  # lowered from £24,000: they're mostly part-year workers, and at £24,000 the population's total pay overshot the national accounts
     "outside_pay_sigma": 0.6,
-    "share_employees_second_job": 0.06,  # ONS: about 1.29m people (3.7% of the employed) had a second job in 2026
+    "share_employees_second_job": 0.045,  # ONS: about 1.29m people (3.7% of the employed) had a second job in 2026; 6% gave 1.7m after calibration
     "second_job_median": 5_000,
     "second_job_sigma": 0.9,
     "profit_median": 20_000,  # full-time self-employed; HMRC shows most self-employed pay tax (mean profit about £29,000)
     "profit_sigma": 1.0,
-    "profit_top_tail_share": 0.02,  # self-employed drawn from a Pareto tail, so very high profits exist
+    # Self-employed drawn from a Pareto tail, so very high profits exist. Heavier than before (2%, 1.5): HMRC's 11,000
+    # self-employed people with over £1m (£22bn of profits, mostly partners in large firms) were 95% short in the seed.
+    "profit_top_tail_share": 0.03,
     "profit_top_tail_min": 80_000,
-    "profit_top_tail_alpha": 1.5,
+    "profit_top_tail_alpha": 1.2,
     "share_pensioners_new_state_pension": 0.6,  # rest on the old basic pension
     "share_pensioners_working": 0.2,  # pensioners under 75 with a job; set so their NICs exemption comes near HMRC's £1.2bn
     "pensioner_pay_median": 13_000,  # lowered from £18,000 so their NICs exemption matches HMRC's £1.2bn cost
@@ -214,8 +210,23 @@ class Builder:
         ca = ca[ca.iloc[:, 0].astype(str).str.fullmatch(r"\d+")]
         self.child_ages = ca.iloc[:, 0].astype(int).to_numpy()
         self.child_age_p = (ca.iloc[:, 1] / ca.iloc[:, 1].sum()).to_numpy()
-        # How pay rises and falls with age: HMRC's median income of taxpayers by age (SPI Table 3.2), relative to
-        # the average across working ages, so the pay medians above keep their meaning.
+        # Employees' pay: ASHE 2026 annual pay by age group, full- and part-time (Table 6.7a), uprated one year.
+        # Between percentiles, pay is interpolated; above the 90th, a Pareto tail sized so the group's mean matches.
+        ashe = pd.read_csv(TARGETS / "ons_ashe_annual_pay_by_age_2026.csv").dropna(subset=["p10", "p90", "mean"])
+        ashe = ashe[ashe["age"] != "All employees"]
+        pcts = [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90]
+        self.ashe = {}
+        for r in ashe.itertuples():
+            vals = np.array([getattr(r, f"p{p}") for p in pcts]) * EARNINGS_2025_26_TO_2026_27
+            us = np.array([0.0] + [p / 100 for p in pcts])
+            qs = np.concatenate([[vals[0] * A["ashe_bottom_fraction"]], vals])
+            below_90 = float(np.sum((qs[1:] + qs[:-1]) / 2 * np.diff(us)))  # integral of pay over the bottom 90%
+            top_mean = (r.mean * EARNINGS_2025_26_TO_2026_27 - below_90) / 0.1
+            alpha = top_mean / (top_mean - vals[-1]) if top_mean > vals[-1] * 1.05 else 20.0
+            lo = int(re.findall(r"\d+", r.age)[0])
+            self.ashe[(r.status, lo)] = (us, qs, alpha)
+        # Self-employed profits by age: HMRC's median income of taxpayers by age (SPI Table 3.2), relative to the
+        # average across working ages.
         ag = pd.read_csv(TARGETS / "hmrc_income_by_age_2023_24.csv")
         ag = ag[ag["age_range"] != "Totals"]
         # The gap between mean and median shows how many very high earners each age has (few at 25, many at 50); the
@@ -308,13 +319,25 @@ class Builder:
         return float(np.exp(np.log(median) + sigma * self.rng.standard_normal()))
 
     def pay_factor(self, age: int, region: str) -> tuple[float, float]:
-        """Pay, and the chance of very high pay, relative to the UK average for someone of this age in this region
-        (HMRC SPI Tables 3.2 and 3.11)."""
+        """Profits, and the chance of very high profits, relative to the UK average for someone of this age in this
+        region (HMRC SPI Tables 3.2 and 3.11)."""
         f, t = self.age_pay[0][1:]
         for lo, m, s in self.age_pay:
             if age >= lo:
                 f, t = m, s
-        return f ** A["age_pay_steepness"] * self.region_pay[region.lower()], t * self.region_tail[region.lower()]
+        return f * self.region_pay[region.lower()], t * self.region_tail[region.lower()]
+
+    def ashe_pay(self, status: str, age: int, region: str) -> float:
+        """An employee's annual pay from ASHE's distribution for their age group, scaled for their region. Regions with
+        more very high earners (London) get a heavier top tail."""
+        key = max((k for k in self.ashe if k[0] == status and k[1] <= age), key=lambda k: k[1])
+        us, qs, alpha = self.ashe[key]
+        u = self.rng.random()
+        if u < 0.9:
+            pay = float(np.interp(u, us, qs))
+        else:
+            pay = float(qs[-1] * (1 - (u - 0.9) / 0.1) ** (-1 / max(1.3, alpha / self.region_tail[region.lower()] ** 0.5)))
+        return pay * self.region_pay[region.lower()]
 
     def working_age_adult(self, age: int, tenure: str, region: str, how: str = "fixed") -> dict:
         """A working-age adult whose work status follows the FRS for their tenure and age band."""
@@ -326,9 +349,9 @@ class Builder:
         health = lambda share: "lcwra_protected" if r.random() < A["share_health_protected"] else "lcwra" if r.random() < share else "none"
         f, tail = self.pay_factor(age, region)
         if status == "Full-time employee":
-            a["employment"] = round(self.draw("ft_pay", tail) * f, 2)
+            a["employment"] = round(self.ashe_pay("full-time", age, region), 2)
         elif status == "Part-time employee":
-            a["employment"] = round(self.lognormal(A["pt_pay_median"], A["pt_pay_sigma"]) * f, 2)
+            a["employment"] = round(self.ashe_pay("part-time", age, region), 2)
         elif status == "Full-time self-employed":
             a["selfEmployment"] = round(self.draw("profit", tail) * f, 2)
         elif status == "Part-time self-employed":
