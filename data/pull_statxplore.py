@@ -88,6 +88,9 @@ def main() -> None:
     bu_year = dict(sx.field_items(bu, bu_n, bu_f + "YEAR"))[year_label]
     fam = sx.cube(bu, {"households": bu_n}, [bu_f + "YEAR", bu_f + "BU_FAMILY", bu_f + "TENURE"], sx.only(bu_f + "YEAR", bu_year))
     tables[f"frs_benefit_units_family_tenure_{tag}.csv"] = fam.drop(columns=["Financial Year"])
+    # Families by number of children, for couples and lone parents (family size in the seed).
+    kids = sx.cube(bu, {"households": bu_n}, [bu_f + "YEAR", bu_f + "BUKIDS"], sx.only(bu_f + "YEAR", bu_year))
+    tables[f"frs_benefit_units_children_{tag}.csv"] = kids.drop(columns=["Financial Year"])
 
     # HBAI (admin-linked): equivalised net household income before housing costs, by type of person.
     # Held back from calibration; used only as a check on the whole income distribution.

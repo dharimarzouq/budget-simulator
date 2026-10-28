@@ -285,7 +285,7 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         targets.append(Target("HMRC taxpayers by age", f"{r.age_range} taxpayers", r.taxpayers_k * 1e3 * people_scale,
                               household_row(adults, inb.astype(float), n), 1, 200_000))
         targets.append(Target("HMRC taxpayers by age", f"{r.age_range} income", r.taxpayers_k * 1e3 * r.mean_income_gbp * income_scale,
-                              household_row(adults, inb * adults["total"].to_numpy(), n), 0.5, 1e10))
+                              household_row(adults, inb * adults["total"].to_numpy(), n), 1, 1e10))
 
     # --- DWP Universal Credit households, May 2026 (Great Britain) ---------------------------
     on_uc = (units["uc_award_month"] > 0) & (units["region"] != "northern ireland")

@@ -52,17 +52,17 @@ ASSUMPTIONS = {
     "side_profit_median": 4_000,
     "side_profit_sigma": 1.0,
     "pt_profit_sigma": 1.0,
-    "share_sick_health_element": 0.85,  # permanently sick or disabled: Universal Credit health element if they claim
+    "share_sick_health_element": 1.0,  # permanently sick or disabled: Universal Credit health element if they claim (raised from 0.85, see below)
     # Raised from 0.3 and 0.1, with other inactive added: single adults with the health element came out 20% under
     # DWP's count. Many on it describe themselves in surveys as unemployed or inactive rather than sick.
     "share_temp_sick_health_element": 0.5,
-    "share_unemployed_health_element": 0.3,
+    "share_unemployed_health_element": 0.5,
     "share_inactive_health_element": 0.3,
     "share_family_carer": 0.25,  # looking after family or home: caring for someone 35+ hours a week
     "share_inactive_carer": 0.15,
     "retired_early_pension_median": 12_000,  # retired under State Pension age: private pension
     "share_parent_carer_disabled_child": 0.6,  # parents of a disabled child, not in well-paid work, who get the carer element
-    "share_partner_carer": 0.5,  # partners of someone with the health element, not in well-paid work
+    "share_partner_carer": 0.7,  # partners of someone with the health element, not in well-paid work (raised from 0.5: couples without children with a carer came out 18% under DWP's count)
     # People HMRC counts as taxpayers but who aren't in private households (students in halls, armed forces in
     # barracks, people here or working for only part of the year, non-residents with UK income). Single adults,
     # in no household-based target; calibration sizes the group against HMRC's taxpayer counts.
