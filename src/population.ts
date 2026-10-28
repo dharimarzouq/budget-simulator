@@ -6,6 +6,10 @@ export interface PopulationUnit {
   weight: number;
   household: number;
   data: Household;
+  /** One of the 12 UK regions, for breakdowns. */
+  regionDetail?: string;
+  /** People outside private households (students in halls, part-year workers...): in tax totals, not in household tables. */
+  outside?: boolean;
 }
 
 export interface PublishedFigure {
@@ -23,21 +27,23 @@ export interface Population {
 
 type RawAdult = [number, number, number, number, number, number, number, number, number, number, number, number, number];
 type RawChild = [number, number, number];
-type RawUnit = [number, number, number, number, number, number, number, RawAdult[], RawChild[]];
+type RawUnit = [number, number, number, number, number, number, number, RawAdult[], RawChild[], number?];
 
 interface RawPopulation {
   about: string;
   year: string;
-  codes: { region: Region[]; health: Household["adults"][number]["health"][]; disability: Household["children"][number]["disability"][] };
+  codes: { region: Region[]; regionDetail?: string[]; health: Household["adults"][number]["health"][]; disability: Household["children"][number]["disability"][] };
   published: Record<string, PublishedFigure>;
   units: RawUnit[];
 }
 
 export function decodePopulation(raw: RawPopulation): Population {
   const { region, health, disability } = raw.codes;
-  const units = raw.units.map(([weight, hh, reg, rentMonthly, childcareMonthly, savings, flags, adults, children]) => ({
+  const units = raw.units.map(([weight, hh, reg, rentMonthly, childcareMonthly, savings, flags, adults, children, reg12]) => ({
     weight,
     household: hh,
+    regionDetail: reg12 === undefined ? undefined : raw.codes.regionDetail?.[reg12],
+    outside: (flags & 8) !== 0,
     data: {
       region: region[reg]!,
       rentMonthly,

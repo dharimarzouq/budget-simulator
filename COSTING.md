@@ -124,6 +124,24 @@ All three are 3–6% low. HMRC's lines here are after tax reductions (EIS relief
 
 **Speed:** a costing with behaviour takes about 2.7 seconds over the whole population (static alone is much quicker). Fine for checks; to be made faster when the page is built (6f).
 
+## Winners and losers
+
+`distribution` in `src/policy/distribution.ts` shows how a policy changes households' incomes. `tools/winners_losers.mjs` prints it for any policy.
+
+**How it's worked out:**
+- **Households,** not families: the families (benefit units) in a household are added together. People outside private households are left out, as they are from DWP's household statistics (HBAI).
+- **Income** is net household income before housing costs: earnings, pensions, other income and benefits, less income tax, National Insurance, pension contributions and the Child Benefit charge. That's HBAI's measure, except that council tax, disability benefits and some others aren't modelled yet (see POPULATION.md).
+- **Ranking** is by income adjusted for household size the way HBAI does it (the modified OECD scale), before the policy. Each tenth ("decile") holds a tenth of households. HBAI ranks people instead; tenths of households are easier to read as "the average household in this tenth".
+- **A gain or loss** is a change of more than £1 a week (£52 a year). Smaller changes count as no real change.
+- **Static:** nobody's behaviour changes. That's the standard for these tables (HM Treasury's and the IFS's are static too); the behavioural costing changes the revenue total, not this picture.
+- **Breakdowns** by family type (from the families in the household) and by the 12 UK regions.
+
+**Two examples** (2026-27, static):
+
+*1p on the basic rate* (raises £7.0bn): losses rise with income in pounds, up to £474 a year in the ninth tenth and £552 in the richest. As a share of income they peak at 0.6% in tenths 7–9, and the richest tenth loses less as a share (0.4%), because the basic rate only touches a fixed slice of a high income. Scotland is almost untouched: its rates on earnings are set by the Scottish Parliament.
+
+*Bringing back the two-child limit* (saves £2.7bn): the losses fall on tenths 2 to 5 (up to 1.1% of income) and on lone parents (14% of them lose; £600 a year on average across all lone parents). Pensioners and households without children are untouched. The poorest tenth barely moves, because families with larger Universal Credit awards have incomes that rank them a little higher.
+
 ## Universal Credit: check against an OBR costing
 
 There's no ready reckoner for Universal Credit, so UC costings are checked against the OBR's costings of real measures. The first is the removal of the two-child limit, which the OBR costed in November 2025 (Economic and fiscal outlook, table 3.2, as reported): £2.3bn in 2026-27, rising to about £3bn by 2029-30 as claims build up, for about 560,000 families gaining around £5,310 a year each.

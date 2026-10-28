@@ -77,6 +77,8 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
    Progress, 28 October 2026: 6d is done. Behavioural costing uses the Scottish Fiscal Commission's elasticities by income (Ari's choice), with low and high figures at half and 1.5 times, shown next to the static figure. On HMRC's ready reckoner, the additional rate now comes within 1–9% (static was 6.4 times); the higher rate comes out 30% below HMRC, with HMRC's figure inside our range. See COSTING.md.
 
+   Progress, 28 October 2026: 6e is done. Winners and losers by income tenth (households ranked by HBAI-style equivalised income), family type and the 12 regions: average change in £ and as a % of income, and shares gaining, losing or seeing no real change (under £1 a week). See COSTING.md.
+
    **Levers in the first version** (all already in the rules):
    - **Income tax:** basic, higher and additional rates (England, Wales and NI separately from Scotland), personal allowance, higher-rate threshold, additional-rate threshold, personal allowance taper.
    - **National Insurance:** employee main and additional rates, employer rate, primary and secondary thresholds, upper earnings limit, self-employed rates.

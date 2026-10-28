@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { adult, calculate, child, household, ruleSet } from "../src/engine";
 import { decodePopulation } from "../src/population";
 import { costPolicy, run } from "../src/policy/costing";
+import { distribution } from "../src/policy/distribution";
 import { LEVER, LEVERS } from "../src/policy/levers";
 import { applyPolicy, policyFromQuery, policyToQuery } from "../src/policy/policy";
 
@@ -89,6 +90,51 @@ describe("costing over the population", () => {
   it("bringing back the two-child limit saves money", () => {
     const c = costPolicy(pop, r, [{ lever: "uc_two_child_limit", value: true }], base);
     expect(c.change.universalCredit).toBeLessThan(0);
+  });
+
+  it("winners and losers: deciles each hold a tenth of households, and a basic rate rise costs richer tenths more", () => {
+    const d = distribution(pop, base, run(pop, applyPolicy(r, [{ lever: "it_basic", value: 0.21 }])));
+    for (const g of d.deciles) expect(g.households / d.all.households).toBeCloseTo(0.1, 2);
+    expect(d.deciles.every((g) => g.meanChange <= 0)).toBe(true);
+    expect(d.deciles[9]!.meanChange).toBeLessThan(d.deciles[4]!.meanChange);
+    expect(d.deciles[4]!.meanChange).toBeLessThan(d.deciles[0]!.meanChange);
+    // Gain + lose + no real change covers everyone.
+    expect(d.all.gain + d.all.lose + d.all.noChange).toBeCloseTo(1, 10);
+    // The average change across households equals the change in total net income of private households.
+    const net = (x: Float64Array) => pop.units.reduce((s, u, i) => s + (u.outside ? 0 : u.weight * x[i]!), 0);
+    const after = run(pop, applyPolicy(r, [{ lever: "it_basic", value: 0.21 }]));
+    expect(d.all.meanChange * d.all.households).toBeCloseTo(net(after.netIncome) - net(base.netIncome), -3);
+  });
+
+  it("winners and losers: bringing back the two-child limit hits the poorer tenths and families with children", () => {
+    const d = distribution(pop, base, run(pop, applyPolicy(r, [{ lever: "uc_two_child_limit", value: true }])));
+    expect(d.deciles[0]!.meanChange + d.deciles[1]!.meanChange).toBeLessThan(d.deciles[8]!.meanChange + d.deciles[9]!.meanChange);
+    const pensioners = d.familyTypes.find((g) => g.label === "Pensioners")!;
+    expect(pensioners.lose).toBe(0);
+    expect(d.regions.length).toBe(12);
+  });
+});
+
+describe("winners and losers on a hand-made population", () => {
+  it("averages, shares and equivalisation", () => {
+    // Two one-person households, each with weight 1. Net incomes are given directly.
+    const pop = {
+      about: "", year: "2026-27", published: {},
+      units: [
+        { weight: 1, household: 0, regionDetail: "London", data: household({ adults: [adult({ employment: 20000 })] }) },
+        { weight: 1, household: 1, regionDetail: "Wales", data: household({ adults: [adult({ employment: 60000 })] }) },
+      ],
+    };
+    const before = { totals: {} as never, netIncome: Float64Array.from([18000, 45000]) };
+    const after = { totals: {} as never, netIncome: Float64Array.from([18030, 44000]) }; // +£30 (no real change), -£1,000
+    const d = distribution(pop, before, after);
+    expect(d.all.meanChange).toBe(-485);
+    expect(d.all.gain).toBe(0);
+    expect(d.all.lose).toBe(0.5);
+    expect(d.all.noChange).toBe(0.5);
+    expect(d.all.percentOfIncome).toBeCloseTo((-970 / 63000) * 100, 10);
+    expect(d.regions.map((g) => g.label)).toEqual(["London", "Wales"]);
+    expect(d.familyTypes[0]!.label).toBe("Single without children");
   });
 });
 
