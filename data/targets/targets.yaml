@@ -147,6 +147,13 @@ hmrc_income_tax_by_source_2026_27.csv:
   year: 2026-27
   units: £ million
   use: check (tax on earnings and other non-savings income, savings, dividends)
+hmrc_income_by_age_2023_24.csv:
+  source: hmrc-spi-2023-24
+  table: "3.2: Distribution of median and mean income and tax, by age range and sex"
+  year: 2023-24
+  population: UK income taxpayers only
+  units: thousands of taxpayers; £ a year
+  use: seed (how pay rises and falls with age, from the medians) and calibration (taxpayers by age, as shares of HMRC's 2026-27 total)
 hmrc_property_interest_dividends_by_band_2023_24.csv:
   source: hmrc-spi-2023-24
   table: "3.7: Property, interest, dividend and other income"

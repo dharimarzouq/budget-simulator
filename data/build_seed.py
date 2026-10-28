@@ -42,6 +42,9 @@ ASSUMPTIONS = {
     # retired...) follows the FRS for their tenure and age band. Pay and profits within each status:
     "ft_pay_median": 36_000,  # full-time employees, 2026-27. Below ASHE's median (about £39,000 in 2025): the FRS's full-time group includes younger and newer workers; set so NICs and the employee count both come out close
     "ft_pay_sigma": 0.5,
+    # HMRC's medians by age are for taxpayers only, which leaves out low-paid young people and so flattens the rise
+    # with age. The age factors are raised to this power; set so taxpayers' income by age comes near HMRC's.
+    "age_pay_steepness": 1.5,
     "ft_pay_top_tail_share": 0.06,  # full-time employees drawn from a Pareto tail instead
     "ft_pay_top_tail_min": 80_000,
     "ft_pay_top_tail_alpha": 1.6,
@@ -82,11 +85,13 @@ ASSUMPTIONS = {
     "pensioner_pay_median": 13_000,  # lowered from £18,000 so their NICs exemption matches HMRC's £1.2bn cost
     "pensioner_pay_sigma": 0.9,
     "share_pensioners_private_pension": 0.65,
-    "private_pension_median": 7_000,
+    # Raised from £7,000, with a thinner top tail: before calibration, pension income in HMRC's £20,000-£50,000 bands
+    # came out 20-40% under HMRC's and far over it above £70,000. £10,000 overshot pensioners' median income in HBAI by 7%.
+    "private_pension_median": 8_500,
     "private_pension_sigma": 0.9,
-    "private_pension_top_tail_share": 0.03,
+    "private_pension_top_tail_share": 0.02,
     "private_pension_top_tail_min": 50_000,
-    "private_pension_top_tail_alpha": 1.8,
+    "private_pension_top_tail_alpha": 2.5,
     "share_health_protected": 0.9,  # health element claimed before April 2026, so the higher rate
     "share_working_carer": 0.03,  # carers can work and still get the carer element
     "share_children_disabled": 0.12,  # DWP shows 19% of lone parents on UC have a disabled child
@@ -104,9 +109,19 @@ ASSUMPTIONS = {
     "share_large_households_two_extra": 0.4,  # households of 3+ adults with 4+ adults
     "share_extra_adults_older": 0.05,  # other extra adults who are older relatives (grandparents are set from the FRS)
     "uc_take_up": 0.85,
-    "cb_opt_out_60k_80k": 0.6,  # families whose higher earner is in the Child Benefit charge range (raised from 0.4: the charge came out 36% high)
-    "cb_opt_out_over_80k": 0.9,
-    "cb_not_claiming": 0.04,  # other families with children who don't claim at all (e.g. not eligible)
+    # Child Benefit. HMRC counts families who claimed and then opted out of payment; many higher earners never
+    # claimed at all, and they're in neither HMRC count. HBAI's 14.7m children against 11.7m paid and 1.0m opted
+    # out leaves about 2m children in families not claiming. Calibration balances these against the opt-out count,
+    # the charge's revenue and HBAI's children.
+    "cb_opted_out_60k_80k": 0.3,  # families whose higher earner is in the charge's range
+    "cb_never_claimed_60k_80k": 0.3,
+    "cb_opted_out_over_80k": 0.45,
+    "cb_never_claimed_over_80k": 0.45,
+    "cb_never_claimed_other": 0.04,  # other families (e.g. not eligible because of immigration status, or never applied)
+    # Parents' ages follow their children's: the oldest child's age plus the parent's age at that birth. ONS births
+    # statistics put average ages at birth at about 31 for mothers and 34 for fathers; this is for either parent.
+    "parent_age_at_birth_mean": 31.5,
+    "parent_age_at_birth_sigma": 5.5,
 }
 A = ASSUMPTIONS
 
@@ -131,9 +146,22 @@ def band_bounds(label: str) -> tuple[float, float]:
     return (nums[0], nums[1])
 
 
+def median_from_bands(lows: list[float], counts: list[float]) -> float:
+    """The median of a banded distribution, interpolating within the band that holds it."""
+    edges = list(lows) + [lows[-1] * 2]
+    half, run = sum(counts) / 2, 0.0
+    for lo, hi, c in zip(edges, edges[1:], counts):
+        if run + c >= half:
+            return lo + (hi - lo) * (half - run) / c
+        run += c
+    return edges[-1]
+
+
 class Builder:
-    def __init__(self):
+    def __init__(self, free_age_p: np.ndarray | None = None):
         self.rng = np.random.default_rng(SEED)
+        self.age_log: list[tuple[int, float, str]] = []  # (age, starting weight, how the age was set), for the second pass
+        self.weight = 1.0
         cells = pd.read_csv(TARGETS / "frs_households_region_composition_tenure_2024-25.csv")
         cells.columns = ["region", "kids", "tenure", "households"]
         self.cells = cells[cells["households"] > 0]
@@ -173,7 +201,47 @@ class Builder:
         spans = {"16 to 24 (adult)": (18, 24), "25 to 34": (25, 34), "35 to 44": (35, 44), "45 to 54": (45, 54), "55 to 59": (55, 59), "60 to 64": (60, 65)}
         self.age_bands = [spans[b] for b in spans]
         w = np.array([bands[b] for b in spans])
-        self.age_band_p = w / w.sum()
+        self.frs_age_counts = w
+        # Adults whose age isn't set by anything else (not parents, not pensioners): on the second pass, the share in
+        # each band is what's left of the FRS's count once parents and others are placed.
+        self.age_band_p = free_age_p if free_age_p is not None else w / w.sum()
+        # Pensioners' ages from the same FRS table (its 65-74 band includes 65-year-olds, below State Pension age).
+        self.pensioner_age_bands = [(66, 74), (75, 84), (85, 95)]
+        pw = np.array([bands["65 to 74"] * 0.9, bands["75 to 84"], bands["85 or over"]])
+        self.pensioner_age_p = pw / pw.sum()
+        # Children's ages: HMRC's count of children in paid Child Benefit families by single year of age.
+        ca = pd.read_csv(TARGETS / "hmrc_child_benefit_children_by_age_region_2025_08.csv")
+        ca = ca[ca.iloc[:, 0].astype(str).str.fullmatch(r"\d+")]
+        self.child_ages = ca.iloc[:, 0].astype(int).to_numpy()
+        self.child_age_p = (ca.iloc[:, 1] / ca.iloc[:, 1].sum()).to_numpy()
+        # How pay rises and falls with age: HMRC's median income of taxpayers by age (SPI Table 3.2), relative to
+        # the average across working ages, so the pay medians above keep their meaning.
+        ag = pd.read_csv(TARGETS / "hmrc_income_by_age_2023_24.csv")
+        ag = ag[ag["age_range"] != "Totals"]
+        # The gap between mean and median shows how many very high earners each age has (few at 25, many at 50); the
+        # share of people drawn from the top tail follows it, again relative to the working-age average.
+        working = ag[ag["age_range"].str.match(r"^(2|3|4|5|60)")]
+        avg = float((working["median_income_gbp"] * working["taxpayers_k"]).sum() / working["taxpayers_k"].sum())
+        spread = ag["mean_income_gbp"] / ag["median_income_gbp"] - 1
+        avg_spread = float((spread[working.index] * working["taxpayers_k"]).sum() / working["taxpayers_k"].sum())
+        self.age_pay = []
+        for r, s in zip(ag.itertuples(), spread):
+            nums = [int(x) for x in re.findall(r"\d+", r.age_range)]
+            lo = 0 if r.age_range.startswith("Under") else nums[0]
+            self.age_pay.append((lo, float(r.median_income_gbp) / avg, float(s) / avg_spread))
+        # How pay varies by region: the median total income of taxpayers in each region relative to the UK's
+        # (SPI Table 3.11, interpolated within income bands).
+        rb = pd.read_csv(TARGETS / "hmrc_income_by_region_band_2023_24.csv")
+        rb = rb[rb["band_lower"] != "all"]
+        med = {reg: median_from_bands(g["band_lower"].astype(float).tolist(), g["taxpayers_k"].astype(float).tolist()) for reg, g in rb.groupby("region")}
+        self.region_pay = {reg.lower(): m / med["United Kingdom"] for reg, m in med.items()}
+        self.region_pay["east"] = self.region_pay["east of england"]
+        # And the same mean-to-median spread by region, for the top tail (London has far more very high earners).
+        tot = pd.read_csv(TARGETS / "hmrc_income_by_region_band_2023_24.csv")
+        tot = tot[tot["band_lower"] == "all"].set_index("region")
+        rs = {reg: tot.at[reg, "total_income_gbp_m"] * 1e3 / tot.at[reg, "taxpayers_k"] / m - 1 for reg, m in med.items()}
+        self.region_tail = {reg.lower(): s / rs["United Kingdom"] for reg, s in rs.items()}
+        self.region_tail["east"] = self.region_tail["east of england"]
         # HMRC SPI 2023-24: for each band of total income, the share of taxpayers with property income, interest
         # and dividends, and their average amounts, uprated to 2026-27 with earnings.
         spi = pd.read_csv(TARGETS / "hmrc_income_by_region_band_2023_24.csv")
@@ -228,31 +296,43 @@ class Builder:
         return out
 
     # --- people -------------------------------------------------------------------------------
-    def draw(self, kind: str) -> float:
-        """Lognormal body with a Pareto top tail, so the seed has people in every income band."""
+    def draw(self, kind: str, tail: float = 1.0) -> float:
+        """Lognormal body with a Pareto top tail, so the seed has people in every income band. `tail` scales the
+        chance of the top tail."""
         r = self.rng
-        if r.random() < A[f"{kind}_top_tail_share"]:
+        if r.random() < A[f"{kind}_top_tail_share"] * tail:
             return float(A[f"{kind}_top_tail_min"] * (1 - r.random()) ** (-1 / A[f"{kind}_top_tail_alpha"]))
         return float(np.exp(np.log(A[f"{kind}_median"]) + A[f"{kind}_sigma"] * r.standard_normal()))
 
     def lognormal(self, median: float, sigma: float) -> float:
         return float(np.exp(np.log(median) + sigma * self.rng.standard_normal()))
 
-    def working_age_adult(self, age: int, tenure: str) -> dict:
+    def pay_factor(self, age: int, region: str) -> tuple[float, float]:
+        """Pay, and the chance of very high pay, relative to the UK average for someone of this age in this region
+        (HMRC SPI Tables 3.2 and 3.11)."""
+        f, t = self.age_pay[0][1:]
+        for lo, m, s in self.age_pay:
+            if age >= lo:
+                f, t = m, s
+        return f ** A["age_pay_steepness"] * self.region_pay[region.lower()], t * self.region_tail[region.lower()]
+
+    def working_age_adult(self, age: int, tenure: str, region: str, how: str = "fixed") -> dict:
         """A working-age adult whose work status follows the FRS for their tenure and age band."""
         r = self.rng
+        self.age_log.append((age, self.weight, how))
         a = {"age": age, "employment": 0.0, "secondJob": 0.0, "selfEmployment": 0.0, "pension": 0.0, "pensionContributions": 0.0, "health": "none", "carer": False}
         statuses, p = self.status_dist[(tenure, self.age_band(age))]
         status = statuses[r.choice(len(statuses), p=p)]
         health = lambda share: "lcwra_protected" if r.random() < A["share_health_protected"] else "lcwra" if r.random() < share else "none"
+        f, tail = self.pay_factor(age, region)
         if status == "Full-time employee":
-            a["employment"] = round(self.draw("ft_pay"), 2)
+            a["employment"] = round(self.draw("ft_pay", tail) * f, 2)
         elif status == "Part-time employee":
-            a["employment"] = round(self.lognormal(A["pt_pay_median"], A["pt_pay_sigma"]), 2)
+            a["employment"] = round(self.lognormal(A["pt_pay_median"], A["pt_pay_sigma"]) * f, 2)
         elif status == "Full-time self-employed":
-            a["selfEmployment"] = round(self.draw("profit"), 2)
+            a["selfEmployment"] = round(self.draw("profit", tail) * f, 2)
         elif status == "Part-time self-employed":
-            a["selfEmployment"] = round(self.lognormal(A["pt_profit_median"], A["pt_profit_sigma"]), 2)
+            a["selfEmployment"] = round(self.lognormal(A["pt_profit_median"], A["pt_profit_sigma"]) * f, 2)
         elif status == "Permanently sick / disabled":
             a["health"] = health(1.0) if r.random() < A["share_sick_health_element"] else "none"
         elif status == "Temporarily sick / injured":
@@ -280,12 +360,12 @@ class Builder:
                 return label
         return "60 to 64"
 
-    def pensioner(self, age: int) -> dict:
+    def pensioner(self, age: int, region: str) -> dict:
         r = self.rng
         state = NEW_STATE_PENSION if r.random() < A["share_pensioners_new_state_pension"] else OLD_STATE_PENSION
         private = self.draw("private_pension") if r.random() < A["share_pensioners_private_pension"] else 0.0
         working = age < 75 and r.random() < A["share_pensioners_working"]
-        pay = float(np.exp(np.log(A["pensioner_pay_median"]) + A["pensioner_pay_sigma"] * r.standard_normal())) if working else 0.0
+        pay = float(np.exp(np.log(A["pensioner_pay_median"]) + A["pensioner_pay_sigma"] * r.standard_normal())) * self.region_pay[region.lower()] if working else 0.0
         side = self.lognormal(A["side_profit_median"], A["side_profit_sigma"]) if r.random() < A["share_side_self_employment"] else 0.0
         return {"age": age, "employment": round(pay, 2), "secondJob": 0.0, "selfEmployment": round(side, 2), "pension": round(state + private, 2), "pensionContributions": 0.0, "health": "none", "carer": False}
 
@@ -297,7 +377,13 @@ class Builder:
         return int(self.rng.integers(lo, hi + 1))
 
     def pension_age(self) -> int:
-        return int(min(100, 66 + self.rng.exponential(9)))
+        lo, hi = self.pensioner_age_bands[self.rng.choice(3, p=self.pensioner_age_p)]
+        return int(self.rng.integers(lo, hi + 1))
+
+    def parent_age(self, kids: list[dict]) -> int:
+        """A parent's age: their oldest child's age plus their age at that birth."""
+        at_birth = self.rng.normal(A["parent_age_at_birth_mean"], A["parent_age_at_birth_sigma"])
+        return int(np.clip(kids[0]["age"] + round(at_birth), max(18, kids[0]["age"] + 16), 64))
 
     # --- households ---------------------------------------------------------------------------
     def children(self) -> list[dict]:
@@ -305,7 +391,7 @@ class Builder:
         n = int(r.choice([1, 2, 3, 4, 5], p=self.kids_p))
         kids = []
         for _ in range(n):
-            age = int(r.integers(0, 18))
+            age = int(r.choice(self.child_ages, p=self.child_age_p))
             disability = "none"
             if r.random() < A["share_children_disabled"]:
                 disability = "higher" if r.random() < A["share_disabled_higher"] else "lower"
@@ -344,7 +430,11 @@ class Builder:
         kids = self.children() if has_kids else []
 
         def adult():
-            return self.pensioner(self.pension_age()) if pensioner_hh else self.working_age_adult(self.working_age(), tenure)
+            if pensioner_hh:
+                return self.pensioner(self.pension_age(), region)
+            if kids:
+                return self.working_age_adult(self.parent_age(kids), tenure, region, "parent")
+            return self.working_age_adult(self.working_age(), tenure, region, "free")
 
         if "one adult" in comp or "one female" in comp or "one male" in comp:
             units = [{"adults": [adult()], "children": kids}]
@@ -352,11 +442,14 @@ class Builder:
             first = adult()
             if pensioner_hh and r.random() >= A["share_pensioner_couples_both"]:
                 # A pensioner with a younger partner who hasn't reached State Pension age.
-                partner = self.working_age_adult(int(r.integers(55, 66)), tenure)
+                partner = self.working_age_adult(int(r.integers(55, 66)), tenure, region)
             else:
                 # A partner of about the same age, on the same side of State Pension age.
                 age = max(18, first["age"] + int(r.integers(-4, 5)))
-                partner = self.pensioner(max(66, age)) if pensioner_hh else self.working_age_adult(min(age, 65), tenure)
+                if kids:
+                    age = max(age, kids[0]["age"] + 16)
+                partner = self.pensioner(max(66, age), region) if pensioner_hh else \
+                    self.working_age_adult(min(age, 65), tenure, region, "parent" if kids else "free")
             units = [{"adults": [first, partner], "children": kids}]
         if large:
             # Three or more adults: the couple (with any children) plus one or two more adults, each their own
@@ -364,12 +457,12 @@ class Builder:
             # where the FRS says a family with children includes a pensioner; occasionally another older relative.
             for j in range(1 if r.random() >= A["share_large_households_two_extra"] else 2):
                 if grandparent and j == 0:
-                    extra = self.pensioner(self.pension_age())
+                    extra = self.pensioner(self.pension_age(), region)
                 elif r.random() < A["share_extra_adults_older"]:
                     age = int(r.integers(55, 90))
-                    extra = self.pensioner(age) if age >= 66 else self.working_age_adult(age, tenure)
+                    extra = self.pensioner(age, region) if age >= 66 else self.working_age_adult(age, tenure, region)
                 else:
-                    extra = self.working_age_adult(int(r.integers(25, 50)) if pensioner_hh else int(r.integers(18, 31)), tenure)
+                    extra = self.working_age_adult(int(r.integers(25, 50)) if pensioner_hh else int(r.integers(18, 31)), tenure, region)
                 units.append({"adults": [extra], "children": []})
 
         # Carers on Universal Credit are mostly caring for a disabled child or a sick partner.
@@ -400,8 +493,11 @@ class Builder:
             )
             u["claimsUniversalCredit"] = bool(r.random() < A["uc_take_up"])
             top = max(a["employment"] + a["secondJob"] + a["selfEmployment"] + a["pension"] for a in u["adults"])
-            opt_out = A["cb_opt_out_over_80k"] if top > 80_000 else A["cb_opt_out_60k_80k"] if top > 60_000 else A["cb_not_claiming"]
-            u["claimsChildBenefit"] = bool(r.random() >= opt_out)
+            band = "over_80k" if top > 80_000 else "60k_80k" if top > 60_000 else None
+            opted, never = (A[f"cb_opted_out_{band}"], A[f"cb_never_claimed_{band}"]) if band else (0.0, A["cb_never_claimed_other"])
+            x = r.random()
+            u["childBenefitStatus"] = "opted_out" if x < opted else "never_claimed" if x < opted + never else "claims"
+            u["claimsChildBenefit"] = u["childBenefitStatus"] == "claims"
         return comp, units
 
     def build(self) -> list[dict]:
@@ -410,7 +506,7 @@ class Builder:
         hh_id = 0
         for cell in self.cells.itertuples():
             n = max(MIN_PER_CELL, round(N_HOUSEHOLDS * cell.households / total))
-            weight = cell.households / n
+            weight = self.weight = cell.households / n
             region = region_name(cell.region)
             for _ in range(n):
                 comp, units = self.benefit_units(region, cell.kids, cell.tenure)
@@ -432,7 +528,7 @@ class Builder:
         out = []
         for k in range(n):
             region = names[r.choice(len(names), p=p)]
-            a = {"age": int(r.integers(18, 65)), "employment": round(self.lognormal(A["outside_pay_median"], A["outside_pay_sigma"]), 2),
+            a = {"age": int(r.integers(18, 65)), "employment": round(self.lognormal(A["outside_pay_median"], A["outside_pay_sigma"]) * self.region_pay[region.lower()], 2),
                  "secondJob": 0.0, "selfEmployment": 0.0, "pension": 0.0, "pensionContributions": 0.0, "health": "none", "carer": False}
             a.update(self.other_income(a["employment"]))
             a["pensionContributions"] = self.pension_contribution(a["employment"], a["employment"] + a["propertyIncome"] + a["savingsInterest"] + a["dividends"])
@@ -444,9 +540,27 @@ class Builder:
         return out
 
 
+def free_age_shares(b: Builder) -> np.ndarray:
+    """After a first pass: the share of 'free' adults (not parents, not set otherwise) to put in each age band so that
+    all working-age adults together follow the FRS's age bands."""
+    placed = np.zeros(len(b.age_bands))
+    free = 0.0
+    for age, w, how in b.age_log:
+        k = next((i for i, (lo, hi) in enumerate(b.age_bands) if lo <= age <= hi), None)
+        if how == "free":
+            free += w
+        elif k is not None:
+            placed[k] += w
+    target = b.frs_age_counts / b.frs_age_counts.sum() * (placed.sum() + free)
+    left = np.maximum(target - placed, 0.1 * target)
+    return left / left.sum()
+
+
 def main() -> None:
     BUILD.mkdir(exist_ok=True)
-    units = Builder().build()
+    first = Builder()
+    first.build()
+    units = Builder(free_age_shares(first)).build()
     payload = {
         "_about": "Seed population for calibration. Made-up households, not real people. See data/build_seed.py and POPULATION.md.",
         "year": "2026-27",

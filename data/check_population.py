@@ -78,7 +78,7 @@ def hbai_check(pop: list[dict], res: pd.DataFrame) -> pd.DataFrame:
         ref = hb[hb["type"] == label].iloc[0]
         out.append((f"Median household income, {kind} (£ a week, equivalised)", median, ref["median"] * EARNINGS_2024_25, "£/wk", "HBAI 2024-25, uprated", "held back"))
         out.append((f"Mean household income, {kind} (£ a week, equivalised)", mean, ref["mean"] * EARNINGS_2024_25, "£/wk", "HBAI 2024-25, uprated", "held back"))
-        out.append((f"People: {kind}", p["weight"].sum() / 1e6, ref["people"] / 1e6, "m", "HBAI 2024-25", "held back"))
+        out.append((f"People: {kind}", p["weight"].sum() / 1e6, ref["people"] / 1e6, "m", "HBAI 2024-25", "a target" if kind == "child" else "held back"))
     return out
 
 
@@ -93,6 +93,7 @@ def main(population: str, results: str) -> None:
     adults = [(u["weight"], a, [a["employment"], a.get("secondJob", 0.0)]) for u in pop for a in u["data"]["adults"]]
     over_spa = sum(w * sum(ni(j) for j in jobs) for w, a, jobs in adults if a["age"] >= 66) / 1e9
     employees = sum(u["weight"] for u in pop if not u.get("outside") for a in u["data"]["adults"] if a["employment"] > 0) / 1e6
+    payrolled = sum(u["weight"] for u in pop for a in u["data"]["adults"] if a["employment"] > 0) / 1e6
     second_jobs = sum(w for w, a, jobs in adults if jobs[1] > 0) / 1e6
     pt_cost = sum(w * 0.08 * sum(min(j, 12_570) for j in jobs) for w, a, jobs in adults if a["age"] < 66) / 1e9
     st_cost = sum(w * 0.15 * sum(min(j, 5_000) for j in jobs) for w, a, jobs in adults) / 1e9
@@ -122,7 +123,8 @@ def main(population: str, results: str) -> None:
         ("Employee NICs", (w * d["employee_ni"]).sum() / 1e9, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employee"), "£bn", "OBR March 2026", ""),
         ("Employer NICs", (w * d["employer_ni"]).sum() / 1e9 - lump_sums, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employer"), "£bn", "OBR March 2026",
          f"less £{lump_sums:.1f}bn Employment Allowance and apprentice relief (HMRC 2025-26 costs, not per household)"),
-        ("Employees", employees, 29.825, "m", "OBR March 2026 (table 1.6)", ""),
+        ("Employees", employees, 29.825, "m", "OBR March 2026 (table 1.6)", "Labour Force Survey based; ours in private households only"),
+        ("Payrolled employees", payrolled, 30.3, "m", "ONS/HMRC PAYE RTI, September 2026", "one month's count; ours is anyone paid during the year, including people outside private households"),
         ("People with a second job", second_jobs, 1.29, "m", "ONS Labour Force Survey, mid-2026 (via secondary reports)", "ONS figure includes second self-employed jobs"),
         ("Cost of the NICs primary threshold", pt_cost, nics_relief("Primary Threshold"), "£bn", "HMRC tax relief statistics 2025-26", ""),
         ("Cost of the NICs secondary threshold", st_cost, nics_relief("Secondary Threshold"), "£bn", "HMRC tax relief statistics 2025-26", ""),

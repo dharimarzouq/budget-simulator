@@ -104,6 +104,14 @@ hmrc-child-benefit-2025:
   published: 2026-04-23
   accessed: 2026-10-27
 
+ons-paye-rti-2026-10:
+  title: "Earnings and employment from Pay As You Earn Real Time Information, UK: October 2026"
+  publisher: Office for National Statistics and HM Revenue and Customs
+  url: https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/bulletins/earningsandemploymentfrompayasyouearnrealtimeinformationuk/october2026
+  licence: Open Government Licence v3.0
+  published: 2026-10-20
+  accessed: 2026-10-28
+  note: "Early estimate of 30.3 million payrolled employees in September 2026; median monthly pay £2,660."
 obr-efo-2026-03:
   title: "Economic and fiscal outlook, March 2026: detailed forecast tables"
   publisher: Office for Budget Responsibility

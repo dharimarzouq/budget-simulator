@@ -60,6 +60,7 @@ def load():
         "carer": any(a["carer"] and a["health"] == "none" for a in u["data"]["adults"]),
         "disabled_child": any(c["disability"] != "none" for c in u["data"]["children"]),
         "claims_cb": u["data"].get("claimsChildBenefit", True),
+        "cb_opted_out": u["data"].get("childBenefitStatus") == "opted_out",
         "rent": u["data"]["rentMonthly"],
         "outside": u.get("outside", False),
     } for u in seed["units"]])
@@ -164,7 +165,8 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         targets.append(Target(g, f"{label} total income", row.total_income_gbp_m * 1e6, household_row(adults, inb * adults["total"].to_numpy(), n), 2, 2e9))
     # OBR: employees in 2026-27 (EFO March 2026, table 1.6), any age 16+, including those past State Pension age.
     # People outside private households are in HMRC's counts but not in the household surveys (FRS, LFS), so
-    # they're left out of those targets.
+    # they're left out of those targets. (The payroll count, 30.3 million in September 2026, is a single month;
+    # more people than that are paid at some point in a year, so it isn't a like-for-like target.)
     inside = (~adults["outside"]).to_numpy()
     targets.append(Target("OBR employees", "employees 2026-27", 29.825e6,
                           household_row(adults, ((adults["employment"] > 0).to_numpy() & inside).astype(float), n), 1, 1e6))
@@ -184,14 +186,30 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
                           household_row(adults, 0.08 * below(12_570).to_numpy() * under_spa, n), 1, 1e9))
     targets.append(Target("HMRC NICs threshold costs", "secondary threshold (employers)", 24.4e9,
                           household_row(adults, 0.15 * below(5_000).to_numpy(), n), 1, 1e9))
+    # SPI 2023-24 by region (Table 3.11) and by age (Table 3.2). Used for their shares only: each is scaled so it adds
+    # up to HMRC's 2026-27 projection of all taxpayers and their total income (Table 2.5), which already allows for
+    # frozen thresholds bringing more people into tax.
+    all25 = pd.read_csv(T / "hmrc_income_tax_by_range_2026_27.csv").set_index("band_lower").loc["all"]
+    uk_all = spi[(spi["region"] == "United Kingdom") & (spi["band_lower"] == "all")].iloc[0]
+    people_scale = all25.taxpayers_k / uk_all.taxpayers_k
+    income_scale = all25.total_income_gbp_m / uk_all.total_income_gbp_m
     regional = spi[(spi["band_lower"] == "all") & (spi["region"] != "United Kingdom") & ~spi["region"].isin(["England"])]
-    taxpayer = (adults["total"] >= 12_570).to_numpy()
     for r in regional.itertuples():
         mask = (adults["region"] == norm_region(r.region)).to_numpy()
         g = "HMRC taxpayers and income by region"
-        targets.append(Target(g, f"{r.region} taxpayers", r.taxpayers_k * 1e3, household_row(adults, (mask & taxpayer).astype(float), n), 1, 100_000))
-        targets.append(Target(g, f"{r.region} income", r.total_income_gbp_m * 1e6 * EARNINGS_2023_24,
-                              household_row(adults, mask * taxpayer * adults["total"].to_numpy(), n), 0.5, 5e9))
+        targets.append(Target(g, f"{r.region} taxpayers", r.taxpayers_k * 1e3 * people_scale, household_row(adults, (mask & payer).astype(float), n), 1, 100_000))
+        targets.append(Target(g, f"{r.region} income", r.total_income_gbp_m * 1e6 * income_scale,
+                              household_row(adults, mask * payer * adults["total"].to_numpy(), n), 1, 5e9))
+    by_age = pd.read_csv(T / "hmrc_income_by_age_2023_24.csv")
+    by_age = by_age[by_age["age_range"] != "Totals"]
+    for r in by_age.itertuples():
+        nums = [int(x) for x in re.findall(r"\d+", r.age_range)]
+        lo, hi = (0, 19) if r.age_range.startswith("Under") else (75, 200) if "over" in r.age_range else (nums[0], nums[1])
+        inb = ((adults["age"] >= lo) & (adults["age"] <= hi)).to_numpy() & payer
+        targets.append(Target("HMRC taxpayers by age", f"{r.age_range} taxpayers", r.taxpayers_k * 1e3 * people_scale,
+                              household_row(adults, inb.astype(float), n), 1, 200_000))
+        targets.append(Target("HMRC taxpayers by age", f"{r.age_range} income", r.taxpayers_k * 1e3 * r.mean_income_gbp * income_scale,
+                              household_row(adults, inb * adults["total"].to_numpy(), n), 0.5, 1e10))
 
     # --- DWP Universal Credit households, May 2026 (Great Britain) ---------------------------
     on_uc = (units["uc_award_month"] > 0) & (units["region"] != "northern ireland")
@@ -251,7 +269,12 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         targets.append(Target("HMRC 2026-27 income tax by source", kind, value, household_row(units, units[column].to_numpy(), n), 1, 1e9))
     opted = pd.read_csv(T / "hmrc_child_benefit_opted_out_children_by_age_region_2025_08.csv").iloc[0, 1]
     targets.append(Target("Child Benefit opt-outs", "children in opted-out families", float(opted),
-                          household_row(units, ((~units["claims_cb"]) * units["kids"]).astype(float).to_numpy(), n), 1, 100_000))
+                          household_row(units, (units["cb_opted_out"] * units["kids"]).astype(float).to_numpy(), n), 1, 100_000))
+    # HBAI 2024-25: all children, including those in families not claiming Child Benefit. People outside private
+    # households have no children, so they don't affect it.
+    hbai = pd.read_csv(T / "hbai_income_by_person_type_2024-25.csv").set_index("Type of Individual by Age Category")
+    targets.append(Target("HBAI children", "children", float(hbai.at["Child", "households"]),
+                          household_row(units, units["kids"].astype(float).to_numpy(), n), 1, 500_000))
     targets.append(Target("Child Benefit charge", "revenue (2024-25, provisional)", 360e6, household_row(units, units["child_benefit_charge"].to_numpy(), n), 0.3, 100e6))
     return targets
 

@@ -90,6 +90,18 @@ def spi_pension_contributions() -> pd.DataFrame:
     })
 
 
+def spi_by_age() -> pd.DataFrame:
+    """HMRC SPI Table 3.2: taxpayers and their median and mean total income, by age range (UK, both sexes)."""
+    t = read_table(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", "Table_3_2", "Age range")
+    t = t[t["Population"] == "All"]
+    return pd.DataFrame({
+        "age_range": t["Age range"].to_numpy(),
+        "taxpayers_k": t["Number of taxpayers"].to_numpy(),
+        "median_income_gbp": t["Median income before tax"].to_numpy(),
+        "mean_income_gbp": t["Mean income before tax"].to_numpy(),
+    })
+
+
 def t37_header() -> str:
     raw = pd.read_excel(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", engine="odf", sheet_name="Table_3_7", header=None)
     return raw.iloc[4, 0]
@@ -188,6 +200,9 @@ def main() -> None:
     pc = spi_pension_contributions()
     pc.to_csv(OUT / "hmrc_pension_contributions_by_band_2023_24.csv", index=False)
     print("Table 3.8:", pc[pc["band_lower"] == "all"].to_dict("records"))
+    ages = spi_by_age()
+    ages.to_csv(OUT / "hmrc_income_by_age_2023_24.csv", index=False)
+    print("Table 3.2:", ages.to_string(index=False))
     o = spi_other_income()
     o.to_csv(OUT / "hmrc_property_interest_dividends_by_band_2023_24.csv", index=False)
     print("Table 3.7:", o[o["band_lower"] == "all"].to_dict("records"))
