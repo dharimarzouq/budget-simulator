@@ -5,6 +5,7 @@ Read RESEARCH.md first for decisions and sources, and PLAN.md for the current mi
 
 ## Decided
 - UK only. No political layer (markets, rebellions, polls).
+- "Budget" means the nation's annual Budget, not a personal one. The page leads with the national budget view (levers, costs, borrowing, winners and losers); the household calculator is a secondary "a household like yours" panel; rules and population checks live on a "how we know" page.
 - Own rules engine in TypeScript, running in the browser; static site.
 - Synthetic household population for now, clearly labelled. FRS microdata only if the UK Data Service confirms a public tool may serve aggregates, and never shipped to the browser or committed.
 - Data build scripts (synthetic population, PolicyEngine check) are Python; the site and engine are TypeScript.

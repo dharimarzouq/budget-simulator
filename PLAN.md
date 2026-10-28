@@ -52,15 +52,32 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
    Progress, 27 October 2026: 5c first version done; see POPULATION.md. Universal Credit is now within 5% and income tax within the expected gap. National Insurance came out 7–15% high. It now matches the OBR within 1.5% (see POPULATION.md). The fixes were the under-21 zero rate, Employment Allowance and apprentice relief as lump sums, working pensioners, second jobs, and other income for HMRC band placement. The engine now models second jobs.
 
-6. **Costing.** Static cost of any change, then a behavioural version using published estimates of how taxable income responds to rates, shown side by side. Checked against HMRC's ready reckoner; large gaps are explained or fixed.
+6. **The budget view: levers, costings, winners and losers.** Proposed 28 October 2026, waiting for go. The page is reorganised around the national budget, because the old page showed the machinery and it wasn't clear what it was for.
 
-7. **Economy and debt.** OBR's latest forecast as the baseline, OBR multipliers for GDP effects, borrowing and debt over 5 years, and a pass/fail check against both fiscal rules with the margin shown.
+   **New layout, top to bottom:**
+   1. **Your budget, headline.** What the package raises or costs a year, static and with behaviour, and what that does to borrowing (borrowing comes in step 7).
+   2. **Levers.** Grouped by tax and benefit: income tax, National Insurance, Universal Credit, Child Benefit. Each lever shows today's value, a control to change it, and its cost on its own.
+   3. **Winners and losers.** Average gain or loss by income decile, in £ a year and as a % of income. Also: how many households gain, lose, or see no change, plus breakdowns by family type and by region.
+   4. **A household like yours.** The existing calculator, moved down and reframed: enter a household and see it before and after your package, with its marginal rate chart.
+   5. **How we know** (a separate page). The rules and their sources, and the population checks against published figures.
 
-8. **The page.**
-   - A policy panel to change any rule
-   - Results: cost, winners and losers by income band, borrowing and debt
-   - A household calculator with the marginal rate chart
-   - A "show working" drawer on every number with its source, method and grade
+   **The work:**
+   - **6a. Policies as data.** A policy is a list of changes to the rules (e.g. "basic rate 20% → 21%"). Applying it gives a changed RuleSet; the engine itself doesn't change. Policies can be shared as a link.
+   - **6b. Static costing.** Run the population under today's rules and under the package, and the difference is the cost. Also report each lever's cost on its own, and the package's interactions (levers can overlap, e.g. a tax rise reduces Universal Credit spending).
+   - **6c. Check against HMRC's ready reckoner.** HMRC publishes the cost of standard changes: 1p on each rate, £100 or 1% on thresholds and allowances. Run the same changes and compare. Explain big gaps or fix them before anything is published.
+   - **6d. Behavioural costing.** For income tax rate changes, use published estimates of how much reported income responds to rates (HMRC's and the OBR's figures), applied by income band. Shown side by side with the static cost and graded. Benefit changes stay static for now, labelled as such.
+   - **6e. Winners and losers.** Household-level before and after across the population, grouped by equivalised income decile.
+   - **6f. The page**, in the layout above. Each number gets a "show working" drawer with its method, sources and grade.
+
+   **Levers in the first version** (all already in the rules):
+   - **Income tax:** basic, higher and additional rates (England, Wales and NI separately from Scotland), personal allowance, higher-rate threshold, additional-rate threshold, personal allowance taper.
+   - **National Insurance:** employee main and additional rates, employer rate, primary and secondary thresholds, upper earnings limit, self-employed rates.
+   - **Universal Credit:** standard allowances, child element, the two-child limit on or off, work allowances, the taper rate, health element rates, the benefit cap.
+   - **Child Benefit:** both rates, and the charge threshold and taper width.
+
+7. **Economy and debt.** OBR's latest forecast as the baseline, OBR multipliers for GDP effects, borrowing and debt over 5 years, and a pass/fail check against both fiscal rules with the margin shown. This fills in the headline's borrowing line.
+
+8. **Polish.** Look-and-feel pass, phone layout, accessibility, sharing links, and a methods write-up for the "how we know" page.
 
 ## Not in milestone 1 (written down so it isn't forgotten)
 
@@ -70,4 +87,5 @@ Savings and dividend income, Marriage Allowance, council tax and Council Tax Red
 
 - Name and code licence (before any public repo)
 - Whether and when to create a GitHub repo (it's public, so that's your call)
-- Look-and-feel direction, before step 8
+- Look-and-feel direction, before 6f (the page)
+- Which behavioural estimates to use in 6d. I'll set out the published options and recommend one.
