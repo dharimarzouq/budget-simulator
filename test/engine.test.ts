@@ -84,10 +84,10 @@ describe("income tax and National Insurance", () => {
     expect(close.adults[0]!.incomeTax + close.adults[1]!.incomeTax).toBeCloseTo(5486 - 252 + 138, 2);
     // Not claimed: no change.
     expect(couple(40000, 8000, { claimsMarriageAllowance: false }).adults[0]!.incomeTax).toBeCloseTo(5486, 2);
-    // Scotland: relief at the starter rate, 19% × 1,260 = 239.40.
+    // Scotland: relief at the Scottish basic rate, not the starter rate (ITA 2007 s55B(3)): 20% × 1,260 = 252.
     const scot = couple(30000, 0, { region: "scotland" });
     const scotNone = couple(30000, 0, { region: "scotland", claimsMarriageAllowance: false });
-    expect(scotNone.adults[0]!.incomeTax - scot.adults[0]!.incomeTax).toBeCloseTo(239.4, 2);
+    expect(scotNone.adults[0]!.incomeTax - scot.adults[0]!.incomeTax).toBeCloseTo(252, 2);
   });
 
   it("£30,000 self-employed", () => {

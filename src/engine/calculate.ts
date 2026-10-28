@@ -394,15 +394,15 @@ function applyBenefitCap(
 /**
  * Marriage Allowance (Income Tax Act 2007 ss55A to 55E). A partner with income below the personal allowance can
  * transfer part of it to a partner who pays no more than the basic rate (no more than the intermediate rate in
- * Scotland). The receiving partner's tax falls by the amount transferred at the basic rate (taken as the starter rate
- * in Scotland). Claimed only when it leaves the couple better off.
+ * Scotland). The receiving partner's tax falls by the amount transferred at the basic rate: for a Scottish taxpayer
+ * the Scottish basic rate, not the starter rate (s55B(3)). Claimed only when it leaves the couple better off.
  */
 function marriageAllowance(h: Household, r: RuleSet, adults: AdultResult[]): AdultResult[] {
   if (h.adults.length !== 2 || h.claimsMarriageAllowance === false) return adults;
   const it = r.incomeTax;
   const bands = h.region === "scotland" ? it.bands.scotland : h.region === "wales" ? it.bands.wales : it.bands.ruk;
   const higherFrom = bands.find((b) => b.rate >= 0.4)?.threshold ?? Infinity;
-  const reliefRate = bands[0]!.rate;
+  const reliefRate = h.region === "scotland" ? bands[1]!.rate : bands[0]!.rate; // Scotland's band 0 is the starter rate
   let best = adults;
   let bestGain = 0;
   for (const i of [0, 1]) {

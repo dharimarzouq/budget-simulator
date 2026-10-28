@@ -73,7 +73,8 @@ async function renderPopulation(el: HTMLElement, r: ReturnType<typeof ruleSet>) 
     let html = `<table><tr><th>A year</th><th class="num">These households</th><th class="num">Published</th><th class="num">Difference</th><th>Source</th></tr>`;
     for (const [name, ours, unit] of rows) {
       const p = pop.published[name];
-      const diff = p ? `${ours >= p.value ? "+" : ""}${((ours / p.value - 1) * 100).toFixed(0)}%` : "";
+      const d = p ? Math.round((ours / p.value - 1) * 100) : 0; // round first, so a tiny gap shows as 0%, not −0%
+      const diff = p ? `${d > 0 ? "+" : d < 0 ? "−" : ""}${Math.abs(d)}%` : "";
       html += `<tr><td>${esc(name)}${GAPS[name] ? `<div class="small">${esc(GAPS[name]!)}</div>` : ""}</td>
         <td class="num">${fmt(ours, unit)}</td><td class="num">${p ? fmt(p.value, unit) : ""}</td><td class="num">${diff}</td>
         <td class="small">${p ? esc(p.source) : ""}</td></tr>`;

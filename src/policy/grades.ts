@@ -62,7 +62,7 @@ const CHECKS: Record<string, { check: Check; why: string }> = {
   ni_c4_additional: c("gap", "25–30% above HMRC."),
   ni_lpl: c("close", "Within 6% of HMRC."),
   ni_upl: c("gap", "25% below HMRC (a very small amount)."),
-  uc_two_child_limit: c("fair", "About 10% above the OBR's costing of removing it."),
+  uc_two_child_limit: c("gap", "25% above the OBR's static costing of removing it for 2026-27 (£2.6bn against £2.1bn): the average gain matches, but there are 15% too many families affected."),
   cb_eldest: c("close", "Within 2% of HMRC."),
   cb_other: c("close", "Within 6% of HMRC."),
   cb_charge_threshold: c("gap", "The charge comes out 18–20% above HMRC's figures, uprated."),

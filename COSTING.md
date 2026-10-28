@@ -173,14 +173,15 @@ These are much bigger changes than anything HMRC's ready reckoner checks, so eve
 
 ## Universal Credit: check against an OBR costing
 
-There's no ready reckoner for Universal Credit, so UC costings are checked against the OBR's costings of real measures. The first is the removal of the two-child limit, which the OBR costed in November 2025 (Economic and fiscal outlook, table 3.2, as reported): £2.3bn in 2026-27, rising to about £3bn by 2029-30 as claims build up, for about 560,000 families gaining around £5,310 a year each.
+There's no ready reckoner for Universal Credit, so UC costings are checked against the OBR's costings of real measures. The first is the removal of the two-child limit, which the OBR costed in its [November 2025 Economic and fiscal outlook](https://obr.uk/efo/economic-and-fiscal-outlook-november-2025/), Table 3.2 (checked against the document, 28 October 2026). It rises over the years because more families have a third child born after April 2017; 2026-27 is the like-for-like year.
 
-| | Ours (2026-27, full effect) | OBR |
+| 2026-27 | Ours | OBR |
 |---|---:|---:|
-| Cost | £3.33bn | £3.0bn (2029-30, mature) |
-| Families gaining | 691,000 | 560,000 |
-| Average gain | £4,819 | £5,310 |
+| Cost, static | £2.62bn | £2.1bn |
+| Cost, with more families claiming | (not modelled) | £2.3bn |
+| Families gaining | 589,000 | 510,000 |
+| Average gain | £4,455 | £4,530 |
 
-Ours is about 10% high on cost and 23% high on families, with a smaller average. That's consistent with the population having somewhat too many larger families on low incomes (the Child Benefit checks point the same way). Ours is also a full, immediate effect; the OBR's first year is lower because new claims take time to come through. A source note: I found the OBR figures via news reports quoting the EFO, not in the EFO itself; they should be confirmed against the document before being shown on the page.
+The average gain matches within 2%, but ours has 15% more families gaining, so the static cost comes out 25% over the OBR's (13% over its figure including the extra claims). That's consistent with the population having too many larger families on Universal Credit: lone parents are deliberately weighted up to match DWP's caseloads, and the Child Benefit checks point the same way (see POPULATION.md). So two-child limit costings are marked "known gap".
 
-(These two-child limit figures are from an earlier population and haven't been re-run since.)
+(Re-run 28 October 2026 on the population uprated with the October 2026 forecast. On an earlier population it came to £3.33bn for 691,000 families, compared then with the OBR's 2029-30 figures.)
