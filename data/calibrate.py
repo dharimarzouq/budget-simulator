@@ -66,10 +66,11 @@ def load():
     } for u in seed["units"]])
     res = pd.read_csv(BUILD / "seed_results.csv")
     units = units.merge(res, on="id", validate="one_to_one")
-    tax = res.set_index("id")[["adult0_tax", "adult1_tax"]]
+    tax = res.set_index("id")[["adult0_tax", "adult1_tax", "adult0_reductions", "adult1_reductions"]]
     adults = pd.DataFrame([{
         "household": u["household"], "region": norm_region(u["regionDetail"]), "age": a["age"], "outside": u.get("outside", False),
         "income_tax": tax.at[u["id"], f"adult{i}_tax"],
+        "reductions": tax.at[u["id"], f"adult{i}_reductions"],
         "main_job": a["employment"], "second_job": a.get("secondJob", 0.0),
         "employment": a["employment"] + a.get("secondJob", 0.0), "self_employment": a["selfEmployment"], "pension": a["pension"],
         "property": a.get("propertyIncome", 0.0), "interest": a.get("savingsInterest", 0.0), "dividends": a.get("dividends", 0.0),
@@ -309,9 +310,18 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     # HMRC liabilities 2026-27, Table 2.6: income tax by source. Moderate weight, so total income tax still
     # works partly as a check.
     t26 = pd.read_csv(T / "hmrc_income_tax_by_source_2026_27.csv")
+    # HMRC's lines by source add up to tax after reductions (£347bn), while ours by source are before them, so
+    # HMRC's are grossed up by the reductions, spread in proportion.
+    line = lambda start, col="all_taxpayers": float(pd.to_numeric(t26[t26["line"].str.startswith(start)][col]).sum()) * 1e6
+    gross_up = 1 + line("Allowances given as Income Tax reductions") / line("Total Income Tax liability")
     for kind, column in [("earnings", "non_savings_tax"), ("savings", "savings_tax"), ("dividends", "dividend_tax")]:
-        value = pd.to_numeric(t26[t26["line"].str.startswith(f"Income Tax on {kind}")]["all_taxpayers"]).sum() * 1e6
-        targets.append(Target("HMRC 2026-27 income tax by source", kind, value, household_row(units, units[column].to_numpy(), n), 1, 1e9))
+        targets.append(Target("HMRC 2026-27 income tax by source", kind, line(f"Income Tax on {kind}") * gross_up,
+                              household_row(units, units[column].to_numpy(), n), 1, 1e9))
+    # Same table: reductions given to higher and additional-rate taxpayers (marginal rate taken from total income).
+    total = adults["total"].to_numpy()
+    for kind, col, mask in [("higher-rate", "higher_rate", (total > 50_270) & (total <= 125_140)), ("additional-rate", "additional_rate", total > 125_140)]:
+        targets.append(Target("HMRC 2026-27 tax reductions", f"{kind} taxpayers", line("Allowances given as Income Tax reductions", col),
+                              household_row(adults, mask * adults["reductions"].to_numpy(), n), 1, 2e8))
     # Scottish Fiscal Commission, January 2026: Scottish income tax on non-savings, non-dividend income in 2026-27,
     # £21,508m. The official forecast for this exact year; Scotland's own rates make it a separate check on how
     # income is spread there.

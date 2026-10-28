@@ -85,7 +85,7 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
 ## Not in milestone 1 (written down so it isn't forgotten)
 
-Separate property income rates (from April 2027), finance cost relief for landlords, investment reliefs (EIS, SEIS, VCTs) and Gift Aid, council tax and Council Tax Reduction, Local Housing Allowance caps by area, disability benefits, pensioner benefits (Pension Credit, Winter Fuel Payment), Scottish Child Payment, the TV licence, VAT and other indirect taxes, spending departments (layer 4), and reform packs (land value tax comes in milestone 2).
+Separate property income rates (from April 2027), finance cost relief for landlords, investment reliefs (EIS, SEIS, VCTs) and Gift Aid as rules of their own (they're in the population only as a total of tax reductions), council tax and Council Tax Reduction, Local Housing Allowance caps by area, disability benefits, pensioner benefits (Pension Credit, Winter Fuel Payment), Scottish Child Payment, the TV licence, VAT and other indirect taxes, spending departments (layer 4), and reform packs (land value tax comes in milestone 2).
 
 ## Decisions I'll need from you along the way
 

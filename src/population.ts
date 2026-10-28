@@ -21,7 +21,7 @@ export interface Population {
   published: Record<string, PublishedFigure>;
 }
 
-type RawAdult = [number, number, number, number, number, number, number, number, number, number, number, number];
+type RawAdult = [number, number, number, number, number, number, number, number, number, number, number, number, number];
 type RawChild = [number, number, number];
 type RawUnit = [number, number, number, number, number, number, number, RawAdult[], RawChild[]];
 
@@ -46,9 +46,9 @@ export function decodePopulation(raw: RawPopulation): Population {
       claimsUniversalCredit: (flags & 1) !== 0,
       claimsChildBenefit: (flags & 2) !== 0,
       claimsMarriageAllowance: (flags & 4) !== 0,
-      adults: adults.map(([age, employment, secondJob, selfEmployment, pension, h, carer, propertyIncome, savingsInterest, dividends, pensionContributions, otherDeductions]) => ({
+      adults: adults.map(([age, employment, secondJob, selfEmployment, pension, h, carer, propertyIncome, savingsInterest, dividends, pensionContributions, otherDeductions, taxReductions]) => ({
         age, employment, secondJob, selfEmployment, pension, propertyIncome, savingsInterest, dividends,
-        pensionContributions, otherDeductions, health: health[h]!, carer: carer === 1,
+        pensionContributions, otherDeductions, taxReductions, health: health[h]!, carer: carer === 1,
       })) as Household["adults"],
       children: children.map(([age, pre, d]) => ({ age, bornBefore2017: pre === 1, disability: disability[d]! })),
     },

@@ -6,6 +6,7 @@ limits:
   - Property income is taxed as non-savings income in 2026-27. Separate property rates (22/42/47%) start in April 2027.
   - For Scottish taxpayers, the personal savings allowance is worked out on UK bands. That's a simplification to check.
   - Marriage Allowance treats every couple as married or in a civil partnership; in the population, who claims it (which leaves out cohabiting couples) is part of the take-up.
+  - Other deductions (losses, qualifying interest) and tax reductions (EIS, SEIS and VCT relief, relief for tax paid abroad and similar) are taken as amounts given for each person, not worked out from their own rules.
   - Ignores the blind person's allowance, finance cost relief for landlords and reliefs other than those stated.
 parameters:
   personal_allowance:

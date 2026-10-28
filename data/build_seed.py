@@ -102,6 +102,15 @@ ASSUMPTIONS = {
     # by income band. These are the spreads around those averages.
     "pension_contribution_sigma": 0.8,  # spread of pension contributions around HMRC's band average
     "other_deductions_sigma": 1.2,  # spread of other deductions (losses and the like vary a lot) around HMRC's band average
+    # Tax reductions (EIS, SEIS and VCT relief, relief for tax paid abroad...). HMRC's 2026-27 liabilities (Table 2.6)
+    # give totals by type of taxpayer: £3.69bn for additional-rate and £1.1bn for higher-rate taxpayers (basic-rate
+    # taxpayers' £0.57bn is essentially Marriage Allowance, modelled separately). Who has them is a guess; calibration
+    # matches the totals.
+    "reductions_share_additional": 0.3,
+    "reductions_mean_additional": 16_000,
+    "reductions_share_higher": 0.05,
+    "reductions_mean_higher": 3_000,
+    "reductions_sigma": 1.2,
     "property_sigma": 0.8,
     "interest_sigma": 2.2,  # widened from 1.5: tax on savings came out 39% under HMRC's, so interest is more concentrated
     "dividends_sigma": 1.5,  # narrowed from 1.8: tax on dividends came out 13% over
@@ -163,6 +172,7 @@ def median_from_bands(lows: list[float], counts: list[float]) -> float:
 class Builder:
     def __init__(self, free_age_p: np.ndarray | None = None):
         self.rng = np.random.default_rng(SEED)
+        self.reductions_rng = np.random.default_rng(SEED + 2)
         self.age_log: list[tuple[int, float, str]] = []  # (age, starting weight, how the age was set), for the second pass
         self.weight = 1.0
         cells = pd.read_csv(TARGETS / "frs_households_region_composition_tenure_2024-25.csv")
@@ -320,6 +330,16 @@ class Builder:
             return 0.0
         sg = A["other_deductions_sigma"]
         return round(min(0.5 * total, mean * float(np.exp(sg * self.rng.standard_normal() - sg * sg / 2))), 2)
+
+    def tax_reductions(self, total: float) -> float:
+        """Reliefs given as a cut in the tax bill, for higher and additional-rate taxpayers (see the assumptions).
+        Uses its own random numbers, so it doesn't change any other draw."""
+        r = self.reductions_rng
+        kind = "additional" if total > 125_140 else "higher" if total > 50_270 else None
+        if not kind or r.random() >= A[f"reductions_share_{kind}"]:
+            return 0.0
+        sg = A["reductions_sigma"]
+        return round(A[f"reductions_mean_{kind}"] * float(np.exp(sg * r.standard_normal() - sg * sg / 2)), 2)
 
     def other_income(self, base: float) -> dict:
         """Property, interest and dividends for one adult, drawn from HMRC's figures for their income band."""
@@ -544,6 +564,7 @@ class Builder:
                 total = earnings + a["pension"] + a["propertyIncome"] + a["savingsInterest"] + a["dividends"]
                 a["pensionContributions"] = self.pension_contribution(earnings, total)
                 a["otherDeductions"] = self.other_deductions(total)
+                a["taxReductions"] = self.tax_reductions(total)
             u["region"] = engine_region(region)
             u["rentMonthly"] = self.rent_month(region, tenure) if i == 0 else 0.0
             u["savings"] = self.savings_amount(kids_label) if i == 0 else 0.0
@@ -640,6 +661,7 @@ class Builder:
                           "health": "none", "carer": False})
                 a["pensionContributions"] = self.pension_contribution(parts[0] + parts[1], total)
                 a["otherDeductions"] = self.other_deductions(total)
+                a["taxReductions"] = self.tax_reductions(total)
                 self.child_benefit_status(units[0], r)
                 hh = first_id + k
                 for j, u in enumerate(units):

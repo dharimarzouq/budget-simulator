@@ -62,6 +62,14 @@ describe("income tax and National Insurance", () => {
     expect(big.adults[0]!.incomeTax).toBeCloseTo(1282.475, 2);
   });
 
+  it("tax reductions cut the tax bill, but not below zero", () => {
+    // Pay 60,000: 7,540 + 3,892 = 11,432 tax. A 3,000 reduction leaves 8,432; a 20,000 one leaves nothing.
+    const tax = (taxReductions: number) => calculate(household({ adults: [adult({ employment: 60000, taxReductions })] }), r).adults[0]!.incomeTax;
+    expect(tax(0)).toBeCloseTo(11432, 2);
+    expect(tax(3000)).toBeCloseTo(8432, 2);
+    expect(tax(20000)).toBe(0);
+  });
+
   it("Marriage Allowance: £1,260 of allowance moves to a basic-rate partner, cutting their tax by up to £252", () => {
     // Pay 40,000: tax (40,000 - 12,570) × 20% = 5,486, less 252. Partner on 8,000 still pays nothing.
     const couple = (a: number, b: number, extra: Partial<Parameters<typeof household>[0]> = {}) =>

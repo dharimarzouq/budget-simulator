@@ -147,14 +147,16 @@ function adultTax(a: Adult, h: Household, r: RuleSet, allowanceGiven = 0): Adult
   const sv = sliceTax(nsTaxable + savingsNil, sTaxable - savingsNil, uk);
   const dividendNil = Math.min(dTaxable, it.dividendAllowance);
   const dv = sliceTax(nsTaxable + sTaxable + dividendNil, dTaxable - dividendNil, uk, it.dividendRates);
-  const incomeTax = ns.tax + sv.tax + dv.tax;
+  const taxBeforeReductions = ns.tax + sv.tax + dv.tax;
+  const reductions = Math.min(a.taxReductions ?? 0, taxBeforeReductions);
+  const incomeTax = taxBeforeReductions - reductions;
 
   const pieces = [`earnings, pensions and property: ${ns.parts.join(" + ") || "nothing taxable"}`];
   if (savings) pieces.push(`savings interest: ${gbp(savingsNil)} at 0% (starting rate and savings allowance)` + (sv.parts.length ? `, then ${sv.parts.join(" + ")}` : ""));
   if (dividends) pieces.push(`dividends: ${gbp(dividendNil)} at 0% (dividend allowance)` + (dv.parts.length ? `, then ${dv.parts.join(" + ")}` : ""));
   lines.push({
     label: "Income tax",
-    amount: incomeTax,
+    amount: taxBeforeReductions,
     working:
       `Income ${gbp(totalIncome)}` +
       (a.pensionContributions ? ` less pension contributions ${gbp(a.pensionContributions)}` : "") +
@@ -164,6 +166,9 @@ function adultTax(a: Adult, h: Household, r: RuleSet, allowanceGiven = 0): Adult
       (allowanceGiven ? ` (after transferring ${gbp(allowanceGiven)} to their partner as Marriage Allowance)` : "") +
       ` leaves ${gbp(taxableIncome)} taxable. ${pieces.join("; ")}.`,
   });
+  if (reductions) {
+    lines.push({ label: "Tax reductions", amount: -reductions, working: "Reliefs given as a cut in the tax bill (such as EIS, SEIS and VCT relief, or relief for tax paid abroad), up to the tax due." });
+  }
 
   const overPensionAge = a.age >= ni.statePensionAge;
   let employeeNI = 0;

@@ -22,6 +22,10 @@ export interface Adult {
   /** Other deductions from income before tax: trading and property losses, qualifying interest, and similar
    * reliefs (HMRC's "other interest, charges and deductions"). */
   otherDeductions?: number;
+  /** Reliefs given as a cut in the tax bill rather than in income: EIS, SEIS and VCT relief, relief for tax paid
+   * abroad, married couple's allowance and similar. Can't take tax below zero. (Marriage Allowance is worked out
+   * separately.) */
+  taxReductions?: number;
   /** Universal Credit health element: none, the new-claim rate, or the protected rate. */
   health: "none" | "lcwra" | "lcwra_protected";
   /** Cares for someone at least 35 hours a week. */

@@ -22,6 +22,7 @@ function adultFields(i: number, defaults: { age: number; employment: number }) {
     ${num(`a${i}_dividends`, "Dividends (outside ISAs), a year", 0, 500)}
     ${num(`a${i}_pensionContributions`, "Own pension contributions, a year", 0, 100)}
     ${num(`a${i}_otherDeductions`, "Other deductions (losses, qualifying interest), a year", 0, 100)}
+    ${num(`a${i}_taxReductions`, "Tax reductions (EIS, VCT, tax paid abroad), a year", 0, 100)}
     <label>Health condition (Universal Credit)<select name="a${i}_health">
       <option value="none">None</option>
       <option value="lcwra">Can't work, new claim</option>
@@ -67,6 +68,7 @@ export function readForm(form: HTMLFormElement): Household {
       dividends: n(`a${i}_dividends`),
       pensionContributions: n(`a${i}_pensionContributions`),
       otherDeductions: n(`a${i}_otherDeductions`),
+      taxReductions: n(`a${i}_taxReductions`),
       health: f.get(`a${i}_health`) as "none" | "lcwra" | "lcwra_protected",
       carer: f.has(`a${i}_carer`),
     });
