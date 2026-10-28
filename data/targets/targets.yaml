@@ -9,6 +9,7 @@ hmrc_income_by_region_band_2023_24.csv:
   units: "*_people_k in thousands of people; *_gbp_m in £ million a year; band_lower is the lower limit of total income in £"
   use: calibration
   notes:
+    - Used by region and income band, not just region totals, so the spread of income within each region (which matters for Scotland's rates) is right.
     - Rows for "All" people only; HMRC's male and female splits are left out for now.
     - Some regions merge the top income bands, so they have fewer rows.
     - Figures are for 2023-24 and need uprating to 2026-27 (OBR earnings and pensions growth) before use.

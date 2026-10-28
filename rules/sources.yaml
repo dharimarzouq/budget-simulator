@@ -104,6 +104,21 @@ hmrc-child-benefit-2025:
   published: 2026-04-23
   accessed: 2026-10-27
 
+sfc-2026-01:
+  title: "Scotland's Economic and Fiscal Forecasts, January 2026"
+  publisher: Scottish Fiscal Commission
+  url: https://fiscalcommission.scot/wp-content/uploads/2026/01/Scotlands-Economic-and-Fiscal-Forecasts-January-2026-Visual-Summary-Pages.pdf
+  licence: Open Government Licence v3.0
+  published: 2026-01-13
+  accessed: 2026-10-28
+  note: "Scottish non-savings, non-dividend income tax 2026-27: £21,508m (as reported in SPICe's briefing on the 2026-27 Scottish Budget)."
+hmrc-scottish-income-tax-2024-25:
+  title: "Scottish Income Tax Outturn Statistics: 2024 to 2025"
+  publisher: HM Revenue and Customs
+  url: https://www.gov.uk/government/statistics/scottish-income-tax-outturn-statistics-2024-to-2025
+  licence: Open Government Licence v3.0
+  published: 2026-07-09
+  accessed: 2026-10-28
 govuk-marriage-allowance:
   title: "Marriage Allowance"
   publisher: GOV.UK

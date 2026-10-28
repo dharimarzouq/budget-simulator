@@ -84,7 +84,8 @@ def hbai_check(pop: list[dict], res: pd.DataFrame) -> pd.DataFrame:
 
 def main(population: str, results: str) -> None:
     pop = json.loads(Path(population).read_text())["units"]
-    units = pd.DataFrame([{"id": u["id"], "weight": u["weight"], "unit": u["unit"], "outside": u.get("outside", False)} for u in pop])
+    units = pd.DataFrame([{"id": u["id"], "weight": u["weight"], "unit": u["unit"], "outside": u.get("outside", False),
+                           "region": u["data"]["region"]} for u in pop])
     outside_people = units.loc[units["outside"], "weight"].sum() / 1e6
     # Employee NICs that people over State Pension age would pay if they weren't exempt.
     def ni(job: float) -> float:
@@ -120,6 +121,8 @@ def main(population: str, results: str) -> None:
         ("Income tax on savings", (w * d["savings_tax"]).sum() / 1e9, src("savings"), "£bn", "HMRC liabilities 2026-27, table 2.6", ""),
         ("Income tax on dividends", (w * d["dividend_tax"]).sum() / 1e9, src("dividends"), "£bn", "HMRC liabilities 2026-27, table 2.6", ""),
         ("Income taxpayers 2026-27", (w * d["taxpayers"]).sum() / 1e6, liab("all", "taxpayers_k") / 1e3, "m", "HMRC liabilities 2026-27", ""),
+        ("Scottish income tax (earnings, pensions and property)", (w * d["non_savings_tax"])[d["region"] == "scotland"].sum() / 1e9, 21.508, "£bn",
+         "Scottish Fiscal Commission, January 2026", "forecast for 2026-27; HMRC's outturn for 2024-25 was £18.6bn"),
         ("Marriage Allowance", (w * d["marriage_allowance"]).sum() / 1e9, 0.59, "£bn", "HMRC tax relief statistics 2025-26", "cost: tax saved by couples who claim"),
         ("Employee NICs", (w * d["employee_ni"]).sum() / 1e9, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employee"), "£bn", "OBR March 2026", ""),
         ("Employer NICs", (w * d["employer_ni"]).sum() / 1e9 - lump_sums, obr("obr_income_tax_nics_2026_03.csv", "Class 1 Employer"), "£bn", "OBR March 2026",

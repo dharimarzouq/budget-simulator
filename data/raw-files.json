@@ -34,5 +34,9 @@
  "ons_ashe_table6_2026_provisional.zip": {
   "url": "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2026provisional/ashetable62026provisional.zip",
   "sha256": "106405c44490854db77756ac76c48f404d24d43e8c407482ac69ba84549be273"
+ },
+ "hmrc_scottish_income_tax_outturn_2024_25.ods": {
+  "url": "https://assets.publishing.service.gov.uk/media/6a981bd5f5b35599aec190b6/Scottish_Income_Tax_Outturn_Statistics_2024-2025.ods",
+  "sha256": "d085b3653550d48e7b12f092e1b595dcd3ca74090f76eddb6e1a67c01c0084be"
  }
 }

@@ -8,7 +8,7 @@ It replaces survey microdata (the Family Resources Survey), which can't be publi
 
 1. **Targets** (`data/targets/`, listed with sources in `targets.yaml`): published tables from HMRC, DWP, the Family Resources Survey via Stat-Xplore, and the OBR.
 2. **Seed** (`data/build_seed.py`): 30,012 made-up private households, plus 2,000 people outside private households (below). With 600 extra top-income households (below), that's 38,328 benefit units in all. Households are spread across all 12 regions, the four tenures, and households with and without children, in proportion to the FRS, with at least 40 in every combination. Each starts with a weight: how many real households it stands for.
-3. **Calibration** (`data/calibrate.py`): the weights are scaled up or down to bring the weighted totals as close as possible to 548 published figures at once. Each household's scaling is kept as close to 1 as it can be, and never below ÷10 or above ×10. Published sources disagree with each other slightly, so this minimises the misses rather than forcing an exact match. Every miss is reported in `data/build/calibration_report.csv`.
+3. **Calibration** (`data/calibrate.py`): the weights are scaled up or down to bring the weighted totals as close as possible to 765 published figures at once. Each household's scaling is kept as close to 1 as it can be, and never below ÷10 or above ×10. Published sources disagree with each other slightly, so this minimises the misses rather than forcing an exact match. Every miss is reported in `data/build/calibration_report.csv`.
 4. **Checks**: totals that were *not* used in calibration test the result (below).
 
 **How much depends on the random draws.** The seed is made with random numbers. Rebuilding it from three different starting points (`POPULATION_SEED=2027` and `2028`, against the standard 2026) moves every tax and benefit total by under 1%: income tax by 0.3%, NICs by 0.7%, Universal Credit by 0.1%, Child Benefit by 0.4%. Smaller figures move more: the Marriage Allowance cost by 4%, the working-pensioner NICs exemption by 4%, people with a second job by 9%.
@@ -104,7 +104,9 @@ Median miss for each group of targets, before and after calibration:
 | HMRC pension contributions by band | 12 | 27% | 0.8% | 6% |
 | HMRC other deductions by band | 12 | 27% | 0.3% | 1% |
 | HMRC self-employed taxpayers by range of profits (people and amounts) | 28 | 26% | 1.7% | 8% |
-| HMRC taxpayers and income by region (as shares of the 2026-27 total) | 24 | 6% | 2.8% | 6% |
+| HMRC taxpayers and income by region (as shares of the 2026-27 total) | 24 | 6% | 1.1% | 5% |
+| HMRC taxpayers and income by region and income band (uprated, weighted ×0.3) | 216 | 16% | 2.0% | 6% |
+| **Scottish Fiscal Commission: Scottish income tax 2026-27** | 1 | 44% | 5.2% | |
 | HMRC taxpayers and income by age (as shares of the 2026-27 total) | 26 | 14% | 3.6% | 29% |
 | HMRC costs of the NICs thresholds | 2 | 3% | 1.2% | 1% |
 | HMRC employer NICs pay base (ready reckoner: £11,150m per 1p, so £1,115bn) | 1 | 14% | 3.4% | |
@@ -142,27 +144,28 @@ The worst misses:
 |---|---:|---:|---|---|
 | Households | 29.46m | 28.97m | FRS 2024-25 | yes, indirectly |
 | People outside private households | 2.80m | none published | | sized by calibration |
-| **Income taxpayers, 2026-27** | **40.4m** | 40.8m | HMRC liabilities 2026-27 | by band |
-| Employees (private households) | 28.5m | 29.8m | OBR March 2026 | yes |
+| **Income taxpayers, 2026-27** | **40.0m** | 40.8m | HMRC liabilities 2026-27 | by band |
+| Employees (private households) | 28.3m | 29.8m | OBR March 2026 | yes |
 | **Everyone paid during the year** | **31.3m** | 30.3m on payrolls in one month | ONS/HMRC PAYE RTI, September 2026 | no; not the same measure (see above) |
 | All pay | £1,327bn | £1,298bn wages and salaries | OBR March 2026 (national accounts) | yes |
 | People with a second job | 1.15m | 1.29m | ONS LFS mid-2026 (secondary reports) | no |
-| **Income tax** | **£353.9bn** | **£347.0bn liabilities** (£359.6bn receipts) | HMRC liabilities 2026-27; OBR | by source |
-| of which on earnings, pensions and property | £326.3bn | £318.8bn | HMRC 2026-27, table 2.6 | yes |
+| **Income tax** | **£352.4bn** | **£347.0bn liabilities** (£359.6bn receipts) | HMRC liabilities 2026-27; OBR | by source |
+| of which on earnings, pensions and property | £324.9bn | £318.8bn | HMRC 2026-27, table 2.6 | yes |
 | of which on savings | £7.4bn | £8.2bn | HMRC 2026-27, table 2.6 | yes |
-| of which on dividends | £20.3bn | £19.8bn | HMRC 2026-27, table 2.6 | yes |
+| of which on dividends | £20.2bn | £19.8bn | HMRC 2026-27, table 2.6 | yes |
+| **Scottish income tax** (earnings, pensions and property) | **£22.6bn** | £21.5bn | Scottish Fiscal Commission, January 2026 | yes |
 | **Marriage Allowance** | **£0.48bn** | £0.59bn | HMRC tax relief statistics 2025-26 | no |
-| **Employee NICs** | **£55.6bn** | £51.5bn | OBR | no |
-| **Employer NICs** (after the lump sums below) | **£164.9bn** | £151.0bn | OBR | through HMRC's pay base |
-| Cost of the NICs primary threshold | £30.1bn | £30.4bn | HMRC tax relief statistics 2025-26 | yes |
-| Cost of the NICs secondary threshold | £24.1bn | £24.4bn | HMRC tax relief statistics 2025-26 | yes |
-| **Self-employed NICs** | **£3.14bn** | £3.16bn | OBR | no |
-| **Employee NICs exemption over State Pension age** | **£1.12bn** | £1.2bn | HMRC tax relief statistics 2025-26 | no |
-| **Child Benefit spending** | **£13.8bn** | £13.7bn | OBR | no |
-| Families paid Child Benefit | 6.65m | 6.87m | HMRC Aug 2025 | yes |
-| Child Benefit charge | £0.47bn | £0.36bn | HMRC 2024-25 provisional | yes, low priority |
-| Children | 14.3m | 14.7m | HBAI 2024-25 | yes |
-| Households on Universal Credit | 6.96m | 7.16m | DWP May 2026 | yes |
+| **Employee NICs** | **£55.1bn** | £51.5bn | OBR | no |
+| **Employer NICs** (after the lump sums below) | **£163.7bn** | £151.0bn | OBR | through HMRC's pay base |
+| Cost of the NICs primary threshold | £29.8bn | £30.4bn | HMRC tax relief statistics 2025-26 | yes |
+| Cost of the NICs secondary threshold | £23.8bn | £24.4bn | HMRC tax relief statistics 2025-26 | yes |
+| **Self-employed NICs** | **£3.13bn** | £3.16bn | OBR | no |
+| **Employee NICs exemption over State Pension age** | **£1.11bn** | £1.2bn | HMRC tax relief statistics 2025-26 | no |
+| **Child Benefit spending** | **£13.7bn** | £13.7bn | OBR | no |
+| Families paid Child Benefit | 6.61m | 6.87m | HMRC Aug 2025 | yes |
+| Child Benefit charge | £0.49bn | £0.36bn | HMRC 2024-25 provisional | yes, low priority |
+| Children | 14.2m | 14.7m | HBAI 2024-25 | yes |
+| Households on Universal Credit | 6.95m | 7.16m | DWP May 2026 | yes |
 | **Universal Credit spending** | **£87.4bn** | £87.7bn | OBR | through DWP's averages |
 
 **Employer NICs lump sums.** Two employer reliefs depend on the employer, not the household, so they can't be given to a household in the population. Population totals take off HMRC's 2025-26 cost estimates (tax relief statistics, January 2026) as one figure each:
@@ -174,14 +177,14 @@ The zero rate for employees under 21 *is* modelled, because age is known.
 
 What this says, plainly:
 
-- **Income tax is 2.0% over HMRC's 2026-27 liabilities** (£354bn against £347bn). HMRC's liabilities are the like-for-like comparison: the OBR's £359.6bn is cash received, which includes tax not owed by individuals in the year. Taxpayers and their income match HMRC band by band, so the gap is in how the tax is worked out:
+- **Income tax is 1.5% over HMRC's 2026-27 liabilities** (£352bn against £347bn). HMRC's liabilities are the like-for-like comparison: the OBR's £359.6bn is cash received, which includes tax not owed by individuals in the year. Taxpayers and their income match HMRC band by band, so the gap is in how the tax is worked out:
   - **Now modelled:** other deductions (losses, qualifying interest: about £3bn of tax) and Marriage Allowance (£0.5bn).
   - **Not yet modelled:** investment reliefs (EIS, SEIS and VCTs, £0.9bn in HMRC's tax relief statistics), the higher-rate part of Gift Aid, relief for tax paid abroad, and top-slicing.
   - **A difference that runs the other way:** about half of pension contributions (£19bn) are "relief at source". The pension provider claims the basic-rate relief from HMRC, so HMRC's liabilities don't take it off the saver's tax, but the engine treats every contribution as taken off before tax. That makes ours about £4bn *lower* than HMRC's measure. For costings it makes no difference: the government gives the relief either way. Allowing for it, the like-for-like gap is closer to 3%.
-  - **Scotland is probably £2–3bn too high.** Scottish income tax raised £18.6bn in 2024-25 (HMRC outturn, reported by the Scottish Government in July 2026). Ours for 2026-27 is £24.3bn, which would need 14% growth a year; recent growth was 9%. Scottish taxpayers and their total income match HMRC's regional figures, so the problem is likely how income is spread within Scotland. The next thing to look at.
+  - **Scotland is 5% over the official forecast** (£22.6bn against the Scottish Fiscal Commission's £21.5bn for tax on earnings, pensions and property). It was 13% over (£24.3bn), and the cause was how income was spread within Scotland: HMRC's 2024-25 Scottish statistics count 115,000 advanced-rate and 41,000 top-rate taxpayers, and the population had about 60% more. Each region's taxpayers and income are now calibrated by income band (HMRC SPI Table 3.11), and the Commission's forecast is a target. Part of what's left is definitional: the Commission's figure is revenue after relief-at-source pension relief, Gift Aid and uncollected tax (about £0.45bn in HMRC's 2024-25 Scottish figures), so like for like the gap is nearer 3%.
 - **Universal Credit and Child Benefit spending match** within 1%.
 - **Self-employed NICs match** (£3.15bn against £3.16bn), and so do the costs of the NICs thresholds (within 2%).
-- **Taxpayers are 1% short** (40.4m against 40.8m), and employees in households 4% short.
+- **Taxpayers are 2% short** (40.0m against 40.8m), and employees in households 5% short.
 - **Employer NICs are 9% over the OBR's receipts but within 4% of HMRC's pay base.** HMRC's ready reckoner puts 1p on employer NICs at £11.15bn; ours gives £11.52bn. HMRC's own base implies about £159bn of employer NICs after the lump sums, already above the OBR's £151bn. The OBR's forecast probably allows for employers responding to the April 2025 rise; that's likely, not confirmed.
 - **Employee NICs are 8% over the OBR's.** This is a conflict between sources, not a known error in pay:
   - Employees' pay matches ASHE (average and every percentile within 5%).
@@ -189,7 +192,7 @@ What this says, plainly:
   - Something the population can't see must lower real NICs: they're charged each pay period (a bonus month pays 2% above the monthly limit), many people work part of the year, and the OBR allows for responses to the April 2025 rise.
   - HMRC's ready-reckoner figure for 1p on the main rate (£5,350m) implies even less (about £47bn in all), so it isn't a plain static base either and isn't used as a target.
   - Settling it needs HMRC's payroll data or FRS microdata. Until then, **costings of the employee main rate and thresholds are likely 10–17% too high.**
-- **The employee NICs exemption for working pensioners matches** (£1.12bn against £1.2bn), now that pensioners' work comes from the FRS and their pay from ASHE.
+- **The employee NICs exemption for working pensioners matches** (£1.11bn against £1.2bn), now that pensioners' work comes from the FRS and their pay from ASHE.
 
 ## The income distribution, against HBAI (held back)
 
@@ -197,9 +200,9 @@ HBAI ("Households below average income") is DWP's official measure of household 
 
 | Group | Median, ours | Median, HBAI | Mean, ours | Mean, HBAI | People, ours | People, HBAI |
 |---|---:|---:|---:|---:|---:|---:|
-| Children | £674 | £681 | £800 | £827 | 14.3m | 14.7m |
-| Working-age adults | £825 | £837 | £996 | £984 | 40.9m | 41.4m |
-| Pensioners | £727 | £704 | £839 | £830 | 12.3m | 12.2m |
+| Children | £674 | £681 | £801 | £827 | 14.2m | 14.7m |
+| Working-age adults | £821 | £837 | £995 | £984 | 40.6m | 41.4m |
+| Pensioners | £721 | £704 | £832 | £830 | 12.4m | 12.2m |
 
 (£ a week, equivalised.)
 

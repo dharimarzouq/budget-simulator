@@ -229,6 +229,22 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         g = "HMRC self-employed taxpayers by range of profits"
         targets.append(Target(g, f"£{int(r.lo):,}+ people", r.people_k * 1e3, household_row(adults, inb.astype(float), n), 0.5, 50_000))
         targets.append(Target(g, f"£{int(r.lo):,}+ profits", r.amount_gbp_m * 1e6 * EARNINGS_2023_24, household_row(adults, inb * profits, n), 1, 1e9))
+    # Same table, by region and band: how income is spread within each region (Scotland's rates make this matter
+    # for tax). Band edges uprated with earnings, as for the UK bands above, and the same low weight, because
+    # uprating 2023-24 bands misses frozen thresholds.
+    by_band = spi[(spi["band_lower"] != "all") & ~spi["region"].isin(["United Kingdom", "England"])].copy()
+    by_band["lo"] = by_band["band_lower"].astype(float)
+    for reg, g in by_band.groupby("region"):
+        mask = (adults["region"] == norm_region(reg)).to_numpy() & payer
+        los = sorted(g["lo"]) + [np.inf]
+        for r in g.itertuples():
+            if r.lo < 15_000:
+                continue  # the bottom band moves with the frozen personal allowance
+            hi = los[los.index(r.lo) + 1]
+            inb = mask & (adults["total"] >= r.lo * EARNINGS_2023_24).to_numpy() & (adults["total"] < hi * EARNINGS_2023_24).to_numpy()
+            g2 = "HMRC taxpayers and income by region and band"
+            targets.append(Target(g2, f"{reg} £{int(r.lo):,}+ taxpayers", r.taxpayers_k * 1e3, household_row(adults, inb.astype(float), n), 0.3, 30_000))
+            targets.append(Target(g2, f"{reg} £{int(r.lo):,}+ income", r.total_income_gbp_m * 1e6 * EARNINGS_2023_24, household_row(adults, inb * adults["total"].to_numpy(), n), 0.3, 1e9))
     by_age = pd.read_csv(T / "hmrc_income_by_age_2023_24.csv")
     by_age = by_age[by_age["age_range"] != "Totals"]
     for r in by_age.itertuples():
@@ -296,6 +312,12 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     for kind, column in [("earnings", "non_savings_tax"), ("savings", "savings_tax"), ("dividends", "dividend_tax")]:
         value = pd.to_numeric(t26[t26["line"].str.startswith(f"Income Tax on {kind}")]["all_taxpayers"]).sum() * 1e6
         targets.append(Target("HMRC 2026-27 income tax by source", kind, value, household_row(units, units[column].to_numpy(), n), 1, 1e9))
+    # Scottish Fiscal Commission, January 2026: Scottish income tax on non-savings, non-dividend income in 2026-27,
+    # £21,508m. The official forecast for this exact year; Scotland's own rates make it a separate check on how
+    # income is spread there.
+    scottish = (units["region"] == "scotland").to_numpy()
+    targets.append(Target("SFC Scottish income tax forecast", "non-savings, non-dividend 2026-27", 21.508e9,
+                          household_row(units, scottish * units["non_savings_tax"].to_numpy(), n), 1, 1e9))
     opted = pd.read_csv(T / "hmrc_child_benefit_opted_out_children_by_age_region_2025_08.csv").iloc[0, 1]
     targets.append(Target("Child Benefit opt-outs", "children in opted-out families", float(opted),
                           household_row(units, (units["cb_opted_out"] * units["kids"]).astype(float).to_numpy(), n), 1, 100_000))
