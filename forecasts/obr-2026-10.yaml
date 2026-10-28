@@ -1,0 +1,121 @@
+forecast: obr-2026-10
+label: OBR Economic and fiscal outlook, October 2026 (Budget 2026)
+years: [2025-26, 2026-27, 2027-28, 2028-29, 2029-30, 2030-31, 2031-32]
+limits:
+  - The OBR's forecast includes the policies announced at Budget 2026 (28 October 2026), most of which start in April 2027. The simulator's rules are 2026-27's, so a budget is costed against 2026-27 rules and carried forward; it doesn't allow for how it would interact with those later changes.
+  - 2025-26 is outturn; later years are forecasts.
+series:
+  psnb:
+    label: Public sector net borrowing
+    unit: gbp_bn
+    values: [134.3, 133.196, 111.980, 99.536, 73.780, 66.900, 68.339]
+    source: obr-efo-2026-10
+    table: "Table A.9 (2025-26); detailed forecast tables, aggregates, Table 6.5 (forecast years)"
+  current_budget_deficit:
+    label: Current budget deficit (negative is a surplus)
+    unit: gbp_bn
+    values: [47.4, 40.566, 17.516, 7.793, -14.527, -21.717, -20.884]
+    source: obr-efo-2026-10
+    table: "Table A.9 (2025-26); detailed forecast tables, aggregates, Table 6.5 (forecast years)"
+  psnfl:
+    label: Public sector net financial liabilities, end-March
+    unit: gbp_bn
+    values: [2552, 2684, 2807, 2914, 2997, 3075, 3156]
+    source: obr-efo-2026-10
+    table: Table A.9 (published to the nearest £1bn)
+  psnd:
+    label: Public sector net debt, end-March
+    unit: gbp_bn
+    values: [2918, 3082, 3239, 3384, 3487, 3583, 3695]
+    source: obr-efo-2026-10
+    table: Table A.9 (published to the nearest £1bn)
+  net_debt_interest:
+    label: Net debt interest
+    unit: gbp_bn
+    values: [87.5, 100.8, 106.7, 111.1, 120.3, 122.4, 133.0]
+    source: obr-efo-2026-10
+    table: Table A.9
+  gdp:
+    label: Nominal GDP, financial year
+    unit: gbp_bn
+    values: [3069.799, 3179.867, 3291.088, 3414.178, 3543.028, 3673.058, 3801.875]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, economy, Table 1.4: the four quarters April to March added up"
+  gdp_centred:
+    label: Nominal GDP centred on end-March (used for debt as a share of GDP)
+    unit: gbp_bn
+    values: [3134.688, 3227.403, 3349.651, 3478.399, 3607.164, 3737.671, 3864.161]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, economy, Table 1.4"
+  # How each part of a costing is carried forward: in proportion to the OBR's forecast for that tax or benefit.
+  income_tax:
+    label: Income tax receipts
+    unit: gbp_bn
+    values: [329.34, 365.44, 392.19, 403.78, 426.44, 444.50, 463.68]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.4"
+  employee_nics:
+    label: Class 1 employee National Insurance
+    unit: gbp_bn
+    values: [49.43, 51.77, 53.41, 55.23, 57.69, 59.89, 61.91]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.4"
+  employer_nics:
+    label: Class 1 employer National Insurance
+    unit: gbp_bn
+    values: [145.41, 152.74, 157.49, 162.96, 171.86, 178.05, 183.86]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.4"
+  self_employed_nics:
+    label: Class 4 and Class 2 self-employed National Insurance
+    unit: gbp_bn
+    values: [2.93, 3.32, 3.55, 3.81, 3.96, 4.15, 4.38]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.4"
+  universal_credit:
+    label: Universal Credit spending (inside and outside the welfare cap)
+    unit: gbp_bn
+    values: [80.04, 86.37, 88.89, 90.99, 92.56, 94.29, 97.18]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.9: the two Universal Credit lines added"
+  child_benefit:
+    label: Child Benefit spending
+    unit: gbp_bn
+    values: [13.44, 13.71, 13.91, 14.06, 14.02, 13.95, 13.91]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.9"
+  debt_interest_per_10bn:
+    label: Extra debt interest from £10bn more borrowing each year from the start of 2026-27
+    unit: gbp_bn
+    values: [null, 0.240411, 0.769948, 1.305262, 1.852618, 2.395743, 3.032877]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, debt interest, Table 5.1 (ready reckoner, £10bn increase in CGNCR)"
+fiscal_rules:
+  target_year: 2029-30
+  stability:
+    label: Current budget in surplus in 2029-30 (the fiscal mandate)
+    margin: 14.5
+    source: obr-efo-2026-10
+    table: Table 7.1
+  debt:
+    label: Debt (public sector net financial liabilities) falling as a share of GDP in 2029-30 (supplementary target)
+    margin: 24.4
+    source: obr-efo-2026-10
+    table: Table 7.1
+    note: "The margin is how much higher debt could be at end-March 2030 and still be falling as a share of GDP."
+multipliers:
+  label: Effect on real GDP of a fiscal change worth 1% of GDP, in % of GDP, by year since it starts
+  tax: [0.33, 0.30, 0.23, 0.14, 0.05, 0.00]
+  welfare: [0.60, 0.57, 0.43, 0.23, 0.07, 0.00]
+  source: obr-fer-2026-06
+  table: "Chapter 2, Table 2.1 (tax; AME, which includes welfare)"
+  note: The OBR calls these a starting point that it adjusts at each forecast, and highly uncertain.
+  range_low: 0.5
+  range_high: 1.5
+  range_note: A judgement, as for behavioural costings. The OBR doesn't publish a range.
+cyclical_borrowing:
+  label: Change in borrowing, in % of GDP, for each 1% of GDP the output gap changes, this year and last year
+  this_year: 0.5
+  last_year: 0.2
+  source: obr-wp3-2012
+  note: "The OBR's coefficients. With its output gaps they reproduce the cyclically adjusted borrowing in the October 2026 forecast (Table A.9) to within rounding."

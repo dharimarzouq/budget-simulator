@@ -38,5 +38,21 @@
  "hmrc_scottish_income_tax_outturn_2024_25.ods": {
   "url": "https://assets.publishing.service.gov.uk/media/6a981bd5f5b35599aec190b6/Scottish_Income_Tax_Outturn_Statistics_2024-2025.ods",
   "sha256": "d085b3653550d48e7b12f092e1b595dcd3ca74090f76eddb6e1a67c01c0084be"
+ },
+ "obr_efo_2026_10.pdf": {
+  "url": "https://obr.uk/download/economic-and-fiscal-outlook-october-2026/",
+  "sha256": "9e0e9c340e35e603066f3124a614fcd68feadb3d5d10d1f76fb536e150e6225e"
+ },
+ "obr_efo_2026_10_tables.zip": {
+  "url": "https://obr.uk/download/october-2026-economic-and-fiscal-outlook-detailed-forecast-tables-zip-file/",
+  "sha256": "06ac908c69fce7d69dbfda4e16fc3b091a83bd8140ecd2f24990acd13d945fc2"
+ },
+ "obr_fer_2026_06.html": {
+  "url": "https://www.gov.uk/government/publications/forecast-evaluation-report-june-2026/forecast-evaluation-report-june-2026",
+  "sha256": "282f7883a7e2f941c0a7f0e180ee6658c292822acc63b7232fd488106a3bb25a"
+ },
+ "obr_working_paper_3.pdf": {
+  "url": "https://obr.uk/download/working-paper-no-3-cyclically-adjusting-the-public-finances/",
+  "sha256": "caab471b627e6b3708fca44ea54e4ff427aece52079cc523a800f3c1fbe435d0"
  }
 }

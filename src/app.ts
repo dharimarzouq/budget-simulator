@@ -6,6 +6,7 @@ import { LEVERS, LEVER, type Lever, type LeverValue } from "./policy/levers";
 import { applyPolicy, coveredLevers, effectiveChanges, policyFromQuery, policyToQuery, type Policy } from "./policy/policy";
 import { REMOVAL, REMOVAL_FOR } from "./policy/removals";
 import { initTaxChart } from "./taxchart";
+import { FORECAST, baseline, fiscalPath, type Path } from "./economy/fiscal";
 import { CHECK_LABEL, CHECK_MEANING, COSTING_GRADE, GRADE_MEANING, leverCheck, policyCheck, type Check } from "./policy/grades";
 import type { Group } from "./policy/distribution";
 import type { Reply, Request } from "./costing.worker";
@@ -249,10 +250,12 @@ worker.onmessage = (ev: MessageEvent<Reply>) => {
     lastStatic = m;
     $("results").classList.remove("pending");
     renderHeadline(m, undefined);
+    renderFiscal(m, undefined);
     renderBreakdown(m);
     renderWinners(m.distribution.deciles, m.distribution.familyTypes, m.distribution.regions, m.distribution.all);
   } else if (m.type === "behaviour" && lastStatic) {
     renderHeadline(lastStatic, m.behaviour);
+    renderFiscal(lastStatic, m.behaviour);
   }
 };
 worker.postMessage({ type: "load", url: new URL("./data/population-2026-27.json", location.href).href } satisfies Request);
@@ -290,6 +293,66 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
     <div class="metric"><div class="label">Allowing for how people respond</div>${behaviour}</div>
     <div class="metric"><div class="label">Households losing / gaining</div><div class="value">${share(all.lose)} / ${share(all.gain)}</div><div class="sub">by more than £1 a week</div></div>
     <div class="metric"><div class="label">How far to trust it</div><div class="value"><span class="grade" title="${esc(GRADE_MEANING[COSTING_GRADE])}">${COSTING_GRADE}</span> ${checkBadge(check)}</div><div class="sub">grade B: our microsimulation; checks against HMRC: ${CHECK_LABEL[check]}</div></div>`;
+}
+
+// ---- borrowing and debt ------------------------------------------------------------------------
+const bnFixed = (x: number, dp = 1) => `${x < 0 ? "−" : ""}£${Math.abs(x).toFixed(dp)}bn`;
+const signedBn = (x: number) => (Math.abs(x) < 0.05 ? "£0.0bn" : `${x > 0 ? "+" : "−"}£${Math.abs(x).toFixed(1)}bn`);
+
+function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
+  const changed = currentPolicy().length > 0;
+  const behaviour = b?.central ?? 0;
+  const path = fiscalPath(s.change, behaviour);
+  const econ = fiscalPath(s.change, behaviour, { economy: true });
+  const lowHigh = [FORECAST.multipliers.range_low, FORECAST.multipliers.range_high].map((k) => fiscalPath(s.change, behaviour, { economy: true, multiplierScale: k }));
+  const psnb = baseline("psnb"), psnfl = baseline("psnfl"), centred = baseline("gdp_centred");
+  const years = path.years.map((y) => y.year);
+  const rules = FORECAST.fiscal_rules;
+
+  const margin = (x: number) => `<span class="${x < 0 ? "neg" : "pos"}">${x < 0 ? `missed by ${bnFixed(-x)}` : `met by ${bnFixed(x)}`}</span>`;
+  const range = (pick: (p: Path) => number) => {
+    const [a, c] = lowHigh.map(pick).sort((x, y) => x - y);
+    return `range ${bnFixed(a!)} to ${bnFixed(c!)}`;
+  };
+  const rule = (label: string, obr: number, ours: number, withEconomy: number, pick: (p: Path) => number) => `
+    <div class="metric rule">
+      <div class="label">${esc(label)}</div>
+      <div class="value">${changed ? margin(ours) : margin(obr)}</div>
+      <div class="sub">${changed ? `OBR forecast: ${obr < 0 ? "missed" : "met"} by ${bnFixed(Math.abs(obr))}` : "OBR forecast, today's policies"}</div>
+      ${changed ? `<div class="sub">with the effect on the economy: ${margin(withEconomy)} (${range(pick)})</div>` : ""}
+    </div>`;
+
+  let html = `<div class="rules">
+    ${rule("Current budget in surplus in 2029-30 (the main fiscal rule)", rules.stability.margin, path.stabilityMargin, econ.stabilityMargin, (p) => p.stabilityMargin)}
+    ${rule("Debt falling as a share of GDP in 2029-30", rules.debt.margin, path.debtMargin, econ.debtMargin, (p) => p.debtMargin)}
+  </div>`;
+  if (changed && !b) html += `<p class="small">Allowing for how people respond: working it out. Until then these use the static costing.</p>`;
+
+  const row = (label: string, xs: (string | number)[], cls = "") => `<tr class="${cls}"><td>${label}</td>${xs.map((x) => `<td class="num">${x}</td>`).join("")}</tr>`;
+  const debtPct = (y: string, extra: number) => `${(((psnfl[y]! + extra) / centred[y]!) * 100).toFixed(1)}%`;
+  let table = `<div class="scroll-x"><table class="fiscal"><tr><th>£ billion a year</th>${years.map((y) => `<th class="num">${y}</th>`).join("")}</tr>`;
+  if (changed) {
+    table += row("Your budget raises (+) or costs (−)", path.years.map((y) => signedBn(y.taxRaised + y.benefitsCut + y.behaviour)));
+    table += row("Extra interest on the debt", path.years.map((y) => signedBn(-y.debtInterest)));
+  }
+  table += row("Borrowing, OBR forecast", years.map((y) => bnFixed(psnb[y]!)));
+  if (changed) table += row("Borrowing with your budget", path.years.map((y) => bnFixed(psnb[y.year]! + y.borrowing)), "total");
+  table += row("Debt, % of GDP (net financial liabilities), OBR", years.map((y) => debtPct(y, 0)));
+  if (changed) {
+    table += row("Debt, % of GDP, with your budget", path.years.map((y) => debtPct(y.year, y.debt)), "total");
+    table += `<tr><th colspan="${years.length + 1}">Including the effect on the economy (approximate, grade C)</th></tr>`;
+    table += row("Effect on the size of the economy (GDP)", econ.years.map((y) => `${y.gdp > 0 ? "+" : y.gdp < 0 ? "−" : ""}${Math.abs(y.gdp).toFixed(2)}%`));
+    table += row("Borrowing with your budget", econ.years.map((y) => bnFixed(psnb[y.year]! + y.borrowing)));
+  }
+  table += `</table></div>`;
+
+  html += table + `<details class="show-working"><summary>Show working</summary>
+    <p>The starting point is the OBR's forecast published with Budget 2026 on 28 October 2026, which already includes that Budget's policies. Your changes are assumed to start in April 2027, the next tax year, so 2026-27 is unchanged. Each part of the 2026-27 costing (income tax, each kind of National Insurance, Universal Credit, Child Benefit) is carried forward in line with the OBR's forecast for that tax or benefit; the response to tax changes grows with income tax. That's an approximation: it doesn't allow for how your changes would interact with policies announced for later years, or for thresholds the OBR assumes will change.</p>
+    <p>Extra borrowing adds to the debt, and that adds to interest costs, at the rates implied by the OBR's debt interest ready reckoner. All the changes here are to day-to-day taxes and spending, so the current budget changes by the same amount as borrowing. Debt here is public sector net financial liabilities, the measure the rule uses.</p>
+    <p>Grade ${COSTING_GRADE} for the standard figures, which leave the economy as the OBR forecasts it, as official costings do. The lines "with the effect on the economy" use the OBR's published fiscal multipliers (a tax change worth 1% of GDP moves GDP by 0.33% in its first year, fading to nothing by the fifth; benefits 0.60%), and the OBR's rule that borrowing rises by 0.5% of GDP for each 1% the economy is below its potential, plus 0.2% the year after. The OBR calls its multipliers a highly uncertain starting point, so this part is grade C, with a range from half to one and a half times them (our judgement; the OBR doesn't publish a range). These effects are temporary: by 2031-32 they have all but gone.</p>
+    <p>Sources: <a href="https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/">OBR Economic and fiscal outlook, October 2026</a> (Tables 7.1, A.9 and the detailed forecast tables); <a href="https://www.gov.uk/government/publications/forecast-evaluation-report-june-2026/forecast-evaluation-report-june-2026">OBR Forecast evaluation report, June 2026</a> (Table 2.1); <a href="https://obr.uk/working-paper-no-3-cyclically-adjusting-the-public-finances/">OBR Working paper No. 3</a>.</p>
+  </details>`;
+  $("fiscal").innerHTML = html;
 }
 
 const EFFECTS: [keyof Static["change"], string, 1 | -1][] = [

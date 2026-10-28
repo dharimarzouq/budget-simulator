@@ -91,6 +91,8 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
 7. **Economy and debt.** OBR's latest forecast as the baseline, OBR multipliers for GDP effects, borrowing and debt over 5 years, and a pass/fail check against both fiscal rules with the margin shown. This fills in the headline's borrowing line.
 
+   Progress, 28 October 2026: done; see COSTING.md. The baseline is the OBR's October 2026 forecast, published today with Budget 2026, not March's. A "Borrowing and debt" section shows the margin against both fiscal rules (current budget in surplus in 2029-30, net financial liabilities falling in 2029-30), and borrowing and debt year by year to 2031-32, including extra debt interest. Changes are assumed to start in April 2027. The effect on the economy is a separate line (grade C), as Ari chose: it uses the OBR's multipliers and its rule for how GDP feeds into borrowing, with a half-to-1.5-times range.
+
 8. **Polish.** Look-and-feel pass, phone layout, accessibility, sharing links, and a methods write-up for the "how we know" page.
 
 ## Not in milestone 1 (written down so it isn't forgotten)

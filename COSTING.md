@@ -148,6 +148,29 @@ All three are 3–6% low. HMRC's lines here are after tax reductions (EIS relief
 
 These are much bigger changes than anything HMRC's ready reckoner checks, so every removal is marked "known gap". The static figure is mechanical and follows from the rules; the behavioural figure applies the same elasticities as for small changes, which is the least certain part. For example, removing the higher rate costs £44.7bn a year static.
 
+## Borrowing, debt and the fiscal rules
+
+`src/economy/fiscal.ts`, with the figures in `forecasts/obr-2026-10.yaml` (each with its OBR table).
+
+**Baseline:** the OBR's Economic and fiscal outlook of 28 October 2026, published with Budget 2026. It already includes that Budget's policies; none of them changes a 2026-27 rule the engine models (most start in April 2027).
+
+**A budget over the forecast years:**
+- Changes start in April 2027, the next tax year, so 2026-27 is unchanged. This is a constant (`START_YEAR`) if that should change.
+- Each part of the 2026-27 costing grows in line with the OBR's forecast for its tax or benefit (income tax, each kind of NICs, Universal Credit, Child Benefit). The behavioural effect grows with income tax. This is an approximation. It ignores interactions with policies announced for later years, such as the April 2027 rises in tax on property and savings income, and assumes the costing grows like the receipts or spending it sits in.
+- Extra borrowing adds to debt interest at rates read off the OBR's debt interest ready reckoner (£10bn more borrowing a year adds £0.24bn in the first year, £0.77bn in the second, and so on). The extra interest is itself borrowed. Without that compounding, the method reproduces the ready reckoner exactly (tested).
+- All the changes are to day-to-day receipts and spending, so the current budget changes by the same amount as borrowing.
+
+**Fiscal rules,** from the Charter for Budget Responsibility (in force February 2026) and the OBR's Table 7.1:
+- The current budget in surplus in 2029-30. The OBR's margin is £14.5bn; a budget's extra borrowing in 2029-30 comes off it.
+- Public sector net financial liabilities falling as a share of GDP in 2029-30. The OBR's margin is £24.4bn: how much higher debt could be at end-March 2030 and still be falling. Extra debt at end-March 2029 raises that limit in proportion to GDP growth; extra debt at end-March 2030 uses it up. Recomputed from the rounded published figures, the margin comes out at £24.9bn, within rounding of the OBR's.
+
+**Effect on the economy (grade C):** shown as a second line, never in the main figures, because official costings leave it out.
+- It uses the OBR's published fiscal multipliers (Forecast evaluation report, June 2026, Table 2.1). A tax change worth 1% of GDP moves GDP by 0.33% in its first year, then 0.30, 0.23, 0.14, 0.05 and 0. For welfare (AME) the figures are 0.60, 0.57, 0.43, 0.23, 0.07 and 0.
+- A smaller economy borrows more: 0.5% of GDP for each 1% of GDP the economy is below potential, plus 0.2% the year after (OBR Working paper No. 3). With the OBR's own output gaps these coefficients reproduce the cyclically adjusted borrowing in the October 2026 forecast (tested).
+- The OBR calls its multipliers a starting point that it adjusts at each forecast, and highly uncertain. It publishes no range, so the low and high figures use half and one and a half times them, a judgement as for behaviour.
+
+**Example:** a 2p cut in the basic rate (to 18%) costs £15.0bn in 2027-28 with behaviour, rising to £17.7bn by 2031-32. With interest, borrowing in 2029-30 is £18.5bn higher, and the main rule is missed by £4.0bn. Allowing for the effect on the economy, it's missed by £0.8bn (range: missed by £2.4bn to met by £0.8bn). Debt still falls in 2029-30, by a margin of £7.1bn.
+
 ## Universal Credit: check against an OBR costing
 
 There's no ready reckoner for Universal Credit, so UC costings are checked against the OBR's costings of real measures. The first is the removal of the two-child limit, which the OBR costed in November 2025 (Economic and fiscal outlook, table 3.2, as reported): £2.3bn in 2026-27, rising to about £3bn by 2029-30 as claims build up, for about 560,000 families gaining around £5,310 a year each.

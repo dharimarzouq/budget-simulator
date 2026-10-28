@@ -24,7 +24,12 @@ FILES = {
     "hmrc_income_tax_liabilities_2026_07.ods": "https://assets.publishing.service.gov.uk/media/6a5a49b47eb057103bd946a4/Collated_Income_Tax_liabilities_statistics_tables_-_2.1_to_2.6.ods",
     "hmrc_child_benefit_aug_2025_main_tables.ods": "https://assets.publishing.service.gov.uk/media/6a8d696901bbff0bf8f97903/Child_Benefit_August_2025_Main_Tables.ods",
     "hmrc_scottish_income_tax_outturn_2024_25.ods": "https://assets.publishing.service.gov.uk/media/6a981bd5f5b35599aec190b6/Scottish_Income_Tax_Outturn_Statistics_2024-2025.ods",
-    "ons_ashe_table6_2026_provisional.zip": "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2026provisional/ashetable62026provisional.zip",
+    # The borrowing and debt baseline (forecasts/obr-2026-10.yaml is read off these by hand; see its table references).
+    "obr_efo_2026_10.pdf": "https://obr.uk/download/economic-and-fiscal-outlook-october-2026/",
+    "obr_efo_2026_10_tables.zip": "https://obr.uk/download/october-2026-economic-and-fiscal-outlook-detailed-forecast-tables-zip-file/",
+    "obr_fer_2026_06.html": "https://www.gov.uk/government/publications/forecast-evaluation-report-june-2026/forecast-evaluation-report-june-2026",
+    "obr_working_paper_3.pdf": "https://obr.uk/download/working-paper-no-3-cyclically-adjusting-the-public-finances/",
+    "ons_ashe_table6_2026_provisional.zip":"https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2026provisional/ashetable62026provisional.zip",
 }
 
 

@@ -172,6 +172,27 @@ ons-paye-rti-2026-10:
   published: 2026-10-20
   accessed: 2026-10-28
   note: "Early estimate of 30.3 million payrolled employees in September 2026; median monthly pay £2,660."
+obr-efo-2026-10:
+  title: "Economic and fiscal outlook, October 2026, with its detailed forecast tables"
+  publisher: Office for Budget Responsibility
+  url: https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/
+  licence: Open Government Licence v3.0
+  published: 2026-10-28
+  accessed: 2026-10-28
+obr-fer-2026-06:
+  title: "Forecast evaluation report, June 2026 (Chapter 2: fiscal multipliers)"
+  publisher: Office for Budget Responsibility
+  url: https://www.gov.uk/government/publications/forecast-evaluation-report-june-2026/forecast-evaluation-report-june-2026
+  licence: Open Government Licence v3.0
+  published: 2026-06-02
+  accessed: 2026-10-28
+obr-wp3-2012:
+  title: "Working paper No. 3: Cyclically adjusting the public finances"
+  publisher: Office for Budget Responsibility
+  url: https://obr.uk/working-paper-no-3-cyclically-adjusting-the-public-finances/
+  licence: Open Government Licence v3.0
+  published: 2012-06
+  accessed: 2026-10-28
 obr-efo-2026-03:
   title: "Economic and fiscal outlook, March 2026: detailed forecast tables"
   publisher: Office for Budget Responsibility
