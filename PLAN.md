@@ -69,6 +69,8 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
    - **6e. Winners and losers.** Household-level before and after across the population, grouped by equivalised income decile.
    - **6f. The page**, in the layout above. Each number gets a "show working" drawer with its method, sources and grade.
 
+   Progress, 28 October 2026: 6a–6c are done; see COSTING.md. Costings for NICs thresholds, the higher rate and the employer rate are within 5% of HMRC. The basic rate, personal allowance and basic rate band come out about 14% low, because property, savings and dividend income isn't taxed yet. Top-rate costings are far above HMRC's, because HMRC's include behaviour, which is 6d. Removing the two-child limit costs £3.3bn against the OBR's £3bn.
+
    **Levers in the first version** (all already in the rules):
    - **Income tax:** basic, higher and additional rates (England, Wales and NI separately from Scotland), personal allowance, higher-rate threshold, additional-rate threshold, personal allowance taper.
    - **National Insurance:** employee main and additional rates, employer rate, primary and secondary thresholds, upper earnings limit, self-employed rates.

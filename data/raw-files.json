@@ -22,5 +22,9 @@
  "hmrc_tax_relief_statistics_2026_01.ods": {
   "url": "https://assets.publishing.service.gov.uk/media/69a0194e3e672177d0bc76e6/tax_relief_statistics_january_2026.ods",
   "sha256": "fa94a61fe6b6a02c19b87a656154f27eaf5f00f35f0cce9339b8101b9ac8ee4a"
+ },
+ "hmrc_ready_reckoner_2025_06.ods": {
+  "url": "https://assets.publishing.service.gov.uk/media/68552862b46781eacfd71d71/June_2025_TRR_ODS__1_.ods",
+  "sha256": "1201953391d6201d1df8df4d60288c9094b43e0679ebf285e82ad3c912d476c1"
  }
 }
