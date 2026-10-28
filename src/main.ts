@@ -40,7 +40,8 @@ function renderRules(el: HTMLElement) {
 
 // Why each total differs from the published figure, where we know (see POPULATION.md).
 const GAPS: Record<string, string> = {
-  "Income tax": "We don't yet tax savings, dividends or property income.",
+  "Income tax": "The OBR's figure is cash received, which includes tax not owed by individuals in the year (trusts, timing). Compare with HMRC's liabilities below.",
+  "Income tax liabilities": "HMRC's projection of tax owed by individuals in 2026-27: the like-for-like comparison.",
   "Employer NICs": "After taking off the Employment Allowance and apprentice relief as HMRC's published costs.",
   "Child Benefit": "Not a calibration target yet.",
   "Universal Credit spending": "Ours includes Northern Ireland; the published figure is Great Britain only.",
@@ -55,6 +56,7 @@ async function renderPopulation(el: HTMLElement, r: ReturnType<typeof ruleSet>) 
     const ms = performance.now() - start;
     const rows: [string, number, string][] = [
       ["Income tax", t.incomeTax / 1e9, "£bn"],
+      ["Income tax liabilities", t.incomeTax / 1e9, "£bn"],
       ["Employee NICs", t.employeeNI / 1e9, "£bn"],
       ["Employer NICs", t.employerNI / 1e9, "£bn"],
       ["Self-employed NICs", t.selfEmployedNI / 1e9, "£bn"],

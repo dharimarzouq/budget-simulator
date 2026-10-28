@@ -77,6 +77,10 @@ def main() -> None:
     ad_year = dict(sx.field_items(ad, "str:count:FRSAD:V_F_FRSAD", ad_f + "YEAR"))[year_label]
     adults = sx.cube(ad, {"adults": "str:count:FRSAD:V_F_FRSAD"}, [ad_f + "YEAR", ad_f + "AGEBAND", ad_f + "EMPSTAT"], sx.only(ad_f + "YEAR", ad_year))
     tables[f"frs_adults_age_employment_{tag}.csv"] = adults.drop(columns=["Financial Year"]).rename(columns={"adults": "households"})
+    # Employment status by tenure and age: who works depends a lot on housing (social renters much less often).
+    adults_t = sx.cube(ad, {"adults": "str:count:FRSAD:V_F_FRSAD"}, [ad_f + "YEAR", ad_f + "TENURE", ad_f + "AGEBAND", ad_f + "EMPSTAT"], sx.only(ad_f + "YEAR", ad_year))
+    tables[f"frs_adults_tenure_age_employment_{tag}.csv"] = adults_t.drop(columns=["Financial Year"]).rename(columns={"adults": "households"})
+    tables[f"frs_households_composition_tenure_{tag}.csv"] = frs(year_uri, [FRS_F + "COMPOS", FRS_F + "TENURE"])
 
     # HBAI (admin-linked): equivalised net household income before housing costs, by type of person.
     # Held back from calibration; used only as a check on the whole income distribution.

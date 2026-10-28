@@ -28,6 +28,8 @@ BUILD = HERE / "build"
 
 EARNINGS_2023_24 = 169.0 / 148.36  # OBR average weekly earnings index to 2026-27 (EFO March 2026, table 1.6)
 EARNINGS_2024_25 = 169.0 / 156.623
+# Interest and dividends are uprated separately (see data/build_seed.py for why and how these were set).
+OTHER_UPRATING = {"property": EARNINGS_2023_24, "interest": 1.60, "dividends": 1.03}
 MAX_SCALE = 10.0
 REGULARISE = 0.02  # how strongly weights are kept near their starting values
 
@@ -59,15 +61,19 @@ def load():
         "disabled_child": any(c["disability"] != "none" for c in u["data"]["children"]),
         "claims_cb": u["data"].get("claimsChildBenefit", True),
         "rent": u["data"]["rentMonthly"],
+        "outside": u.get("outside", False),
     } for u in seed["units"]])
     res = pd.read_csv(BUILD / "seed_results.csv")
     units = units.merge(res, on="id", validate="one_to_one")
+    tax = res.set_index("id")[["adult0_tax", "adult1_tax"]]
     adults = pd.DataFrame([{
-        "household": u["household"], "region": norm_region(u["regionDetail"]), "age": a["age"],
+        "household": u["household"], "region": norm_region(u["regionDetail"]), "age": a["age"], "outside": u.get("outside", False),
+        "income_tax": tax.at[u["id"], f"adult{i}_tax"],
         "main_job": a["employment"], "second_job": a.get("secondJob", 0.0),
         "employment": a["employment"] + a.get("secondJob", 0.0), "self_employment": a["selfEmployment"], "pension": a["pension"],
         "property": a.get("propertyIncome", 0.0), "interest": a.get("savingsInterest", 0.0), "dividends": a.get("dividends", 0.0),
-    } for u in seed["units"] for a in u["data"]["adults"]])
+        "pension_contributions": a.get("pensionContributions", 0.0),
+    } for u in seed["units"] for i, a in enumerate(u["data"]["adults"])])
     adults["other"] = adults[["property", "interest", "dividends"]].sum(axis=1)
     # Total income as HMRC defines it for its bands, including property, savings and dividend income.
     adults["total"] = adults[["employment", "self_employment", "pension", "other"]].sum(axis=1)
@@ -109,6 +115,7 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     uk = spi[(spi["region"] == "United Kingdom") & (spi["band_lower"] != "all")].copy()
     uk["lo"] = uk["band_lower"].astype(float)
     other_by_band = pd.read_csv(T / "hmrc_property_interest_dividends_by_band_2023_24.csv").set_index("band_lower")
+    pensions_by_band = pd.read_csv(T / "hmrc_pension_contributions_by_band_2023_24.csv").set_index("band_lower")
     edges = sorted(uk["lo"]) + [np.inf]
     for r in uk.itertuples():
         if r.lo < 15_000:
@@ -120,16 +127,25 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         # Low weight: uprating 2023-24 band edges with earnings ignores frozen thresholds pulling people into tax.
         # HMRC's own 2026-27 projections by band (below) take priority.
         targets.append(Target(g, f"{label} people", r.taxpayers_k * 1e3, household_row(adults, inb.astype(float), n), 0.3, 50_000))
+        se_people = ((adults["self_employment"] > 0).to_numpy() & inb).astype(float)
+        if pd.notna(r.self_employment_people_k):
+            targets.append(Target(g, f"{label} self-employed people", r.self_employment_people_k * 1e3, household_row(adults, se_people, n), 1, 50_000))
         for col, amount in [("employment", r.employment_gbp_m), ("self_employment", r.self_employment_gbp_m), ("pension", r.pension_gbp_m)]:
             if pd.notna(amount):
+                # Self-employed profits keep full weight: unlike head-counts, they aren't distorted much by frozen thresholds.
                 targets.append(Target(g, f"{label} {col}", amount * 1e6 * EARNINGS_2023_24,
-                                      household_row(adults, inb * adults[col].to_numpy(), n), 0.3, 2e9))
+                                      household_row(adults, inb * adults[col].to_numpy(), n), 1 if col == "self_employment" else 0.3, 2e9))
+        # Table 3.8: pension contributions deducted before tax (net pay and relief at source).
+        pcr = pensions_by_band.loc[r.band_lower]
+        targets.append(Target("HMRC pension contributions by income band", f"{label} pension contributions",
+                              (pcr.net_pay_gbp_m + pcr.relief_at_source_gbp_m) * 1e6 * EARNINGS_2023_24,
+                              household_row(adults, inb * adults["pension_contributions"].to_numpy(), n), 1, 1e9))
         # Table 3.7: property (with HMRC's small "other income"), interest and dividends: amounts and people.
         o = other_by_band.loc[r.band_lower]
         g2 = "HMRC property, interest and dividends by income band"
         for col, people, amount in [("property", o.property_people_k + o.other_people_k, o.property_gbp_m + o.other_gbp_m),
                                     ("interest", o.interest_people_k, o.interest_gbp_m), ("dividends", o.dividends_people_k, o.dividends_gbp_m)]:
-            targets.append(Target(g2, f"{label} {col}", amount * 1e6 * EARNINGS_2023_24, household_row(adults, inb * adults[col].to_numpy(), n), 1, 1e9))
+            targets.append(Target(g2, f"{label} {col}", amount * 1e6 * OTHER_UPRATING[col], household_row(adults, inb * adults[col].to_numpy(), n), 1, 1e9))
             targets.append(Target(g2, f"{label} {col} people", people * 1e3, household_row(adults, (inb & (adults[col] > 0).to_numpy()).astype(float), n), 0.5, 50_000))
     # HMRC Income Tax liabilities statistics (July 2026), Table 2.5: projected taxpayers and total income by
     # range of total income, for 2026-27 itself, so no uprating. Taxpayers are taken as people above the
@@ -138,24 +154,28 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     r25 = r25[r25["band_lower"] != "all"].copy()
     r25["lo"] = r25["band_lower"].astype(float)
     edges25 = list(r25["lo"]) + [np.inf]
+    payer = (adults["income_tax"] > 0).to_numpy()  # HMRC's tables count only people who actually owe tax
     for i, row in enumerate(r25.itertuples()):
-        inb = ((adults["total"] >= row.lo) & (adults["total"] < edges25[i + 1])).to_numpy()
+        inb = ((adults["total"] >= row.lo) & (adults["total"] < edges25[i + 1])).to_numpy() & payer
         label = f"£{int(row.lo):,}+"
         g = "HMRC 2026-27 taxpayers and income by range"
         # Weighted up: HMRC's own projection for this exact year is the most direct source for who pays tax.
         targets.append(Target(g, f"{label} taxpayers", row.taxpayers_k * 1e3, household_row(adults, inb.astype(float), n), 2, 50_000))
         targets.append(Target(g, f"{label} total income", row.total_income_gbp_m * 1e6, household_row(adults, inb * adults["total"].to_numpy(), n), 2, 2e9))
     # OBR: employees in 2026-27 (EFO March 2026, table 1.6), any age 16+, including those past State Pension age.
+    # People outside private households are in HMRC's counts but not in the household surveys (FRS, LFS), so
+    # they're left out of those targets.
+    inside = (~adults["outside"]).to_numpy()
     targets.append(Target("OBR employees", "employees 2026-27", 29.825e6,
-                          household_row(adults, (adults["employment"] > 0).astype(float).to_numpy(), n), 1, 1e6))
+                          household_row(adults, ((adults["employment"] > 0).to_numpy() & inside).astype(float), n), 1, 1e6))
     # FRS 2024-25: adults by age band (the survey's adults include some 16-17 year-olds; ours start at 18).
     fa = pd.read_csv(T / "frs_adults_age_employment_2024-25.csv")
     fa.columns = ["age", "status", "adults"]
     for band, g in fa.groupby("age"):
         nums = [int(x) for x in re.findall(r"\d+", band)]
         lo, hi = (16, 24) if band.startswith("16") else (nums[0], 200) if "over" in band else (nums[0], nums[1])
-        inb = ((adults["age"] >= lo) & (adults["age"] <= hi)).astype(float).to_numpy()
-        targets.append(Target("FRS adults by age", band, g["adults"].sum(), household_row(adults, inb, n), 1, 500_000))
+        inb = ((adults["age"] >= lo) & (adults["age"] <= hi)).to_numpy() & inside
+        targets.append(Target("FRS adults by age", band, g["adults"].sum(), household_row(adults, inb.astype(float), n), 1, 500_000))
     # HMRC's costs of the NICs thresholds (tax relief statistics, January 2026; 2025-26, same thresholds and
     # rates as 2026-27). Each job gets its own thresholds, so these pin down the number of jobs and low pay.
     below = lambda limit: np.minimum(adults["main_job"], limit) + np.minimum(adults["second_job"], limit)
@@ -219,9 +239,16 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
     cb = pd.read_csv(T / "hmrc_child_benefit_families_by_size_2025_08.csv").iloc[-1]
     paid = (units["child_benefit"] > 0).to_numpy()
     for k, col in [(1, "Families: One child"), (2, "Families: Two children"), (3, "Families: Three children"), (4, "Families: Four children")]:
-        targets.append(Target("Child Benefit families by size", f"{k} children", float(cb[col]), household_row(units, (paid & (units["kids"] == k).to_numpy()).astype(float), n), 1, 50_000))
+        targets.append(Target("Child Benefit families by size", f"{k} children", float(cb[col]), household_row(units, (paid & (units["kids"] == k).to_numpy()).astype(float), n), 2, 50_000))
     five = float(cb["Families: Five to Nine children [note 3]"]) + float(cb["Families: Ten or more children [note 3]"])
-    targets.append(Target("Child Benefit families by size", "5+ children", five, household_row(units, (paid & (units["kids"] >= 5).to_numpy()).astype(float), n), 1, 50_000))
+    targets.append(Target("Child Benefit families by size", "5+ children", five, household_row(units, (paid & (units["kids"] >= 5).to_numpy()).astype(float), n), 2, 50_000))
+
+    # HMRC liabilities 2026-27, Table 2.6: income tax by source. Moderate weight, so total income tax still
+    # works partly as a check.
+    t26 = pd.read_csv(T / "hmrc_income_tax_by_source_2026_27.csv")
+    for kind, column in [("earnings", "non_savings_tax"), ("savings", "savings_tax"), ("dividends", "dividend_tax")]:
+        value = pd.to_numeric(t26[t26["line"].str.startswith(f"Income Tax on {kind}")]["all_taxpayers"]).sum() * 1e6
+        targets.append(Target("HMRC 2026-27 income tax by source", kind, value, household_row(units, units[column].to_numpy(), n), 1, 1e9))
     opted = pd.read_csv(T / "hmrc_child_benefit_opted_out_children_by_age_region_2025_08.csv").iloc[0, 1]
     targets.append(Target("Child Benefit opt-outs", "children in opted-out families", float(opted),
                           household_row(units, ((~units["claims_cb"]) * units["kids"]).astype(float).to_numpy(), n), 1, 100_000))

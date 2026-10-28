@@ -55,6 +55,8 @@ def hbai_check(pop: list[dict], res: pd.DataFrame) -> pd.DataFrame:
     net = res.set_index("id")["net"]
     households: dict[int, dict] = {}
     for u in pop:
+        if u.get("outside"):
+            continue  # HBAI covers private households only
         h = households.setdefault(u["household"], {"weight": u["weight"], "net": 0.0, "people": []})
         h["net"] += net[u["id"]]
         h["people"] += [("pensioner" if a["age"] >= 66 else "working-age", a["age"]) for a in u["data"]["adults"]]
@@ -82,14 +84,15 @@ def hbai_check(pop: list[dict], res: pd.DataFrame) -> pd.DataFrame:
 
 def main(population: str, results: str) -> None:
     pop = json.loads(Path(population).read_text())["units"]
-    units = pd.DataFrame([{"id": u["id"], "weight": u["weight"], "unit": u["unit"]} for u in pop])
+    units = pd.DataFrame([{"id": u["id"], "weight": u["weight"], "unit": u["unit"], "outside": u.get("outside", False)} for u in pop])
+    outside_people = units.loc[units["outside"], "weight"].sum() / 1e6
     # Employee NICs that people over State Pension age would pay if they weren't exempt.
     def ni(job: float) -> float:
         return max(0.0, min(job, 50_270) - 12_570) * 0.08 + max(0.0, job - 50_270) * 0.02
 
     adults = [(u["weight"], a, [a["employment"], a.get("secondJob", 0.0)]) for u in pop for a in u["data"]["adults"]]
     over_spa = sum(w * sum(ni(j) for j in jobs) for w, a, jobs in adults if a["age"] >= 66) / 1e9
-    employees = sum(w for w, a, jobs in adults if a["employment"] > 0) / 1e6
+    employees = sum(u["weight"] for u in pop if not u.get("outside") for a in u["data"]["adults"] if a["employment"] > 0) / 1e6
     second_jobs = sum(w for w, a, jobs in adults if jobs[1] > 0) / 1e6
     pt_cost = sum(w * 0.08 * sum(min(j, 12_570) for j in jobs) for w, a, jobs in adults if a["age"] < 66) / 1e9
     st_cost = sum(w * 0.15 * sum(min(j, 5_000) for j in jobs) for w, a, jobs in adults) / 1e9
@@ -104,7 +107,8 @@ def main(population: str, results: str) -> None:
 
     rows = [
         # name, ours, published, unit, source, note
-        ("Households", w[d["unit"] == 0].sum() / 1e6, 28.972, "m", "FRS 2024-25", "matches by construction"),
+        ("Households", w[(d["unit"] == 0) & ~d["outside"]].sum() / 1e6, 28.972, "m", "FRS 2024-25", "matches by construction"),
+        ("People outside private households (sized by calibration)", outside_people, float("nan"), "m", "none published", "students in halls, forces, part-year residents..."),
         ("Income taxpayers", (w * d["taxpayers"]).sum() / 1e6, spi_uk["taxpayers_k"] / 1e3, "m", "HMRC SPI 2023-24", "2023-24; frozen thresholds mean more by 2026-27"),
         ("Employment income", (w * d["employment"]).sum() / 1e9, spi_uk["employment_gbp_m"] / 1e3 * EARNINGS_2023_24_TO_2026_27, "£bn", "HMRC SPI 2023-24, uprated", "taxpayers only in HMRC's figure"),
         ("Self-employment profits", (w * d["self_employment"]).sum() / 1e9, spi_uk["self_employment_gbp_m"] / 1e3 * EARNINGS_2023_24_TO_2026_27, "£bn", "HMRC SPI 2023-24, uprated", "taxpayers only"),

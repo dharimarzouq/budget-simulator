@@ -22,7 +22,7 @@ HEALTH = ["none", "lcwra", "lcwra_protected"]
 DISABILITY = ["none", "lower", "higher"]
 
 # Published figures the page compares its live totals with (from data/check_population.py's table).
-CHECKS = ["Income tax", "Employee NICs", "Employer NICs", "Self-employed NICs", "Child Benefit",
+CHECKS = ["Income tax", "Income tax liabilities", "Employee NICs", "Employer NICs", "Self-employed NICs", "Child Benefit",
           "Child Benefit charge", "Universal Credit spending", "Households on Universal Credit", "Families paid Child Benefit"]
 
 
@@ -37,7 +37,8 @@ def main() -> None:
             round(d["rentMonthly"]), round(d["childcareMonthly"]), round(d["savings"]), flags,
             [[a["age"], round(a["employment"]), round(a.get("secondJob", 0)), round(a["selfEmployment"]), round(a["pension"]),
               HEALTH.index(a["health"]), int(a["carer"]),
-              round(a.get("propertyIncome", 0)), round(a.get("savingsInterest", 0)), round(a.get("dividends", 0))] for a in d["adults"]],
+              round(a.get("propertyIncome", 0)), round(a.get("savingsInterest", 0)), round(a.get("dividends", 0)),
+              round(a.get("pensionContributions", 0))] for a in d["adults"]],
             [[c["age"], int(c["bornBefore2017"]), DISABILITY.index(c["disability"])] for c in d["children"]],
         ])
     check = pd.read_csv(HERE / "build" / "seed_results_check.csv").set_index("measure")
@@ -46,7 +47,7 @@ def main() -> None:
         "year": "2026-27",
         "fields": {
             "unit": ["weight", "household", "region", "rentMonthly", "childcareMonthly", "savings", "flags (1 claims UC, 2 claims Child Benefit)", "adults", "children"],
-            "adult": ["age", "employment", "secondJob", "selfEmployment", "pension", "health", "carer", "propertyIncome", "savingsInterest", "dividends"],
+            "adult": ["age", "employment", "secondJob", "selfEmployment", "pension", "health", "carer", "propertyIncome", "savingsInterest", "dividends", "pensionContributions"],
             "child": ["age", "bornBefore2017", "disability"],
         },
         "codes": {"region": REGIONS, "health": HEALTH, "disability": DISABILITY},

@@ -76,6 +76,20 @@ def spi_other_income() -> pd.DataFrame:
     return out
 
 
+def spi_pension_contributions() -> pd.DataFrame:
+    """HMRC SPI Table 3.8: pension contributions deducted before tax (net pay and relief at source), by band."""
+    raw = pd.read_excel(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", engine="odf", sheet_name="Table_3_8", header=None)
+    t = read_table(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", "Table_3_8", raw.iloc[4, 0])
+    col = lambda start, kind: next(c for c in t.columns if str(c).startswith(start) and kind in str(c))
+    return pd.DataFrame({
+        "band_lower": t.iloc[:, 0].replace({"All ranges": "all", "All Ranges": "all"}),
+        "net_pay_people_k": t[col("Contributions to Net Pay", "Number")].to_numpy(),
+        "net_pay_gbp_m": t[col("Contributions to Net Pay", "Amount")].to_numpy(),
+        "relief_at_source_people_k": t[col("Contributions to Relief at Source", "Number")].to_numpy(),
+        "relief_at_source_gbp_m": t[col("Contributions to Relief at Source", "Amount")].to_numpy(),
+    })
+
+
 def t37_header() -> str:
     raw = pd.read_excel(RAW / "hmrc_spi_2324_tables_3_1_to_3_11.ods", engine="odf", sheet_name="Table_3_7", header=None)
     return raw.iloc[4, 0]
@@ -171,6 +185,9 @@ def main() -> None:
     r25.to_csv(OUT / "hmrc_income_tax_by_range_2026_27.csv", index=False)
     r26.to_csv(OUT / "hmrc_income_tax_by_source_2026_27.csv", index=False)
     print("Table 2.5 (2026-27):", r25.to_string(index=False))
+    pc = spi_pension_contributions()
+    pc.to_csv(OUT / "hmrc_pension_contributions_by_band_2023_24.csv", index=False)
+    print("Table 3.8:", pc[pc["band_lower"] == "all"].to_dict("records"))
     o = spi_other_income()
     o.to_csv(OUT / "hmrc_property_interest_dividends_by_band_2023_24.csv", index=False)
     print("Table 3.7:", o[o["band_lower"] == "all"].to_dict("records"))

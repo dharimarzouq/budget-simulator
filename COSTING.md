@@ -44,6 +44,20 @@ Two things to know about HMRC's figures:
 
 (Updated 28 October 2026, after property, savings and dividend income began to be taxed and the population was calibrated to HMRC's 2026-27 taxpayer projections. Before the first change, the basic rate band lines were 14% low; now they match HMRC to within 2%.)
 
+### A second, static comparison for the rates
+
+HMRC's 2026-27 liabilities (Table 2.6) give the tax charged at each rate. Dividing by the rate gives the income taxed at that rate, and so what 1p on the rate raises before anyone responds. That's a like-for-like check for our static figures, which the ready reckoner (with behaviour built in) isn't.
+
+| 1p on the… | Ours | Implied by HMRC's 2026-27 liabilities | Ratio |
+|---|---:|---:|---:|
+| Basic rate | £7.08bn | £7.73bn (£154.7bn ÷ 20) | 0.92 |
+| Higher rate | £2.15bn | £2.32bn (£92.9bn ÷ 40) | 0.93 |
+| Additional rate | £1.63bn | £1.77bn (£79.5bn ÷ 45) | 0.92 |
+
+All three are about 8% low, consistent with 4% too few taxpayers and slightly less income in each band. **The additional rate's static figure is right**, so its 6× gap with the ready reckoner is HMRC's behavioural adjustment (top earners shifting and deferring income), which is step 6d.
+
+(Ready-reckoner figures in the table above were last updated 28 October 2026, after the population gained tenure-based work status, pension contributions, side self-employment and the group outside private households. The latest run: basic rate +1p 0.88, higher rate 1.02, personal allowance +£100 0.90 and +1% 0.99, basic rate band 0.95–0.96, employer NICs 0.98, Class 4 main rate 0.70 and additional 1.36, Child Benefit 1.07–1.09.)
+
 ### What this means for trusting a costing
 
 - **National Insurance thresholds and limits, the basic rate band, the personal allowance by 1%:** within 5% of HMRC. Trustworthy.

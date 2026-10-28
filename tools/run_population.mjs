@@ -20,7 +20,7 @@ try {
   const columns = [
     "id", "gross", "employment", "self_employment", "pension", "income_tax", "employee_ni", "self_employed_ni", "employer_ni",
     "child_benefit", "child_benefit_charge", "uc_award_month", "uc_maximum_month", "benefit_cap_month", "net",
-    "taxpayers", "top_income", "non_savings_tax", "savings_tax", "dividend_tax",
+    "taxpayers", "top_income", "non_savings_tax", "savings_tax", "dividend_tax", "adult0_tax", "adult1_tax",
   ];
   const lines = [columns.join(",")];
   for (const u of units) {
@@ -48,6 +48,8 @@ try {
       sum((a) => a.nonSavingsTax),
       sum((a) => a.savingsTax),
       sum((a) => a.dividendTax),
+      res.adults[0]?.incomeTax ?? 0,
+      res.adults[1]?.incomeTax ?? 0,
     ];
     lines.push(row.map((v) => (typeof v === "number" ? Math.round(v * 100) / 100 : v)).join(","));
   }
