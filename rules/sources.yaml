@@ -104,6 +104,25 @@ hmrc-child-benefit-2025:
   published: 2026-04-23
   accessed: 2026-10-27
 
+scotgov-ready-reckoners-2022-23:
+  title: "Scottish Income Tax ready reckoners 2022-23 (Table 3: taxable income elasticities used by the Scottish Fiscal Commission)"
+  publisher: Scottish Government
+  url: https://gov.scot/publications/scottish-income-tax-ready-reckoners-2022-23
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-28
+obr-scottish-budget-2024-box:
+  title: "Income tax policy in the Scottish Budget 2024 (box: taxable income elasticities, 0.5 above £150,000 from HMRC's 2012 study)"
+  publisher: Office for Budget Responsibility
+  url: https://obr.uk/box/income-tax-policy-in-the-scottish-budget-2024/
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-28
+ifs-tie-uncertainty:
+  title: "Browne and Phillips (2017), Updating and critiquing HMRC's analysis of the UK's 50% top marginal rate of tax (IFS Working Paper W17/12)"
+  publisher: Institute for Fiscal Studies
+  url: https://www.ifs.org.uk/sites/default/files/output_url_files/WP201712.pdf
+  licence: Cited for its finding only
+  accessed: 2026-10-28
+  note: "The same method gives an elasticity of about 0.31 using 2010-11 and 0.83 using 2011-12, which is why costings show a range."
 sfc-2026-01:
   title: "Scotland's Economic and Fiscal Forecasts, January 2026"
   publisher: Scottish Fiscal Commission

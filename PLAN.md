@@ -73,6 +73,10 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
    Progress, 28 October 2026: property, savings and dividend income is now taxed by the real 2026-27 rules: allowances, the starting rate for savings, dividend rates, the legal order, and UK bands for savings and dividends in Scotland. It's checked by hand-worked tests (including GOV.UK's examples) and 11 PolicyEngine households. Income tax across the population is now £357.7bn against the OBR's £359.6bn. Six new levers cover dividend rates, the dividend allowance, savings allowances and the starting rate band.
 
+   Progress, 28 October 2026: the population was refined until the remaining gaps were source disagreements or needed microdata (see POPULATION.md); income tax is within 0.3% of HMRC's 2026-27 liabilities.
+
+   Progress, 28 October 2026: 6d is done. Behavioural costing uses the Scottish Fiscal Commission's elasticities by income (Ari's choice), with low and high figures at half and 1.5 times, shown next to the static figure. On HMRC's ready reckoner, the additional rate now comes within 1–9% (static was 6.4 times); the higher rate comes out 30% below HMRC, with HMRC's figure inside our range. See COSTING.md.
+
    **Levers in the first version** (all already in the rules):
    - **Income tax:** basic, higher and additional rates (England, Wales and NI separately from Scotland), personal allowance, higher-rate threshold, additional-rate threshold, personal allowance taper.
    - **National Insurance:** employee main and additional rates, employer rate, primary and secondary thresholds, upper earnings limit, self-employed rates.
@@ -92,4 +96,4 @@ Separate property income rates (from April 2027), finance cost relief for landlo
 - Name and code licence (before any public repo)
 - Whether and when to create a GitHub repo (it's public, so that's your call)
 - Look-and-feel direction, before 6f (the page)
-- Which behavioural estimates to use in 6d. I'll set out the published options and recommend one.
+- ~~Which behavioural estimates to use in 6d.~~ Decided: the Scottish Fiscal Commission's, with a low/high range.

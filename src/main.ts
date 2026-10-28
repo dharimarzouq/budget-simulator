@@ -12,8 +12,10 @@ const money = (n: number) => (n >= 1e8 ? `£${+(n / 1e9).toFixed(2)}bn` : gbp(n)
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function show(p: Parameter): string {
-  if (p.bands) return p.bands.map((b) => `${pct(b.rate)} from ${gbp(b.threshold)}`).join("<br>");
+  if (p.bands) return p.bands.map((b) => `${p.unit === "elasticity" ? b.rate : pct(b.rate)} from ${gbp(b.threshold)}`).join("<br>");
   if (p.unit === "flag") return p.value ? "Yes" : "No";
+  if (p.unit === "multiplier") return `×${p.value}`;
+  if (p.unit === "elasticity") return String(p.value);
   if (p.unit === "rate") return pct(p.value as number);
   if (p.unit === "years") return `${p.value} years`;
   if (p.unit === "hours_per_week") return `${p.value} hours a week`;

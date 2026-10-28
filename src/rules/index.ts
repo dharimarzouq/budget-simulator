@@ -12,7 +12,7 @@ for (const [path, file] of Object.entries(files)) {
   rules[`${year}/${name}`] = file;
 }
 
-const UNITS: Unit[] = ["gbp", "gbp_per_year", "gbp_per_month", "gbp_per_week", "gbp_per_hour", "hours_per_week", "years", "rate", "flag"];
+const UNITS: Unit[] = ["gbp", "gbp_per_year", "gbp_per_month", "gbp_per_week", "gbp_per_hour", "hours_per_week", "years", "rate", "elasticity", "multiplier", "flag"];
 
 /** Every problem found in the rules files; empty when all is well. */
 export function checkRules(all = rules, known = sources): string[] {
@@ -47,7 +47,7 @@ function checkParameter(p: Parameter, known: Record<string, Source>): string[] {
     if (p.bands.length === 0) problems.push("bands are empty");
     if (p.bands[0]?.threshold !== 0) problems.push("the first band must start at 0");
     p.bands.forEach((b, i) => {
-      if (b.rate < 0 || b.rate > 1) problems.push(`band ${i + 1}: rate must be between 0 and 1`);
+      if (p.unit === "elasticity" ? b.rate < 0 : b.rate < 0 || b.rate > 1) problems.push(`band ${i + 1}: rate must be between 0 and 1 (an elasticity, at least 0)`);
       const prev = p.bands![i - 1];
       if (prev && b.threshold <= prev.threshold) problems.push(`band ${i + 1}: thresholds must increase`);
     });

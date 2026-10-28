@@ -32,6 +32,22 @@ describe("levers and policies", () => {
     expect(policyFromQuery("it_basic=0.21&nonsense=4&it_pa=abc")).toEqual([{ lever: "it_basic", value: 0.21 }]);
   });
 
+  it("behavioural costing: one person on £200,000 when the additional rate goes up 1p", () => {
+    // Marginal rate 45% + 2% NICs = 47%, then 48%. Elasticity at £200,000 is 0.35, so taxable income changes by
+    // 0.35 × 200,000 × ln(0.52 / 0.53) = -1,333.33, losing 48% of it in tax: -640.00. Static yield: 1% of the
+    // 74,860 above £125,140 = 748.60. With behaviour: 108.60; low and high use half and 1.5 times the response.
+    const pop = { about: "", year: "2026-27", published: {}, units: [{ weight: 1, household: 0, data: household({ adults: [adult({ employment: 200000 })] }) }] };
+    const c = costPolicy(pop, r, [{ lever: "it_additional", value: 0.46 }]);
+    expect(c.netRevenue).toBeCloseTo(748.6, 1);
+    const response = 0.35 * 200000 * Math.log(0.52 / 0.53) * 0.48;
+    expect(c.behaviour.central).toBeCloseTo(response, 1);
+    expect(c.withBehaviour.central).toBeCloseTo(748.6 + response, 1);
+    expect(c.behaviour.low).toBeCloseTo(response * 0.5, 1);
+    expect(c.behaviour.high).toBeCloseTo(response * 1.5, 1);
+    // A change that doesn't touch anyone's marginal tax rate (Child Benefit) has no behavioural effect.
+    expect(costPolicy(pop, r, [{ lever: "cb_eldest", value: 30 }]).behaviour.central).toBe(0);
+  });
+
   it("a changed rule flows through the engine: 21p basic rate on £30,000", () => {
     // (30,000 - 12,570) × 21% = 3,660.30
     const h = household({ adults: [adult({ employment: 30000 })] });

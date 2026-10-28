@@ -1,0 +1,36 @@
+year: 2026-27
+area: behaviour
+label: How people respond to tax changes (behavioural costing)
+limits:
+  - These aren't rules of the tax system. They're estimates used only for behavioural costings, which are always shown next to the static ones, never instead of them.
+  - One elasticity per person, by their total income, applied to their whole taxable income. Covers income tax and the employee and self-employed NICs a person pays; employer NICs and benefits stay static.
+  - The Scottish Fiscal Commission's estimates are for Scottish taxpayers. They're used here for the whole UK, in line with the OBR's similar figure (0.5 above £150,000, from HMRC's study of the 50p rate).
+  - No separate allowance for people moving in or out of the UK or between Scotland and the rest of the UK, or for incorporation. The OBR finds the evidence on tax-driven migration very small.
+  - Very uncertain. Re-estimating HMRC's study of the 50p rate, the IFS got about 0.31 from one year's data and 0.83 from the next. So costings show a low and a high figure using half and one and a half times these elasticities.
+parameters:
+  taxable_income_elasticity:
+    label: Taxable income elasticity, by total income
+    unit: elasticity
+    bands:
+      - { threshold: 0, rate: 0.015 }
+      - { threshold: 50270, rate: 0.1 }
+      - { threshold: 80000, rate: 0.2 }
+      - { threshold: 150000, rate: 0.35 }
+      - { threshold: 300000, rate: 0.55 }
+      - { threshold: 500000, rate: 0.75 }
+    source: scotgov-ready-reckoners-2022-23
+    note: "The % change in taxable income for a 1% change in the share of an extra pound a person keeps after tax. The SFC's lowest band ends at the Scottish higher-rate threshold; here it ends at the UK's (£50,270)."
+
+  elasticity_range_low:
+    label: Low behavioural costing uses the central elasticities times
+    unit: multiplier
+    value: 0.5
+    source: ifs-tie-uncertainty
+    note: A judgement, given how imprecise the estimates are.
+
+  elasticity_range_high:
+    label: High behavioural costing uses the central elasticities times
+    unit: multiplier
+    value: 1.5
+    source: ifs-tie-uncertainty
+    note: A judgement, given how imprecise the estimates are.

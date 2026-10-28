@@ -14,7 +14,7 @@ const server = await createServer({ server: { middlewareMode: true }, appType: "
 try {
   const { ruleSet } = await server.ssrLoadModule("/src/engine/index.ts");
   const { decodePopulation } = await server.ssrLoadModule("/src/population.ts");
-  const { run, difference } = await server.ssrLoadModule("/src/policy/costing.ts");
+  const { run, difference, behaviouralEffect } = await server.ssrLoadModule("/src/policy/costing.ts");
   const { applyPolicy } = await server.ssrLoadModule("/src/policy/policy.ts");
   const r = ruleSet("2026-27");
   const pop = decodePopulation(JSON.parse(readFileSync("public/data/population-2026-27.json", "utf-8")));
@@ -46,17 +46,27 @@ try {
     ["Child Benefit other children +£1 a week (cost)", [["cb_other", 18.9]], (d) => d.childBenefitCharge - d.childBenefit, -230, -240, false],
   ];
 
+  // Behavioural effect on the same tax as the line: income tax lines take the income tax part, NICs lines the
+  // NICs part (employee and self-employed; employer NICs stay static). Child Benefit lines have none.
+  const behaviourPart = (name, b) => (name.startsWith("Child Benefit") || name.startsWith("Employer") ? 0 : /NICs|Class 4|limit \+£|threshold/i.test(name) && !/Basic rate limit/.test(name) ? b.ni : b.incomeTax);
   const rows = [];
+  const started = performance.now();
   for (const [name, changes, pick, h2627, h2728, lag] of lines) {
-    const after = run(pop, applyPolicy(r, changes.map(([lever, value]) => ({ lever, value }))));
+    const rules = applyPolicy(r, changes.map(([lever, value]) => ({ lever, value })));
+    const after = run(pop, rules);
     const ours = pick(difference(after.totals, base.totals)) / 1e6;
+    const behaviour = behaviourPart(name, behaviouralEffect(pop, r, rules)) / 1e6;
     const hmrc = lag ? h2728 / EARNINGS_2027_28 : h2627;
-    rows.push({ name, ours: Math.round(ours), hmrc: Math.round(hmrc), ratio: ours / hmrc, basis: lag ? "2027-28 scaled to 2026-27" : "2026-27" });
+    rows.push({ name, ours: Math.round(ours), withBehaviour: Math.round(ours + behaviour), hmrc: Math.round(hmrc), ratio: ours / hmrc,
+      ratioBehaviour: (ours + behaviour) / hmrc, basis: lag ? "2027-28 scaled to 2026-27" : "2026-27" });
   }
+  console.log(`${lines.length} lines, static and behavioural, in ${((performance.now() - started) / 1000).toFixed(1)} s`);
   mkdirSync("data/build", { recursive: true });
-  writeFileSync("data/build/ready_reckoner.csv", "line,ours_gbp_m,hmrc_gbp_m,ratio,hmrc_basis\n" +
-    rows.map((x) => `"${x.name}",${x.ours},${x.hmrc},${x.ratio.toFixed(2)},${x.basis}`).join("\n") + "\n");
-  for (const x of rows) console.log(`${x.name.padEnd(48)} ours ${String(x.ours).padStart(7)}  HMRC ${String(x.hmrc).padStart(7)}  ×${x.ratio.toFixed(2)}`);
+  writeFileSync("data/build/ready_reckoner.csv", "line,ours_gbp_m,ours_with_behaviour_gbp_m,hmrc_gbp_m,ratio,ratio_with_behaviour,hmrc_basis\n" +
+    rows.map((x) => `"${x.name}",${x.ours},${x.withBehaviour},${x.hmrc},${x.ratio.toFixed(2)},${x.ratioBehaviour.toFixed(2)},${x.basis}`).join("\n") + "\n");
+  for (const x of rows) {
+    console.log(`${x.name.padEnd(48)} static ${String(x.ours).padStart(7)} (×${x.ratio.toFixed(2)})  with behaviour ${String(x.withBehaviour).padStart(7)} (×${x.ratioBehaviour.toFixed(2)})  HMRC ${String(x.hmrc).padStart(7)}`);
+  }
 } finally {
   await server.close();
 }

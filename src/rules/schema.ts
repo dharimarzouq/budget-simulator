@@ -10,6 +10,8 @@ export type Unit =
   | "hours_per_week"
   | "years"
   | "rate" // a fraction, 0.2 means 20%
+  | "elasticity" // % change in one thing for a 1% change in another; 0.5 means half as much
+  | "multiplier" // times another figure; 1.5 means one and a half times
   | "flag"; // true or false
 
 export interface Band {

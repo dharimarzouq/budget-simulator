@@ -40,6 +40,12 @@ export interface RuleSet {
     chargeThreshold: number;
     chargeTaperWidth: number;
   };
+  /** Used only for behavioural costings, never by the household calculation. */
+  behaviour: {
+    taxableIncomeElasticity: Band[];
+    rangeLow: number;
+    rangeHigh: number;
+  };
   uc: {
     // Monthly amounts
     singleUnder25: number;
@@ -124,6 +130,11 @@ export function ruleSet(year: string): RuleSet {
       otherWeekly: n("child_benefit", "other_child_weekly"),
       chargeThreshold: n("child_benefit", "hicbc_threshold"),
       chargeTaperWidth: n("child_benefit", "hicbc_taper_width"),
+    },
+    behaviour: {
+      taxableIncomeElasticity: b("behaviour", "taxable_income_elasticity"),
+      rangeLow: n("behaviour", "elasticity_range_low"),
+      rangeHigh: n("behaviour", "elasticity_range_high"),
     },
     uc: {
       singleUnder25: n("universal_credit", "standard_allowance_single_under_25"),
