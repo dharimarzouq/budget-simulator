@@ -108,23 +108,25 @@ hmrc_hicbc_liability_by_year.csv:
   notes:
     - The 2024-25 figure is HMRC's provisional estimate (310,000 people, £360m), lower after the threshold rose to £60,000.
 
-# OBR forecasts, March 2026, built by data/build_targets.py.
-obr_income_tax_nics_2026_03.csv:
-  source: obr-efo-2026-03
-  table: "3.4: Income tax and NICs forecast, detailed breakdown"
-  year: 2024-25 outturn, 2025-26 to 2030-31 forecast
+# OBR forecasts, October 2026 (published with Budget 2026), built by data/build_targets.py. Replaced the March 2026
+# forecast on 28 October 2026. The uprating factors, employees and wages and salaries come from the same forecast's
+# economy tables (data/uprating.py).
+obr_income_tax_nics_2026_10.csv:
+  source: obr-efo-2026-10
+  table: "4.4: Income tax and NICs forecast, detail"
+  year: 2025-26 outturn, 2026-27 to 2031-32 forecast
   units: £ billion
   use: check (2026-27 totals for the engine run over the population)
   notes:
-    - 2026-27 income tax £359.6bn and NICs £211.6bn. These include things we don't model yet (savings and dividend tax, company-paid tax), so our totals should come in somewhat lower, by an amount we'll explain.
-obr_welfare_2026_03.csv:
-  source: obr-efo-2026-03
-  table: "4.9: Post-measures breakdown of welfare spending"
-  year: 2024-25 outturn, 2025-26 to 2030-31 forecast
+    - 2026-27 income tax £365.4bn (March's forecast was £359.6bn) and NICs £214.2bn. Income tax is cash receipts, including tax not owed by individuals in the year, so HMRC's liabilities are the like-for-like check.
+obr_welfare_2026_10.csv:
+  source: obr-efo-2026-10
+  table: "5.9: Post-measures breakdown of welfare spending"
+  year: 2025-26 outturn, 2026-27 to 2031-32 forecast
   units: £ billion
   use: check
   notes:
-    - Universal Credit 2026-27 is split in two (£71.7bn inside the welfare cap, £15.9bn outside); together £87.6bn, matching the Stat-Xplore tables.
+    - Universal Credit 2026-27 is split in two (£73.1bn inside the welfare cap, £13.3bn outside); together £86.4bn (March's forecast was £87.6bn).
     - Child Benefit 2026-27 £13.7bn.
 
 hmrc_nics_reliefs_2026_01.csv:

@@ -1,0 +1,99 @@
+section,line,year,gbp_bn
+,Income tax (gross of tax credits),2025-26,329.338
+,Income tax (gross of tax credits),2026-27,365.43646711688956
+,Income tax (gross of tax credits),2027-28,392.19192240520425
+,Income tax (gross of tax credits),2028-29,403.7828574948582
+,Income tax (gross of tax credits),2029-30,426.4370105232888
+,Income tax (gross of tax credits),2030-31,444.49682046849006
+,Income tax (gross of tax credits),2031-32,463.680545611446
+of which:,Pay as you earn,2025-26,280.513
+of which:,Pay as you earn,2026-27,302.4513046139533
+of which:,Pay as you earn,2027-28,316.2208154894293
+of which:,Pay as you earn,2028-29,329.55768588471517
+of which:,Pay as you earn,2029-30,347.27654844704375
+of which:,Pay as you earn,2030-31,362.2476855422439
+of which:,Pay as you earn,2031-32,375.6386812185755
+of which:,Self assessment,2025-26,54.071
+of which:,Self assessment,2026-27,63.395504517682944
+of which:,Self assessment,2027-28,72.01636891574196
+of which:,Self assessment,2028-29,77.15509474639049
+of which:,Self assessment,2029-30,84.66411532883967
+of which:,Self assessment,2030-31,87.7335030091754
+of which:,Self assessment,2031-32,93.56617508215373
+of which:,Company income tax,2025-26,1.6336387112136
+of which:,Company income tax,2026-27,1.702343393743404
+of which:,Company income tax,2027-28,1.7574597539931809
+of which:,Company income tax,2028-29,1.8209817047265124
+of which:,Company income tax,2029-30,1.8904944968976005
+of which:,Company income tax,2030-31,1.960175260822923
+of which:,Company income tax,2031-32,2.0300796433653705
+of which:,Non-SA repayments,2025-26,-10.141776300000002
+of which:,Non-SA repayments,2026-27,-10.51588746895982
+of which:,Non-SA repayments,2027-28,-10.988480676162995
+of which:,Non-SA repayments,2028-29,-11.366512444284265
+of which:,Non-SA repayments,2029-30,-11.761751951262376
+of which:,Non-SA repayments,2030-31,-12.251116738476119
+of which:,Non-SA repayments,2031-32,-12.690995766631566
+of which:,Temporary Repatriation Facility (TRF),2025-26,0.0
+of which:,Temporary Repatriation Facility (TRF),2026-27,4.411177541130354
+of which:,Temporary Repatriation Facility (TRF),2027-28,9.01067406185308
+of which:,Temporary Repatriation Facility (TRF),2028-29,2.420875495798277
+of which:,Temporary Repatriation Facility (TRF),2029-30,0.0
+of which:,Temporary Repatriation Facility (TRF),2030-31,0.0
+of which:,Temporary Repatriation Facility (TRF),2031-32,0.0
+of which:,Simple assessment,2025-26,1.089319628
+of which:,Simple assessment,2026-27,1.2358503980196434
+of which:,Simple assessment,2027-28,1.3125395004621931
+of which:,Simple assessment,2028-29,1.2321408013868749
+of which:,Simple assessment,2029-30,1.3143079894267795
+of which:,Simple assessment,2030-31,1.6779464225095098
+of which:,Simple assessment,2031-32,1.921935423706212
+of which:,Other IT1,2025-26,2.1728179607864604
+of which:,Other IT1,2026-27,2.7561741213197593
+of which:,Other IT1,2027-28,2.8625453598875197
+of which:,Other IT1,2028-29,2.9625913061250913
+of which:,Other IT1,2029-30,3.0532962123434118
+of which:,Other IT1,2030-31,3.128626972214363
+of which:,Other IT1,2031-32,3.214670010276734
+of which:,National insurance contributions,2025-26,204.429
+of which:,National insurance contributions,2026-27,214.23140458946406
+of which:,National insurance contributions,2027-28,220.80192093782233
+of which:,National insurance contributions,2028-29,228.57365176441644
+of which:,National insurance contributions,2029-30,240.54136370472256
+of which:,National insurance contributions,2030-31,249.4661189694134
+of which:,National insurance contributions,2031-32,257.65220501216396
+of which:,Class 1 Employee NICs,2025-26,49.426822250893395
+of which:,Class 1 Employee NICs,2026-27,51.7688209853049
+of which:,Class 1 Employee NICs,2027-28,53.41434181728153
+of which:,Class 1 Employee NICs,2028-29,55.22937311611738
+of which:,Class 1 Employee NICs,2029-30,57.68933754966468
+of which:,Class 1 Employee NICs,2030-31,59.89393968119823
+of which:,Class 1 Employee NICs,2031-32,61.9109880771744
+of which:,Class 1 Employer NICs,2025-26,145.40824790837215
+of which:,Class 1 Employer NICs,2026-27,152.73994517063883
+of which:,Class 1 Employer NICs,2027-28,157.4859609425189
+of which:,Class 1 Employer NICs,2028-29,162.9563461097246
+of which:,Class 1 Employer NICs,2029-30,171.8559989891515
+of which:,Class 1 Employer NICs,2030-31,178.04794600840214
+of which:,Class 1 Employer NICs,2031-32,183.8602148547641
+of which:,Class 4 and Class 2 Self employed NICs,2025-26,2.934301919654
+of which:,Class 4 and Class 2 Self employed NICs,2026-27,3.324772339340835
+of which:,Class 4 and Class 2 Self employed NICs,2027-28,3.5510179223979623
+of which:,Class 4 and Class 2 Self employed NICs,2028-29,3.8093835057763274
+of which:,Class 4 and Class 2 Self employed NICs,2029-30,3.962816805484268
+of which:,Class 4 and Class 2 Self employed NICs,2030-31,4.154694206817634
+of which:,Class 4 and Class 2 Self employed NICs,2031-32,4.3849624919594055
+of which:,Statutory payment recoveries,2025-26,3.552671141633087
+of which:,Statutory payment recoveries,2026-27,3.6917515965983667
+of which:,Statutory payment recoveries,2027-28,3.7930021678130896
+of which:,Statutory payment recoveries,2028-29,3.892027451748368
+of which:,Statutory payment recoveries,2029-30,4.004404459360313
+of which:,Statutory payment recoveries,2030-31,4.113443536053093
+of which:,Statutory payment recoveries,2031-32,4.225451723475489
+of which:,Other NIC2,2025-26,3.106956779447387
+of which:,Other NIC2,2026-27,2.706114497581126
+of which:,Other NIC2,2027-28,2.5575980878108737
+of which:,Other NIC2,2028-29,2.6865215810497602
+of which:,Other NIC2,2029-30,3.0288059010618156
+of which:,Other NIC2,2030-31,3.256095536942297
+of which:,Other NIC2,2031-32,3.270587864790542

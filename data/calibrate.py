@@ -15,6 +15,7 @@ A household's units (benefit units) share one weight, so a household is never sp
 
 import json
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,8 +27,10 @@ HERE = Path(__file__).resolve().parent
 T = HERE / "targets"
 BUILD = HERE / "build"
 
-EARNINGS_2023_24 = 169.0 / 148.36  # OBR average weekly earnings index to 2026-27 (EFO March 2026, table 1.6)
-EARNINGS_2024_25 = 169.0 / 156.623
+sys.path.insert(0, str(HERE))
+from uprating import EARNINGS_2023_24_TO_2026_27 as EARNINGS_2023_24  # noqa: E402  (OBR October 2026, see data/uprating.py)
+from uprating import EARNINGS_2024_25_TO_2026_27 as EARNINGS_2024_25  # noqa: E402
+from uprating import EMPLOYEES_2026_27, WAGES_AND_SALARIES_2026_27  # noqa: E402
 # Interest and dividends are uprated separately (see data/build_seed.py for why and how these were set).
 OTHER_UPRATING = {"property": EARNINGS_2023_24, "interest": 1.60, "dividends": 1.03}
 MAX_SCALE = 10.0
@@ -198,17 +201,17 @@ def build_targets(units: pd.DataFrame, adults: pd.DataFrame, n: int) -> list[Tar
         # Weighted up: HMRC's own projection for this exact year is the most direct source for who pays tax.
         targets.append(Target(g, f"{label} taxpayers", row.taxpayers_k * 1e3, household_row(adults, inb.astype(float), n), 2, 50_000))
         targets.append(Target(g, f"{label} total income", row.total_income_gbp_m * 1e6, household_row(adults, inb * adults["total"].to_numpy(), n), 2, 2e9))
-    # OBR: employees in 2026-27 (EFO March 2026, table 1.6), any age 16+, including those past State Pension age.
+    # OBR: employees in 2026-27 (EFO October 2026, table 1.6), any age 16+, including those past State Pension age.
     # People outside private households are in HMRC's counts but not in the household surveys (FRS, LFS), so
     # they're left out of those targets. (The payroll count, 30.3 million in September 2026, is a single month;
     # more people than that are paid at some point in a year, so it isn't a like-for-like target.)
     inside = (~adults["outside"]).to_numpy()
-    targets.append(Target("OBR employees", "employees 2026-27", 29.825e6,
+    targets.append(Target("OBR employees", "employees 2026-27", EMPLOYEES_2026_27,
                           household_row(adults, ((adults["employment"] > 0).to_numpy() & inside).astype(float), n), 2, 1e6))
-    # OBR: wages and salaries in 2026-27 (EFO March 2026, table 1.6), from the national accounts. In 2023-24 they
+    # OBR: wages and salaries in 2026-27 (EFO October 2026, table 1.6), from the national accounts. In 2023-24 they
     # (£1,108bn) were close to HMRC's taxable pay (£1,080bn for taxpayers, plus pay below the personal allowance),
     # so they stand in for total taxable pay, everyone included.
-    targets.append(Target("OBR wages and salaries", "all pay 2026-27", 1298.5e9,
+    targets.append(Target("OBR wages and salaries", "all pay 2026-27", WAGES_AND_SALARIES_2026_27,
                           household_row(adults, adults["employment"].to_numpy(), n), 2, 1e10))
     # FRS 2024-25: adults by age band (the survey's adults include some 16-17 year-olds; ours start at 18).
     fa = pd.read_csv(T / "frs_adults_age_employment_2024-25.csv")

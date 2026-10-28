@@ -12,6 +12,7 @@ reported in POPULATION.md. Money is 2026-27 pounds.
 import json
 import os
 import re
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -25,17 +26,15 @@ N_HOUSEHOLDS = 30_000
 MIN_PER_CELL = 40
 SEED = int(os.environ.get("POPULATION_SEED", 2026))  # set POPULATION_SEED to test how much results depend on the draws
 
-# Uprating to 2026-27, from the OBR March 2026 EFO detailed forecast tables (economy).
-EARNINGS_2024_25_TO_2026_27 = 169.0 / 156.623  # average weekly earnings index, table 1.6
-EARNINGS_2023_24_TO_2026_27 = 169.0 / 148.36
-EARNINGS_2025_26_TO_2026_27 = 169.0 / 163.804  # ASHE 2026's annual pay is for the year to April 2026
+# Uprating to 2026-27, from the OBR's October 2026 forecast (see data/uprating.py).
+sys.path.insert(0, str(HERE))
+from uprating import EARNINGS_2023_24_TO_2026_27, EARNINGS_2024_25_TO_2026_27, EARNINGS_2025_26_TO_2026_27, RENT_GROWTH  # noqa: E402
 # Interest and dividends don't grow with earnings. HMRC projects tax on savings up 48% from 2023-24 to 2026-27
 # (more interest, frozen allowances) and on dividends up 25% (mostly the April 2026 rate rise). These factors are
 # set so the population's tax on each comes out near HMRC's 2026-27 projections (Income Tax liabilities, Table 2.6).
 INTEREST_2023_24_TO_2026_27 = 1.60
 DIVIDENDS_2023_24_TO_2026_27 = 1.03
 OTHER_UPRATING = {"property": EARNINGS_2023_24_TO_2026_27, "interest": INTEREST_2023_24_TO_2026_27, "dividends": DIVIDENDS_2023_24_TO_2026_27}
-RENT_GROWTH = {"Private rented": 1.04 * 1.04, "Social rented": 1.039 * 1.05}  # table 1.18, 2025-26 and 2026-27
 NEW_STATE_PENSION = 241.30 * 52  # full rate 2026-27, DWP benefit and pension rates
 OLD_STATE_PENSION = 184.90 * 52  # basic State Pension 2026-27, same source
 

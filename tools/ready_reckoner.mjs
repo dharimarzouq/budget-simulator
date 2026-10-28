@@ -3,12 +3,12 @@
 //
 // What's compared: only the tax (or benefit) the line is about, as HMRC's "direct effects" are.
 // HMRC's income tax figures are receipts, and self-assessment tax arrives a year late, so the first year
-// (2026-27) is understated; we compare with 2027-28 scaled back by a year's earnings growth (OBR: 2.2%).
+// (2026-27) is understated; we compare with 2027-28 scaled back by a year's earnings growth (OBR: 2.9%).
 // NICs and Child Benefit have no such lag, so they're compared with 2026-27 directly.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "vite";
 
-const EARNINGS_2027_28 = 172.704 / 169.0; // OBR average weekly earnings index, EFO March 2026 table 1.6
+const EARNINGS_2027_28 = 172.396 / 167.602; // OBR average weekly earnings index, EFO October 2026 table 1.6
 
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "error" });
 try {

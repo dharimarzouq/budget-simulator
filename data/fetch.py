@@ -16,9 +16,6 @@ RAW = HERE / "raw"
 
 FILES = {
     "hmrc_spi_2324_tables_3_1_to_3_11.ods": "https://assets.publishing.service.gov.uk/media/69f1f12d2fae53a03709682f/Collated_Tables_3_1_to_3_11_2324.ods",
-    "obr_efo_2026_03_receipts.xlsx": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-receipts/",
-    "obr_efo_2026_03_expenditure.xlsx": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-expenditure/",
-    "obr_efo_2026_03_economy.xlsx": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-economy/",
     "hmrc_tax_relief_statistics_2026_01.ods": "https://assets.publishing.service.gov.uk/media/69a0194e3e672177d0bc76e6/tax_relief_statistics_january_2026.ods",
     "hmrc_ready_reckoner_2025_06.ods": "https://assets.publishing.service.gov.uk/media/68552862b46781eacfd71d71/June_2025_TRR_ODS__1_.ods",
     "hmrc_income_tax_liabilities_2026_07.ods": "https://assets.publishing.service.gov.uk/media/6a5a49b47eb057103bd946a4/Collated_Income_Tax_liabilities_statistics_tables_-_2.1_to_2.6.ods",

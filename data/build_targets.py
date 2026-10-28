@@ -7,6 +7,7 @@ Cells the publisher suppressed ("[Not available]") are left empty, never filled 
 """
 
 import re
+import zipfile
 from pathlib import Path
 
 import pandas as pd
@@ -219,12 +220,16 @@ def nics_reliefs() -> pd.DataFrame:
 
 
 def main() -> None:
+    # The OBR's October 2026 tables come as one zip (data/fetch.py).
+    if not (RAW / "obr_efo_2026_10").exists():
+        with zipfile.ZipFile(RAW / "obr_efo_2026_10_tables.zip") as z:
+            z.extractall(RAW / "obr_efo_2026_10")
     reliefs = nics_reliefs()
     reliefs.to_csv(OUT / "hmrc_nics_reliefs_2026_01.csv", index=False)
     print("NICs reliefs:", reliefs[reliefs["year"].str.startswith("2025")][["relief", "cost_gbp_m"]].to_string(index=False))
     for name, (file, sheet) in {
-        "obr_income_tax_nics_2026_03.csv": ("obr_efo_2026_03_receipts.xlsx", "3.4"),
-        "obr_welfare_2026_03.csv": ("obr_efo_2026_03_expenditure.xlsx", "4.9"),
+        "obr_income_tax_nics_2026_10.csv": ("obr_efo_2026_10/efo-october-2026-detailed-forecast-tables-receipts.xlsx", "4.4"),
+        "obr_welfare_2026_10.csv": ("obr_efo_2026_10/efo-october-2026-detailed-forecast-tables-expenditure.xlsx", "5.9"),
     }.items():
         t = obr_table(file, sheet)
         t.to_csv(OUT / name, index=False)
