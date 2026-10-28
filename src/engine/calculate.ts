@@ -236,15 +236,17 @@ function childBenefitCharge(benefit: number, adults: AdultResult[], r: RuleSet):
   const top = Math.max(...adults.map((a) => a.adjustedNetIncome));
   const cb = r.childBenefit;
   const excess = Math.max(0, top - cb.chargeThreshold);
-  // 1% for every whole £200 (with the 2026-27 width of £20,000), up to 100%.
-  const percent = Math.min(100, Math.floor(excess / (cb.chargeTaperWidth / 100)));
+  // 1% for every whole £200 (with the 2026-27 width of £20,000), up to 100%. With no width at all, the whole of it
+  // as soon as income is over the threshold.
+  const percent = excess <= 0 ? 0 : cb.chargeTaperWidth > 0 ? Math.min(100, Math.floor(excess / (cb.chargeTaperWidth / 100))) : 100;
   const amount = (benefit * percent) / 100;
   const working = !benefit
     ? "No Child Benefit received."
     : !Number.isFinite(cb.chargeThreshold)
       ? "No charge: it has been removed."
       : excess
-      ? `Higher earner's adjusted net income ${gbp(top)} is ${gbp(excess)} over ${gbp(cb.chargeThreshold)}: ${percent}% of Child Benefit (1% per £${cb.chargeTaperWidth / 100}).`
+      ? `Higher earner's adjusted net income ${gbp(top)} is ${gbp(excess)} over ${gbp(cb.chargeThreshold)}: ${percent}% of Child Benefit` +
+        (cb.chargeTaperWidth > 0 ? ` (1% per £${cb.chargeTaperWidth / 100}).` : " (no taper: all of it once over the threshold).")
       : `Higher earner's adjusted net income ${gbp(top)} is not over ${gbp(cb.chargeThreshold)}.`;
   return { label: "High Income Child Benefit Charge", amount, working };
 }

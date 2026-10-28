@@ -237,7 +237,8 @@ function requestCosting() {
 worker.onmessage = (ev: MessageEvent<Reply>) => {
   const m = ev.data;
   if (m.type === "error") {
-    $("headline").innerHTML = `<div class="empty">Something went wrong working out the costing: ${esc(m.message)}</div>`;
+    $("results").classList.remove("pending");
+    $("headline").innerHTML = `<div class="empty">Something went wrong working out the costing: ${esc(m.message.replace(/^Error: /, ""))}</div>`;
     return;
   }
   if (m.type === "ready") {
@@ -251,8 +252,10 @@ worker.onmessage = (ev: MessageEvent<Reply>) => {
     $("results").classList.remove("pending");
     renderHeadline(m, undefined);
     renderFiscal(m, undefined);
-    renderBreakdown(m);
+    renderBreakdown(m, undefined);
     renderWinners(m.distribution.deciles, m.distribution.familyTypes, m.distribution.regions, m.distribution.all);
+  } else if (m.type === "levers" && lastStatic) {
+    renderBreakdown(lastStatic, m);
   } else if (m.type === "behaviour" && lastStatic) {
     renderHeadline(lastStatic, m.behaviour);
     renderFiscal(lastStatic, m.behaviour);
@@ -263,6 +266,7 @@ worker.postMessage({ type: "load", url: new URL("./data/population-2026-27.json"
 // ---- results -----------------------------------------------------------------------------------
 type Static = Extract<Reply, { type: "static" }>;
 type BehaviourFigures = Extract<Reply, { type: "behaviour" }>["behaviour"];
+type Levers = Extract<Reply, { type: "levers" }>;
 
 const SOURCES = {
   rr: `<a href="https://www.gov.uk/government/statistics/direct-effects-of-illustrative-tax-changes">HMRC's ready reckoner</a>`,
@@ -285,7 +289,11 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
   const behaviour = !b
     ? `<div class="value small">working it out…</div><div class="sub">takes a few seconds</div>`
     : b.low === 0 && b.high === 0
-      ? `<div class="value">${raised(s.netRevenue)}</div><div class="sub">no tax rates change; benefits are costed static</div>`
+      ? `<div class="value">${raised(s.netRevenue)}</div><div class="sub">${
+          changes.some((c) => !/^(uc|cb)_/.test(REMOVAL[c.lever]?.lever ?? c.lever)) // any tax change
+            ? "responses make no difference to what's raised here"
+            : "no tax changes; benefits are costed static"
+        }</div>`
       : `<div class="value">${raised(s.netRevenue + b.central)}</div><div class="sub">range ${bn(s.netRevenue + Math.min(b.low, b.high), false)} to ${bn(s.netRevenue + Math.max(b.low, b.high), false)}</div>`;
   const all = s.distribution.all;
   $("headline").innerHTML = `
@@ -371,7 +379,7 @@ function changeText(id: string): string {
   return `${esc(l.label)}<div class="working">${esc(l.group)}: ${esc(showValue(l, l.get(rules)))} → ${esc(showValue(l, policy.get(id)!))}</div>`;
 }
 
-function renderBreakdown(s: Static) {
+function renderBreakdown(s: Static, levers: Levers | undefined) {
   const changes = currentPolicy();
   if (!changes.length) {
     $("breakdown").innerHTML = `<p class="small">Nothing changed yet.</p>`;
@@ -385,11 +393,12 @@ function renderBreakdown(s: Static) {
   }
   html += `<tr class="total"><td>Total (static)</td>${signed(s.netRevenue)}</tr></table>`;
   html += `<table><tr><th>Each change on its own</th><th class="num">£ a year</th><th>Checks against HMRC</th></tr>`;
-  for (const p of s.perLever) {
-    const g = leverCheck(p.lever);
-    html += `<tr><td>${changeText(p.lever)}</td>${signed(p.netRevenue)}<td title="${esc(g.why)}">${checkBadge(g.check)}</td></tr>`;
+  for (const ch of changes) {
+    const g = leverCheck(ch.lever);
+    const own = levers?.perLever.find((p) => p.lever === ch.lever);
+    html += `<tr><td>${changeText(ch.lever)}</td>${own ? signed(own.netRevenue) : `<td class="num small">working…</td>`}<td title="${esc(g.why)}">${checkBadge(g.check)}</td></tr>`;
   }
-  if (changes.length > 1) html += `<tr><td>Interaction<div class="working">Changes overlap: e.g. a tax rise reduces Universal Credit, a rate rise on a bigger allowance raises less.</div></td>${signed(s.interaction)}<td></td></tr>`;
+  if (changes.length > 1) html += `<tr><td>Interaction<div class="working">Changes overlap: e.g. a tax rise reduces Universal Credit, a rate rise on a bigger allowance raises less.</div></td>${levers ? signed(levers.interaction) : `<td class="num small">working…</td>`}<td></td></tr>`;
   html += `</table></div>`;
   html += `<details class="show-working"><summary>Show working</summary>
     <p>Every made-up household is run through the 2026-27 rules twice, as they are and with your changes, and the differences are added up, weighted to stand for the whole UK. "Static" means nobody changes what they earn or claim. The figure allowing for responses uses ${SOURCES.sfc}, rising with income, with a low and high figure at half and one and a half times them. Benefits and employer National Insurance stay static.</p>

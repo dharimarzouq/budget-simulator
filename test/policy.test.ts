@@ -59,6 +59,42 @@ describe("levers and policies", () => {
   });
 });
 
+describe("levers at the ends of their sliders", () => {
+  // Households that touch every part of the engine: tax bands, the taper, NICs, Child Benefit and its charge,
+  // Universal Credit with rent, children, health and the cap, savings and dividends, Scotland, pensioners.
+  const households = [
+    household({ adults: [adult({ employment: 15000 })] }),
+    household({ adults: [adult({ employment: 60000, savingsInterest: 2000, dividends: 5000 })], children: [child(), child()] }),
+    household({ adults: [adult({ employment: 70000 }), adult({ employment: 0 })], children: [child()] }),
+    household({ adults: [adult({ employment: 150000, selfEmployment: 40000 })] }),
+    household({ region: "scotland", adults: [adult({ employment: 45000 })] }),
+    household({ region: "london", adults: [adult({ age: 30, health: "lcwra" })], children: [child(), child(), child()], rentMonthly: 2500 }),
+    household({ adults: [adult({ age: 70, pension: 30000 })] }),
+    household({ adults: [adult({ age: 22, employment: 9000, carer: true })], rentMonthly: 600, savings: 8000 }),
+  ];
+  const finite = (p: Policy) =>
+    households.every((h) => {
+      const res = calculate(h, applyPolicy(r, p));
+      return [res.netIncome, res.childBenefitCharge, res.universalCredit.award, ...res.adults.flatMap((a) => [a.incomeTax, a.employeeNI, a.employerNI, a.selfEmployedNI])].every(Number.isFinite);
+    });
+
+  it("every lever at zero, and at double today's value, gives a figure for every household", () => {
+    for (const l of LEVERS) {
+      if (l.unit === "flag") continue;
+      expect(finite([{ lever: l.id, value: 0 }]), `${l.id} at 0`).toBe(true);
+      expect(finite([{ lever: l.id, value: 2 * (l.get(r) as number) }]), `${l.id} doubled`).toBe(true);
+    }
+    expect(finite(LEVERS.filter((l) => l.unit !== "flag").map((l) => ({ lever: l.id, value: 0 })))).toBe(true);
+  });
+
+  it("with no taper width, the Child Benefit charge takes all of it once income is over the threshold", () => {
+    const family = (pay: number) => household({ adults: [adult({ employment: pay })], children: [child(), child()] });
+    const p = applyPolicy(r, [{ lever: "cb_charge_width", value: 0 }]);
+    expect(calculate(family(60001), p).childBenefitCharge).toBeCloseTo(calculate(family(60001), p).childBenefit, 6);
+    expect(calculate(family(59000), p).childBenefitCharge).toBe(0);
+  });
+});
+
 describe("removing a tax, allowance or charge", () => {
   const tax = (h: ReturnType<typeof household>, p: Policy) => calculate(h, applyPolicy(r, p)).adults[0]!;
   const on = (id: string) => ({ lever: id, value: true });
@@ -154,6 +190,12 @@ describe("costing over the population", { timeout: 30000 }, () => {
     const c = costPolicy(pop, r, [{ lever: "it_basic", value: 0.22 }, { lever: "uc_taper", value: 0.5 }], base);
     const sum = c.perLever.reduce((s, l) => s + l.netRevenue, 0) + c.interaction;
     expect(sum).toBeCloseTo(c.netRevenue, 0);
+  });
+
+  it("every lever at zero at once still gives a figure for the whole population", () => {
+    const after = run(pop, applyPolicy(r, LEVERS.filter((l) => l.unit !== "flag").map((l) => ({ lever: l.id, value: 0 }))));
+    expect(Object.values(after.totals).every(Number.isFinite)).toBe(true);
+    expect(Number.isFinite(distribution(pop, base, after).all.meanChange)).toBe(true);
   });
 
   it("removing employer National Insurance loses what it raises, after the Employment Allowance", () => {
