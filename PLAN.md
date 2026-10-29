@@ -113,9 +113,30 @@ Tax year: 2026/27, the current year. Every rate and threshold is stored as data 
 
 Separate property income rates (from April 2027), finance cost relief for landlords, investment reliefs (EIS, SEIS, VCTs) and Gift Aid as rules of their own (they're in the population only as a total of tax reductions), council tax and Council Tax Reduction, Local Housing Allowance caps by area, disability benefits, pensioner benefits (Pension Credit, Winter Fuel Payment), Scottish Child Payment, the TV licence, VAT and other indirect taxes, spending departments (layer 4), and reform packs (land value tax comes in milestone 2).
 
+# Milestone 2 plan: taxes and policies, spending, history, then the design
+
+Agreed 29 October 2026. Ari found the page unintuitive; the design gets redone once the back end it has to show exists. The order:
+
+1. **Taxes and policies** (detailed below; waiting for go).
+2. **Spending.** Departmental budgets (day-to-day and capital, from the OBR's October 2026 tables 5.7 and 5.8) and the big spending lines (welfare, the State Pension, debt interest), each change carrying the OBR's multiplier for its kind of spending.
+3. **History.** The public finances back to about 1995 (OBR historical tables, Open Government Licence), so each result can be shown as history, the official forecast, and your choices.
+4. **The design pass.** Separate places to adjust taxes, spending and economic assumptions; one headline figure against existing plans; an "impact" panel with a tab per measure (current budget, borrowing, debt, tax, spending, investment, growth), each a chart of history, forecast and your choices; a coherent theme of our own; a first-time "how to play"; a shareable picture of your plan.
+
+## Step 1 in detail: taxes and policies (proposed 29 October 2026, waiting for go)
+
+- **1a. Policies as named measures.** A policy is a plain-English measure ("Raise the basic rate by 1p", "Scrap the two-child limit", "Tax capital gains like income") with a description, its options, how it's costed, and its sources and grade. Kept as data in a policy library. Each reports what it raises or costs (static and with responses, separately), who gains and loses where households are affected, its grade and its check. The existing levers stay for people who want them; a policy is a named setting of them, or a costing of its own for taxes the engine doesn't model.
+- **1b. The other big taxes,** costed from HMRC's ready reckoner, which lists standard changes for VAT, corporation tax, capital gains tax, inheritance tax, stamp duty land tax, fuel duty, alcohol and tobacco duties, vehicle excise duty and insurance premium tax. We can't model companies, estates or shopping baskets ourselves, so for these the costing is HMRC's own (it already allows for responses), scaled to the size of the change. Exactly the changes HMRC lists are an official costing (grade A); sizes in between are scaled (B); changes far beyond them are marked a known gap. Each is carried over the forecast years with the OBR's forecast for that tax.
+- **1c. Who pays VAT and duties.** Households pay these through what they buy. ONS's "Effects of taxes and benefits on household income" publishes, by income tenth and household type, how much VAT and each duty households pay (Open Government Licence), so a VAT change can be shared out the same way in winners and losers. That's approximate and labelled so. Corporation tax, capital gains and inheritance tax aren't shared out to households: the page will say so rather than guess.
+- **1d. The 2027-28 rules.** The Budget 2026 changes from April 2027 (2p more on property and savings income, the income tax exemption for low-income pensioners, the bigger trading allowance) as a second rules year, so later years are costed on the rules that will apply rather than carried forward.
+
+Checks: every tax costing reproduces HMRC's figures exactly for the changes HMRC lists; VAT and duty shares add up to ONS's totals; the 2027-28 rules go through the same PolicyEngine and hand-worked checks as 2026-27; existing tests keep passing.
+
+Order within the step: 1a, then 1b (VAT, corporation tax, capital gains and inheritance tax first, then the duties), then 1c, then 1d.
+
 ## Decisions I'll need from you along the way
 
-- Name and code licence (before any public repo)
-- Whether and when to create a GitHub repo (it's public, so that's your call)
+- Name (still "budget-simulator"; it's part of the web address, so settle it before sharing widely)
+- ~~Code licence.~~ Decided 29 October 2026: MIT.
+- ~~Whether and when to create a GitHub repo.~~ Done 29 October 2026: public at github.com/dharimarzouq/budget-simulator, published with GitHub Pages.
 - ~~Look-and-feel direction, before 6f (the page).~~ Decided 28 October 2026: "Workbench": levers on the left, live results on the right, dense numbers (monospace figures) and compact charts.
 - ~~Which behavioural estimates to use in 6d.~~ Decided: the Scottish Fiscal Commission's, with a low/high range.
