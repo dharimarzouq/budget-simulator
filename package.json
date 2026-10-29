@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "UK budget simulator: specific policies, their costings, who wins and loses, and the effect on the economy and debt, with every number sourced.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
