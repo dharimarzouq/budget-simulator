@@ -5,6 +5,7 @@ import { ruleSet } from "./engine";
 import { decodePopulation, type Population } from "./population";
 import { behaviouralEffect, difference, firstYear, marginalRatesFor, netRevenue, run, type Behaviour, type Effects, type Run } from "./policy/costing";
 import { isReckonerLever, reckonerCosts, type ReckonerCost } from "./policy/reckoner";
+import { indirectByTenth, sharedOut } from "./policy/indirect";
 import { distribution, type Distribution } from "./policy/distribution";
 import { applyPolicy, effectiveChanges, type Policy } from "./policy/policy";
 
@@ -49,7 +50,9 @@ async function work() {
       if (broken.length) throw new Error(`these settings give a result that can't be worked out (${broken.join(", ")}). Please report it.`);
       const reckoner = reckonerCosts(rules, reformedRules);
       const total = netRevenue(change) + firstYear(reckoner);
-      post({ type: "static", id, change, reckoner, netRevenue: total, distribution: distribution(pop, base, reformed) });
+      // VAT and duties shared out to households by income tenth, as the ONS finds they pay them now.
+      const indirect = reckoner.some((c) => sharedOut(c.lever)) ? indirectByTenth(reckoner) : undefined;
+      post({ type: "static", id, change, reckoner, netRevenue: total, distribution: distribution(pop, base, reformed, indirect) });
       await tick(); // let a newer request in before the slower parts
       if (latest) continue;
       // Then each change on its own, one run each, stopping if a newer request comes in.

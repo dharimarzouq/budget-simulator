@@ -75,6 +75,13 @@ govuk-ipt:
   licence: Open Government Licence v3.0
   updated: 2019-03-06
   accessed: 2026-10-29
+ons-etb-2023-24:
+  title: "The effects of taxes and benefits on household income, UK, financial year ending 2024: reference tables"
+  publisher: Office for National Statistics
+  url: https://www.ons.gov.uk/peoplepopulationandcommunity/personalandhouseholdfinances/incomeandwealth/datasets/theeffectsoftaxesandbenefitsonhouseholdincomefinancialyearending2014
+  licence: Open Government Licence v3.0
+  published: 2025-09-25
+  accessed: 2026-10-29
 hmrc-ready-reckoner-2025-06:
   title: "Direct effects of illustrative tax changes, June 2025 (tables)"
   publisher: HM Revenue and Customs

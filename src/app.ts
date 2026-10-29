@@ -10,6 +10,7 @@ import { initTaxChart } from "./taxchart";
 import { FORECAST, baseline, fiscalPath, type Path } from "./economy/fiscal";
 import { CHECK_LABEL, CHECK_MEANING, COSTING_GRADE, GRADE_MEANING, costingGrade, leverCheck, policyCheck, type Check } from "./policy/grades";
 import { isReckonerLever, type Fit } from "./policy/reckoner";
+import { sharedOut } from "./policy/indirect";
 import type { Group } from "./policy/distribution";
 import type { Reply, Request } from "./costing.worker";
 
@@ -450,7 +451,8 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
     return;
   }
   const fits = fitsOf(s);
-  const household = changes.some((c) => !isReckonerLever(c.lever)); // anything the household model works out
+  const household = changes.some((c) => !isReckonerLever(c.lever) || sharedOut(c.lever)); // anything that reaches households
+  const modelled = changes.some((c) => !isReckonerLever(c.lever)); // anything the household model works out
   const check = policyCheck(changes, fits);
   const g = costingGrade(changes, fits);
   const grade = info(`grade ${g}`, `Grade ${g}: ${GRADE_MEANING[g]} The scale: A ${GRADE_MEANING.A} B ${GRADE_MEANING.B} C ${GRADE_MEANING.C} D ${GRADE_MEANING.D}`);
@@ -460,7 +462,7 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
     ? `<div class="value small">working it out… <span id="behaviour-progress"></span></div><div class="sub">the other figures don't wait for it</div>`
     : b.low === 0 && b.high === 0
       ? `<div class="value">${raised(s.netRevenue)}</div><div class="sub">${
-          !household
+          !modelled
             ? "responses are already in HMRC's costings"
             : changes.some((c) => !isReckonerLever(c.lever) && !/^(uc|cb)_/.test(REMOVAL[c.lever]?.lever ?? c.lever)) // a household tax change
               ? "responses make no difference to what's raised here"
@@ -473,7 +475,9 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
     <div class="metric"><div class="label">Allowing for how people respond</div>${behaviour}</div>
     <div class="metric"><div class="label">Households losing / gaining</div>${
       household
-        ? `<div class="value">${share(all.lose)} / ${share(all.gain)}</div><div class="sub">by more than £1 a week${s.reckoner.length ? "; doesn't yet include taxes costed from HMRC's figures" : ""}</div>`
+        ? `<div class="value">${share(all.lose)} / ${share(all.gain)}</div><div class="sub">by more than £1 a week${
+            s.reckoner.some((c) => !sharedOut(c.lever)) ? "; leaves out taxes not shared out to households" : ""
+          }</div>`
         : `<div class="value small">not worked out</div><div class="sub">who pays these taxes isn't shared out to households yet</div>`
     }</div>
     <div class="metric"><div class="label">How far to trust it</div><div class="value small"><span class="grade">${g}</span>${grade.button} ${checkBadge(check)}</div>${grade.panel}<div class="sub">grade ${g}: ${g === "A" ? "HMRC's own costing" : "our own model, or HMRC's costings scaled"}; checks: ${CHECK_LABEL[check]}</div></div>`;
@@ -660,7 +664,14 @@ function renderWinners(deciles: Group[], family: Group[], regions: Group[], all:
       <button type="button" data-mode="pounds" aria-pressed="${winnersMode === "pounds"}">£ a year</button>
       <button type="button" data-mode="percent" aria-pressed="${winnersMode === "percent"}">% of income</button>
     </div>
-    ${lastStatic?.reckoner.length ? `<p class="empty">Not included yet: changes to taxes costed from HMRC's figures (${esc(lastStatic.reckoner.map((c) => LEVER[c.lever]!.label).join("; "))}). Who pays them isn't shared out to households yet.</p>` : ""}
+    ${(() => {
+      const out = lastStatic?.reckoner.filter((c) => !sharedOut(c.lever)) ?? [];
+      const shared = lastStatic?.reckoner.filter((c) => sharedOut(c.lever)) ?? [];
+      return (
+        (out.length ? `<p class="empty">Not included: ${esc(out.map((c) => LEVER[c.lever]!.label).join("; "))}. These fall on companies, estates and property buyers, and there's no published breakdown by household income to share them out with.</p>` : "") +
+        (shared.length ? `<p class="small">VAT and duties are shared out by income tenth in proportion to what each tenth pays now (ONS, 2023-24), the same for every household in a tenth: approximate.</p>` : "")
+      );
+    })()}
     <p class="small">Average change in net household income, by tenth of households ranked by income (adjusted for household size). All households: ${pounds(all.meanChange, true)} a year on average; ${share(all.lose)} lose and ${share(all.gain)} gain more than £1 a week.</p>
     <div class="chart">${svg}</div>
     ${table("By tenth", deciles)}

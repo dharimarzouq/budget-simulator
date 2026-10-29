@@ -100,8 +100,11 @@ const groupBy = (rows: HouseholdRow[], key: (r: HouseholdRow) => string) => {
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([label, g]) => summarise(label, g));
 };
 
-/** Winners and losers from two runs of the same population (today's rules, and the policy). */
-export function distribution(pop: Population, before: Run, after: Run): Distribution {
+/**
+ * Winners and losers from two runs of the same population (today's rules, and the policy). `indirect` is how much more
+ * each tenth pays in VAT and duties (£ in total for the tenth, from indirect.ts), taken equally from its households.
+ */
+export function distribution(pop: Population, before: Run, after: Run, indirect?: number[]): Distribution {
   const rows = households(pop, before, after).sort((a, b) => a.equivalised - b.equivalised);
   const total = rows.reduce((s, r) => s + r.weight, 0);
   const deciles: HouseholdRow[][] = Array.from({ length: 10 }, () => []);
@@ -111,6 +114,12 @@ export function distribution(pop: Population, before: Run, after: Run): Distribu
     const k = Math.min(9, Math.floor(((cum + r.weight / 2) / total) * 10));
     deciles[k]!.push(r);
     cum += r.weight;
+  }
+  if (indirect) {
+    deciles.forEach((g, k) => {
+      const households = g.reduce((s, r) => s + r.weight, 0);
+      for (const r of g) r.after -= indirect[k]! / households;
+    });
   }
   return {
     all: summarise("All households", rows),

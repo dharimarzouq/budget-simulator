@@ -1,0 +1,44 @@
+# Who pays VAT and duties: ONS, "The effects of taxes and benefits on household income, UK, 2023/24", reference
+# tables, Table 2b (average household taxes, £ a year, of all individuals by equivalised household disposable income
+# decile group). Read off data/raw/ons_etb_fye2024.xlsx. Used to share a change in these taxes out across income
+# tenths, in proportion to what each tenth pays now (average × households in the tenth).
+#
+# Approximate: the ONS ranks individuals and averages over them; the simulator ranks households. Within a tenth, every
+# household is given the same share. A tax paid partly through prices (fuel and vehicle duty on business use) counts
+# both what households pay directly and what the ONS assigns to them through the prices of other things.
+source: ons-etb-2023-24
+deciles: [Bottom, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th, Top]
+households_thousands: [2971, 2904, 2977, 2925, 2802, 2757, 2654, 2645, 2774, 3032]
+taxes:
+  vat:
+    label: Value Added Tax (VAT)
+    average: [2217, 2270, 3073, 2655, 2994, 3426, 3621, 4637, 4747, 5887]
+    levers: [vat_standard, vat_reduced]
+  fuel:
+    label: Duty on hydrocarbon oils (final goods plus intermediate)
+    average: [405, 477, 560, 453, 640, 704, 600, 879, 763, 819]
+    levers: [fuel_duty]
+  tobacco:
+    label: Duty on tobacco
+    average: [173, 235, 399, 320, 338, 239, 362, 248, 316, 148]
+    levers: [tobacco_duty]
+  beer_cider:
+    label: Duty on beer and cider
+    average: [79, 75, 100, 81, 91, 124, 137, 138, 221, 223]
+    levers: [beer_cider_duty]
+  wine_spirits:
+    label: Duty on wines and spirits
+    average: [143, 205, 239, 171, 269, 234, 226, 326, 399, 472]
+    levers: [wine_duty, spirits_duty]
+  ved:
+    label: Vehicle Excise Duty (final goods plus intermediate)
+    average: [206, 223, 229, 229, 229, 266, 278, 325, 307, 353]
+    levers: [ved]
+  ipt:
+    label: Insurance Premium Tax
+    average: [106, 124, 150, 124, 124, 151, 156, 165, 174, 240]
+    levers: [ipt_standard, ipt_higher]
+  apd:
+    label: Air Passenger Duty
+    average: [34, 31, 78, 71, 126, 105, 82, 102, 153, 228]
+    levers: [apd_reduced]
