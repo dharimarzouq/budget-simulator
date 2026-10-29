@@ -1,0 +1,141 @@
+# Departmental spending plans and their Barnett comparability factors.
+#
+# rdel: day-to-day spending (resource DEL excluding depreciation), £bn, 2025-26 (outturn) to 2028-29. OBR, Economic and
+#   fiscal outlook October 2026, detailed forecast tables, expenditure, Table 5.7.
+# cdel: investment spending (capital DEL), £bn, 2025-26 (outturn) to 2029-30. Same, Table 5.8.
+#   After the last year given, each department grows in line with the OBR's total (forecasts/obr-2026-10.yaml,
+#   rdel_total and cdel_total): an assumption, as the government hasn't set departmental plans that far ahead.
+# comparability: the share of the department's spending on services Scotland, Wales and Northern Ireland run themselves,
+#   from HM Treasury's Statement of Funding Policy (June 2025), Annex B, used at Spending Review 2025. A change to the
+#   department's budget changes their block grants by the Barnett formula (src/policy/spending.ts). Departments it
+#   doesn't list (Defence, the Foreign Office, the intelligence agencies: reserved) are 0.
+# Reserves and accounting provisions in the tables aren't departments and aren't included.
+plan_sources: [obr-efo-2026-10]
+comparability_source: hmt-statement-of-funding-policy-2025-06
+departments:
+  health:
+    label: Health and Social Care
+    rdel: [204.067, 212.490, 221.249, 231.085]
+    cdel: [13.342, 13.799, 13.533, 14.478, 15.003]
+    comparability: { scotland: 0.995, wales: 0.995, northern_ireland: 0.995 }
+  education:
+    label: Education
+    rdel: [90.376, 95.018, 97.843, 101.488]
+    cdel: [6.886, 8.135, 7.524, 7.527, 7.526]
+    comparability: { scotland: 1.0, wales: 1.0, northern_ireland: 1.0 }
+  home_office:
+    label: Home Office
+    rdel: [17.895, 20.280, 20.509, 20.616]
+    cdel: [1.727, 1.831, 1.832, 1.653, 1.629]
+    comparability: { scotland: 0.733, wales: 0.005, northern_ireland: 0.745 }
+  justice:
+    label: Justice
+    rdel: [11.842, 12.693, 12.959, 13.197]
+    cdel: [2.229, 2.339, 2.290, 2.291, 1.948]
+    comparability: { scotland: 1.0, wales: 0.0, northern_ireland: 1.0 }
+  law_officers:
+    label: Law Officers' Departments
+    rdel: [0.927, 1.108, 1.107, 1.130]
+    cdel: [0.055, 0.083, 0.055, 0.213, 0.039]
+    comparability: { scotland: 0.986, wales: 0.0, northern_ireland: 0.913 }
+  defence:
+    label: Defence
+    rdel: [38.945, 41.932, 42.624, 43.750]
+    cdel: [23.050, 26.434, 31.233, 32.712, 34.465]
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+  intelligence:
+    label: Single Intelligence Account
+    rdel: [3.257, 3.520, 3.453, 3.433]
+    cdel: [1.675, 2.024, 1.730, 1.951, 1.640]
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+  fcdo:
+    label: Foreign, Commonwealth and Development Office
+    rdel: [7.727, 6.287, 6.458, 6.563]
+    cdel: [3.163, 3.135, 2.164, 2.704, 3.006]
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+  local_government:
+    label: Local government (MHCLG)
+    rdel: [13.813, 20.608, 17.948, 17.795]
+    # Table 5.8 has no separate local government line: its investment is in MHCLG Housing and Communities.
+    cdel: [0, 0, 0, 0, 0]
+    comparability: { scotland: 1.0, wales: 1.0, northern_ireland: 1.0 }
+  housing_communities:
+    label: Housing, Communities and Local Government (MHCLG)
+    rdel: [4.427, 4.252, 3.061, 2.810]
+    cdel: [8.593, 10.310, 9.050, 9.100, 8.970]
+    comparability: { scotland: 0.821, wales: 0.821, northern_ireland: 0.821 }
+  culture:
+    label: Digital, Culture, Media and Sport
+    rdel: [1.903, 2.173, 2.220, 2.627]
+    cdel: [1.494, 1.890, 1.892, 1.699, 1.642]
+    comparability: { scotland: 0.806, wales: 0.806, northern_ireland: 0.826 }
+  transport:
+    label: Transport
+    rdel: [7.629, 8.091, 8.148, 7.653]
+    cdel: [21.345, 22.024, 24.239, 22.135, 23.550]
+    # HM Treasury notes a possible error in this factor, to be corrected in its next edition.
+    comparability: { scotland: 0.956, wales: 0.335, northern_ireland: 0.956 }
+  energy:
+    label: Energy Security and Net Zero
+    rdel: [1.842, 2.021, 2.062, 1.718]
+    cdel: [11.457, 8.076, 9.009, 10.021, 9.011]
+    comparability: { scotland: 0.169, wales: 0.169, northern_ireland: 0.185 }
+  environment:
+    label: Environment, Food and Rural Affairs
+    rdel: [4.832, 4.817, 4.785, 4.690]
+    cdel: [2.481, 2.686, 2.661, 2.621, 2.620]
+    comparability: { scotland: 0.979, wales: 0.979, northern_ireland: 0.979 }
+  business_science:
+    label: Business, Innovation, Science and Trade
+    rdel: [2.315, 2.214, 2.038, 1.981]
+    cdel: [14.754, 15.004, 15.275, 15.681, 15.981]
+    # The OBR combines two departments here; HM Treasury gives Science, Innovation and Technology 17.3% and Business and
+    # Trade 4.7%, 2.6% and 14.8%. Science's factor is used, as most of the investment is science: approximate.
+    comparability: { scotland: 0.173, wales: 0.173, northern_ireland: 0.173 }
+  work_pensions:
+    label: Work and Pensions (running costs and programmes, not benefits)
+    rdel: [14.123, 13.680, 15.845, 15.627]
+    cdel: [0.636, 0.991, 0.801, 0.571, 0.504]
+    comparability: { scotland: 0.150, wales: 0.005, northern_ireland: 0.982 }
+  hmrc:
+    label: HM Revenue and Customs
+    rdel: [5.852, 6.820, 6.861, 6.534]
+    cdel: [0.876, 0.863, 0.652, 0.492, 0.308]
+    comparability: { scotland: 0.046, wales: 0.046, northern_ireland: 0.042 }
+  treasury:
+    label: HM Treasury
+    rdel: [0.382, 0.433, 0.429, 0.412]
+    cdel: [0.813, 0.830, 0.076, 0.080, 0.096]
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+  cabinet_office:
+    label: Cabinet Office
+    rdel: [0.776, 1.278, 1.728, 1.470]
+    cdel: [0.477, 0.718, 0.517, 0.424, 0.274]
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+  small_bodies:
+    label: Small and independent bodies
+    rdel: [2.902, 3.025, 2.579, 2.521]
+    cdel: [0.440, 0.572, 0.450, 0.437, 0.439]
+    # Each body has its own factor (Parliament and the National Audit Office 0%, Ofsted 100%, and so on); taken as 0.
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+  scottish_government:
+    label: Scottish Government (block grant)
+    rdel: [41.256, 43.741, 43.962, 45.211]
+    cdel: [6.501, 7.062, 7.089, 7.042, 7.133]
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+  welsh_government:
+    label: Welsh Government (block grant)
+    rdel: [18.303, 19.151, 19.154, 19.774]
+    cdel: [3.306, 3.580, 3.576, 3.510, 3.532]
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+  northern_ireland_executive:
+    label: Northern Ireland Executive (block grant)
+    rdel: [16.885, 16.850, 17.064, 17.604]
+    cdel: [2.230, 2.411, 2.455, 2.407, 2.436]
+    comparability: { scotland: 0.0, wales: 0.0, northern_ireland: 0.0 }
+# Barnett formula (Statement of Funding Policy, June 2025, Annex A): change × comparability × population share × factor.
+barnett:
+  population_share: { scotland: 0.0952, wales: 0.0549, northern_ireland: 0.0333 }
+  # Wales: 5% needs-based factor. Northern Ireland: 24% needs-based factor, and changes abated 2.5% for VAT.
+  needs: { scotland: 1.0, wales: 1.05, northern_ireland: 1.24 }
+  vat_abatement: { scotland: 1.0, wales: 1.0, northern_ireland: 0.975 }

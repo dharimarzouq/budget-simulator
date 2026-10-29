@@ -163,6 +163,57 @@ series:
     values: [8.87, 9.41, 10.08, 11.74, 12.51, 13.36, 14.24]
     source: obr-efo-2026-10
     table: "Detailed forecast tables, receipts, Table 4.8"
+  # Spending totals, to carry departmental plans on after the years they're set for (detailed forecast tables,
+  # expenditure, Table 5.3: unadjusted aggregate spending series).
+  rdel_total:
+    label: Day-to-day departmental spending (PSCE in RDEL)
+    unit: gbp_bn
+    values: [526.6, 555.47, 554.64, 573.0, 584.8, 604.76, 620.85]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.3"
+  cdel_total:
+    label: Departmental investment spending (PSGI in CDEL)
+    unit: gbp_bn
+    values: [122.18, 127.74, 130.23, 131.71, 133.71, 136.88, 141.4]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.3"
+  # Benefits outside the household model (detailed forecast tables, expenditure, Table 5.9; DWP, Great Britain).
+  state_pension:
+    label: State Pension
+    unit: gbp_bn
+    values: [146.26, 154.36, 159.64, 166.41, 174.70, 183.34, 192.98]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.9"
+  disability_benefits:
+    label: Disability Living Allowance and Personal Independence Payment
+    unit: gbp_bn
+    values: [36.79, 40.54, 44.13, 47.67, 50.80, 54.01, 57.17]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.9"
+  attendance_allowance:
+    label: Attendance Allowance
+    unit: gbp_bn
+    values: [8.48, 9.64, 10.57, 11.06, 11.47, 11.93, 12.44]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.9"
+  pension_credit:
+    label: Pension Credit
+    unit: gbp_bn
+    values: [6.33, 6.37, 6.32, 6.22, 6.36, 6.27, 6.20]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.9"
+  housing_benefit:
+    label: Housing Benefit (not on Jobseeker's Allowance)
+    unit: gbp_bn
+    values: [12.22, 12.14, 12.99, 13.90, 14.78, 15.47, 16.41]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.9"
+  carers_allowance:
+    label: Carer's Allowance
+    unit: gbp_bn
+    values: [4.58, 4.99, 5.46, 5.82, 6.10, 6.44, 6.78]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, expenditure, Table 5.9"
   debt_interest_per_10bn:
     label: Extra debt interest from £10bn more borrowing each year from the start of 2026-27
     unit: gbp_bn
@@ -186,8 +237,10 @@ multipliers:
   label: Effect on real GDP of a fiscal change worth 1% of GDP, in % of GDP, by year since it starts
   tax: [0.33, 0.30, 0.23, 0.14, 0.05, 0.00]
   welfare: [0.60, 0.57, 0.43, 0.23, 0.07, 0.00]
+  rdel: [0.45, 0.42, 0.29, 0.13, 0.04, 0.00]
+  cdel: [1.00, 0.83, 0.43, 0.23, 0.07, 0.00]
   source: obr-fer-2026-06
-  table: "Chapter 2, Table 2.1 (tax; AME, which includes welfare)"
+  table: "Chapter 2, Table 2.1 (tax; AME, which includes welfare; RDEL, day-to-day departmental spending; CDEL, departmental investment)"
   note: The OBR calls these a starting point that it adjusts at each forecast, and highly uncertain.
   range_low: 0.5
   range_high: 1.5

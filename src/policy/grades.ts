@@ -11,6 +11,7 @@
 import type { Policy } from "./policy";
 import { REMOVAL } from "./removals";
 import { isReckonerLever, type Fit } from "./reckoner";
+import { isSpendingLever } from "./spending";
 
 export type Grade = "A" | "B" | "C" | "D";
 export const GRADE_MEANING: Record<Grade, string> = {
@@ -81,8 +82,11 @@ const RECKONER_CHECK: Record<Fit, { check: Check; why: string }> = {
   beyond: c("gap", "Far bigger than any change HMRC costs: scaled up from its figures, which assume small changes. Treat as rough."),
 };
 
+const SPENDING = c("close", "A spending change costs exactly what you set (plus the Barnett share for Scotland, Wales and Northern Ireland, by HM Treasury's formula). What's uncertain is its effect on the economy.");
+
 export function leverCheck(lever: string, fit?: Fit): { check: Check; why: string } {
   if (REMOVAL[lever]) return REMOVED;
+  if (isSpendingLever(lever)) return SPENDING;
   if (isReckonerLever(lever)) return RECKONER_CHECK[fit ?? "scaled"];
   return CHECKS[lever] ?? (lever.startsWith("uc_") ? UC_DEFAULT : c("gap", "Not checked."));
 }
@@ -96,7 +100,13 @@ export function policyCheck(policy: Policy, fits: Record<string, Fit> = {}): Che
   }, "close");
 }
 
-/** A: every change is one HMRC costs exactly. Otherwise B: our own model, or HMRC's costings scaled. */
-export function costingGrade(policy: Policy, fits: Record<string, Fit> = {}): Grade {
-  return policy.length && policy.every((ch) => isReckonerLever(ch.lever) && fits[ch.lever] === "exact") ? "A" : COSTING_GRADE;
+/**
+ * The grade of the costing's estimates. Spending changes cost exactly what's set, so they don't count: with nothing
+ * else, there's no estimate to grade (null). Otherwise A if every other change is one HMRC costs exactly, else B (our
+ * own model, or HMRC's costings scaled).
+ */
+export function costingGrade(policy: Policy, fits: Record<string, Fit> = {}): Grade | null {
+  const estimated = policy.filter((ch) => !isSpendingLever(ch.lever));
+  if (!estimated.length) return null;
+  return estimated.every((ch) => isReckonerLever(ch.lever) && fits[ch.lever] === "exact") ? "A" : COSTING_GRADE;
 }

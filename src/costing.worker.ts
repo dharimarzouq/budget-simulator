@@ -3,7 +3,8 @@
 // latest request is finished.
 import { ruleSet } from "./engine";
 import { decodePopulation, type Population } from "./population";
-import { behaviouralEffect, difference, firstYear, marginalRatesFor, netRevenue, run, type Behaviour, type Effects, type Run } from "./policy/costing";
+import { START, behaviouralEffect, difference, firstYear, inHouseholdModel, marginalRatesFor, netRevenue, run, type Behaviour, type Effects, type Run } from "./policy/costing";
+import { isSpendingLever, spendingCosts, totalSpending, type SpendingCost } from "./policy/spending";
 import { isReckonerLever, reckonerCosts, type ReckonerCost } from "./policy/reckoner";
 import { indirectByTenth, sharedOut } from "./policy/indirect";
 import { distribution, type Distribution } from "./policy/distribution";
@@ -13,7 +14,7 @@ export type Request = { type: "load"; url: string } | { type: "cost"; id: number
 
 export type Reply =
   | { type: "ready"; units: number; households: number }
-  | { type: "static"; id: number; change: Effects; reckoner: ReckonerCost[]; netRevenue: number; distribution: Distribution }
+  | { type: "static"; id: number; change: Effects; reckoner: ReckonerCost[]; spending: SpendingCost[]; netRevenue: number; distribution: Distribution }
   | { type: "levers"; id: number; perLever: { lever: string; netRevenue: number }[]; interaction: number }
   | { type: "behaviour"; id: number; behaviour: Behaviour }
   /** How far through the behavioural figure, 0 to 1. */
@@ -41,18 +42,19 @@ async function work() {
       latest = undefined;
       const changes = effectiveChanges(rules, policy);
       const reformedRules = applyPolicy(rules, changes);
-      // The package as a whole first: one run of the population (not needed if only taxes it doesn't cover change).
-      const household = changes.filter((c) => !isReckonerLever(c.lever));
+      // The package as a whole first: one run of the population (not needed if only HMRC-costed taxes or spending change).
+      const household = changes.filter((c) => inHouseholdModel(c.lever));
       const reformed = household.length ? run(pop, reformedRules) : base;
       const change = difference(reformed.totals, base.totals);
       // A setting the engine can't work with should say so, never show up as "NaN".
       const broken = Object.entries(change).filter(([, v]) => !Number.isFinite(v)).map(([k]) => k);
       if (broken.length) throw new Error(`these settings give a result that can't be worked out (${broken.join(", ")}). Please report it.`);
       const reckoner = reckonerCosts(rules, reformedRules);
-      const total = netRevenue(change) + firstYear(reckoner);
+      const spending = spendingCosts(rules, reformedRules, START);
+      const total = netRevenue(change) + firstYear(reckoner) - totalSpending(spending);
       // VAT and duties shared out to households by income tenth, as the ONS finds they pay them now.
       const indirect = reckoner.some((c) => sharedOut(c.lever)) ? indirectByTenth(reckoner) : undefined;
-      post({ type: "static", id, change, reckoner, netRevenue: total, distribution: distribution(pop, base, reformed, indirect) });
+      post({ type: "static", id, change, reckoner, spending, netRevenue: total, distribution: distribution(pop, base, reformed, indirect) });
       await tick(); // let a newer request in before the slower parts
       if (latest) continue;
       // Then each change on its own, one run each, stopping if a newer request comes in.
@@ -62,7 +64,9 @@ async function work() {
         for (const ch of changes) {
           const own = isReckonerLever(ch.lever)
             ? firstYear(reckonerCosts(rules, applyPolicy(rules, [ch])))
-            : netRevenue(difference(run(pop, applyPolicy(rules, [ch])).totals, base.totals));
+            : isSpendingLever(ch.lever)
+              ? -totalSpending(spendingCosts(rules, applyPolicy(rules, [ch]), START))
+              : netRevenue(difference(run(pop, applyPolicy(rules, [ch])).totals, base.totals));
           perLever.push({ lever: ch.lever, netRevenue: own });
           await tick();
           if (latest) break;

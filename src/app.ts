@@ -11,6 +11,7 @@ import { FORECAST, baseline, fiscalPath, type Path } from "./economy/fiscal";
 import { CHECK_LABEL, CHECK_MEANING, COSTING_GRADE, GRADE_MEANING, costingGrade, leverCheck, policyCheck, type Check } from "./policy/grades";
 import { isReckonerLever, type Fit } from "./policy/reckoner";
 import { sharedOut } from "./policy/indirect";
+import { inHouseholdModel } from "./policy/costing";
 import type { Group } from "./policy/distribution";
 import type { Reply, Request } from "./costing.worker";
 
@@ -53,14 +54,19 @@ document.addEventListener("click", (ev) => {
 });
 const PER: Record<string, string> = { gbp: "", gbp_per_year: "", gbp_per_month: " a month", gbp_per_week: " a week", change_gbp: "" };
 
+/** A slider that is a change from today, either way (so it can go below zero). */
+const isChange = (l: Lever) => l.unit === "change_share" || l.unit === "change_gbp" || l.unit === "change_bn";
+
 function showValue(l: Lever, v: LeverValue): string {
   if (l.unit === "flag") return v ? "On" : "Off";
   if (l.unit === "rate") return `${+((v as number) * 100).toFixed(2)}%`;
-  if (l.unit === "change_share" || l.unit === "change_gbp") {
+  if (isChange(l)) {
     const n = v as number;
     if (Math.abs(n) < 1e-9) return "no change";
     const sign = n > 0 ? "+" : "−";
-    return l.unit === "change_share" ? `${sign}${+Math.abs(n * 100).toFixed(2)}%` : `${sign}£${Math.abs(n).toLocaleString("en-GB")}`;
+    if (l.unit === "change_share") return `${sign}${+Math.abs(n * 100).toFixed(2)}%`;
+    if (l.unit === "change_bn") return `${sign}£${+Math.abs(n).toFixed(2)}bn`;
+    return `${sign}£${Math.abs(n).toLocaleString("en-GB")}`;
   }
   const n = v as number;
   return `£${n.toLocaleString("en-GB", { maximumFractionDigits: n % 1 ? 2 : 0, minimumFractionDigits: n % 1 ? 2 : 0 })}${PER[l.unit]}`;
@@ -106,7 +112,8 @@ function setRemoval(id: string, removed: boolean) {
 function range(l: Lever): { min: number; max: number; step: number; scale: number } {
   const today = +((l.get(rules) as number) * 100).toFixed(4);
   // Changes from today's duties: either way, up to 20% or ten steps.
-  if (l.unit === "change_share") return { min: -20, max: 20, step: 1, scale: 100 };
+  if (l.unit === "change_share") return { min: -100 * (l.limit ?? 0.2), max: 100 * (l.limit ?? 0.2), step: 1, scale: 100 };
+  if (l.unit === "change_bn") return { min: -(l.limit ?? 5), max: l.limit ?? 5, step: l.step, scale: 1 };
   if (l.unit === "change_gbp") return { min: -10 * l.step, max: 10 * l.step, step: l.step, scale: 1 };
   if (l.unit === "rate") return { min: today - Math.min(10, Math.floor(today)), max: Math.min(100, today + 10), step: 1, scale: 100 };
   return { min: 0, max: Math.max((l.get(rules) as number) * 2, l.step * 20), step: l.step, scale: 1 };
@@ -255,7 +262,7 @@ function showBubble(input: HTMLInputElement, l: Lever, value: number) {
   const diff =
     Math.abs(d) < 1e-9
       ? "today's value"
-      : l.unit === "change_share" || l.unit === "change_gbp"
+      : isChange(l)
         ? "on today's rates" // the value is already the change
       : l.unit === "rate"
         ? `${d > 0 ? "+" : "−"}${+Math.abs(d * 100).toFixed(2)} ${Math.abs(d * 100) === 1 ? "point" : "points"}`
@@ -286,7 +293,7 @@ function wireLevers() {
     if (id) {
       const l = LEVER[id]!;
       const n = Number(t.value);
-      const signed = l.unit === "change_share" || l.unit === "change_gbp"; // a change from today can go below zero
+      const signed = isChange(l); // a change from today can go below zero
       if (t.value === "" || t.value === "-" || !Number.isFinite(n) || (n < 0 && !signed)) return;
       const value = range(l).scale === 100 ? Math.round(Math.min(n, 100) * 100) / 10000 : n;
       // Keep the twin control in step while typing or dragging.
@@ -451,20 +458,25 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
     return;
   }
   const fits = fitsOf(s);
-  const household = changes.some((c) => !isReckonerLever(c.lever) || sharedOut(c.lever)); // anything that reaches households
-  const modelled = changes.some((c) => !isReckonerLever(c.lever)); // anything the household model works out
+  const household = changes.some((c) => inHouseholdModel(c.lever) || sharedOut(c.lever)); // anything that reaches households
+  const modelled = changes.some((c) => inHouseholdModel(c.lever)); // anything the household model works out
   const check = policyCheck(changes, fits);
   const g = costingGrade(changes, fits);
-  const grade = info(`grade ${g}`, `Grade ${g}: ${GRADE_MEANING[g]} The scale: A ${GRADE_MEANING.A} B ${GRADE_MEANING.B} C ${GRADE_MEANING.C} D ${GRADE_MEANING.D}`);
-  const hmrc = s.reckoner.length ? "; other taxes are HMRC's costings, which already allow for responses" : "";
+  const scale = `The scale: A ${GRADE_MEANING.A} B ${GRADE_MEANING.B} C ${GRADE_MEANING.C} D ${GRADE_MEANING.D}`;
+  const grade = info(`grade ${g ?? "for spending"}`, g ? `Grade ${g}: ${GRADE_MEANING[g]} ${scale}` : `Spending changes cost what you set, so there's no estimate to grade. ${scale}`);
+  const hmrc =
+    (s.reckoner.length ? "; other taxes are HMRC's costings, which already allow for responses" : "") +
+    (s.spending.length ? "; spending changes are for 2027-28, the budget's first year" : "");
   const raised = (x: number) => `<span class="${x < 0 ? "neg" : "pos"}">${bn(x)}</span>`;
   const behaviour = !b
     ? `<div class="value small">working it out… <span id="behaviour-progress"></span></div><div class="sub">the other figures don't wait for it</div>`
     : b.low === 0 && b.high === 0
       ? `<div class="value">${raised(s.netRevenue)}</div><div class="sub">${
           !modelled
-            ? "responses are already in HMRC's costings"
-            : changes.some((c) => !isReckonerLever(c.lever) && !/^(uc|cb)_/.test(REMOVAL[c.lever]?.lever ?? c.lever)) // a household tax change
+            ? s.reckoner.length
+              ? "responses are already in HMRC's costings"
+              : "spending changes cost what's set"
+            : changes.some((c) => inHouseholdModel(c.lever) && !/^(uc|cb)_/.test(REMOVAL[c.lever]?.lever ?? c.lever)) // a household tax change
               ? "responses make no difference to what's raised here"
               : "no household tax changes; benefits are costed static"
         }</div>`
@@ -476,11 +488,13 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
     <div class="metric"><div class="label">Households losing / gaining</div>${
       household
         ? `<div class="value">${share(all.lose)} / ${share(all.gain)}</div><div class="sub">by more than £1 a week${
-            s.reckoner.some((c) => !sharedOut(c.lever)) ? "; leaves out taxes not shared out to households" : ""
+            s.reckoner.some((c) => !sharedOut(c.lever)) || s.spending.length ? "; leaves out changes not shared out to households" : ""
           }</div>`
-        : `<div class="value small">not worked out</div><div class="sub">who pays these taxes isn't shared out to households yet</div>`
+        : `<div class="value small">not worked out</div><div class="sub">${s.spending.length && !s.reckoner.length ? "spending changes aren't shared out to households" : "these changes aren't shared out to households yet"}</div>`
     }</div>
-    <div class="metric"><div class="label">How far to trust it</div><div class="value small"><span class="grade">${g}</span>${grade.button} ${checkBadge(check)}</div>${grade.panel}<div class="sub">grade ${g}: ${g === "A" ? "HMRC's own costing" : "our own model, or HMRC's costings scaled"}; checks: ${CHECK_LABEL[check]}</div></div>`;
+    <div class="metric"><div class="label">How far to trust it</div><div class="value small">${g ? `<span class="grade">${g}</span>` : "spending as set"}${grade.button} ${checkBadge(check)}</div>${grade.panel}<div class="sub">${
+      g ? `grade ${g}: ${g === "A" ? "HMRC's own costing" : "our own model, or HMRC's costings scaled"}` : "no estimate to grade"
+    }; checks: ${CHECK_LABEL[check]}</div></div>`;
 }
 
 /** How well HMRC's figures cover each change costed from them. */
@@ -497,7 +511,7 @@ function summaryText(): string {
     const s = lastStatic.netRevenue;
     const total = s + (lastBehaviour?.central ?? 0);
     lines.push(`${total < 0 ? "Costs" : "Raises"} ${bn(Math.abs(total), false)} a year${lastBehaviour ? `, allowing for how people respond (${bn(Math.abs(s), false)} before that)` : " before allowing for how people respond"}`);
-    const path = fiscalPath(lastStatic.change, lastBehaviour?.central ?? 0, { reckoner: lastStatic.reckoner });
+    const path = fiscalPath(lastStatic.change, lastBehaviour?.central ?? 0, { reckoner: lastStatic.reckoner, spending: lastStatic.spending });
     const m = path.stabilityMargin;
     lines.push(`Main fiscal rule (current budget in surplus in 2029-30): ${m < 0 ? "missed" : "met"} by £${Math.abs(m).toFixed(1)}bn (OBR forecast: met by £${FORECAST.fiscal_rules.stability.margin.toFixed(1)}bn)`);
     const all = lastStatic.distribution.all;
@@ -519,9 +533,9 @@ const signedBn = (x: number) => (Math.abs(x) < 0.05 ? "£0.0bn" : `${x > 0 ? "+"
 function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
   const changed = currentPolicy().length > 0;
   const behaviour = b?.central ?? 0;
-  const path = fiscalPath(s.change, behaviour, { reckoner: s.reckoner });
-  const econ = fiscalPath(s.change, behaviour, { economy: true, reckoner: s.reckoner });
-  const lowHigh = [FORECAST.multipliers.range_low, FORECAST.multipliers.range_high].map((k) => fiscalPath(s.change, behaviour, { economy: true, multiplierScale: k, reckoner: s.reckoner }));
+  const path = fiscalPath(s.change, behaviour, { reckoner: s.reckoner, spending: s.spending });
+  const econ = fiscalPath(s.change, behaviour, { economy: true, reckoner: s.reckoner, spending: s.spending });
+  const lowHigh = [FORECAST.multipliers.range_low, FORECAST.multipliers.range_high].map((k) => fiscalPath(s.change, behaviour, { economy: true, multiplierScale: k, reckoner: s.reckoner, spending: s.spending }));
   const psnb = baseline("psnb"), psnfl = baseline("psnfl"), centred = baseline("gdp_centred");
   const years = path.years.map((y) => y.year);
   const rules = FORECAST.fiscal_rules;
@@ -556,7 +570,7 @@ function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
   const debtPct = (y: string, extra: number) => `${(((psnfl[y]! + extra) / centred[y]!) * 100).toFixed(1)}%`;
   let table = `<div class="scroll-x"><table class="fiscal"><tr><th>£ billion a year</th>${years.map((y) => `<th class="num">${y}</th>`).join("")}</tr>`;
   if (changed) {
-    table += row("Your budget raises (+) or costs (−)", path.years.map((y) => signedBn(y.taxRaised + y.benefitsCut + y.behaviour)));
+    table += row("Your budget raises (+) or costs (−)", path.years.map((y) => signedBn(y.taxRaised + y.benefitsCut + y.behaviour - y.spending - y.investment)));
     table += row("Extra interest on the debt", path.years.map((y) => signedBn(-y.debtInterest)));
   }
   table += row("Borrowing, OBR forecast", years.map((y) => bnFixed(psnb[y]!)));
@@ -572,8 +586,8 @@ function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
 
   html += table + `<details class="show-working"><summary>Show working</summary>
     <p>The starting point is the OBR's forecast published with Budget 2026 on 28 October 2026, which already includes that Budget's policies. Your changes are assumed to start in April 2027, the next tax year, so 2026-27 is unchanged. Each part of the 2026-27 costing (income tax, each kind of National Insurance, Universal Credit, Child Benefit) is carried forward in line with the OBR's forecast for that tax or benefit; the response to tax changes grows with income tax. That's an approximation: it doesn't allow for how your changes would interact with policies announced for later years, or for thresholds the OBR assumes will change.</p>
-    <p>Extra borrowing adds to the debt, and that adds to interest costs, at the rates implied by the OBR's debt interest ready reckoner. All the changes here are to day-to-day taxes and spending, so the current budget changes by the same amount as borrowing. Debt here is public sector net financial liabilities, the measure the rule uses.</p>
-    <p>Grade ${COSTING_GRADE} for the standard figures, which leave the economy as the OBR forecasts it, as official costings do. The lines "with the effect on the economy" use the OBR's published fiscal multipliers (a tax change worth 1% of GDP moves GDP by 0.33% in its first year, fading to nothing by the fifth; benefits 0.60%), and the OBR's rule that borrowing rises by 0.5% of GDP for each 1% the economy is below its potential, plus 0.2% the year after. The OBR calls its multipliers a highly uncertain starting point, so this part is grade C, with a range from half to one and a half times them (our judgement; the OBR doesn't publish a range). These effects are temporary: by 2031-32 they have all but gone.</p>
+    <p>Extra borrowing adds to the debt, and that adds to interest costs, at the rates implied by the OBR's debt interest ready reckoner. Taxes, benefits and day-to-day spending change the current budget, which the main rule is about; investment spending adds to borrowing and debt but not to the current budget. Spending changes are set for 2027-28 and grow with each department's plans (after the years the plans cover, with the OBR's total), or with the OBR's forecast for each benefit. England-only budgets carry their Barnett share for Scotland, Wales and Northern Ireland. Debt here is public sector net financial liabilities, the measure the rule uses.</p>
+    <p>Grade ${COSTING_GRADE} for the standard figures, which leave the economy as the OBR forecasts it, as official costings do. The lines "with the effect on the economy" use the OBR's published fiscal multipliers (a tax change worth 1% of GDP moves GDP by 0.33% in its first year, fading to nothing by the fifth; benefits 0.60%, departments' day-to-day spending 0.45% and their investment 1.00%), and the OBR's rule that borrowing rises by 0.5% of GDP for each 1% the economy is below its potential, plus 0.2% the year after. The OBR calls its multipliers a highly uncertain starting point, so this part is grade C, with a range from half to one and a half times them (our judgement; the OBR doesn't publish a range). These effects are temporary: by 2031-32 they have all but gone.</p>
     <p>Sources: <a href="https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/">OBR Economic and fiscal outlook, October 2026</a> (Tables 7.1, A.9 and the detailed forecast tables); <a href="https://www.gov.uk/government/publications/forecast-evaluation-report-june-2026/forecast-evaluation-report-june-2026">OBR Forecast evaluation report, June 2026</a> (Table 2.1); <a href="https://obr.uk/working-paper-no-3-cyclically-adjusting-the-public-finances/">OBR Working paper No. 3</a>.</p>
   </details>`;
   $("fiscal").innerHTML = html;
@@ -609,6 +623,14 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
   }
   for (const c of s.reckoner) {
     html += `<tr><td>${esc(LEVER[c.lever]!.label)}<div class="working">HMRC's costing, allowing for responses</div></td>${signed(c.raises[0]!)}</tr>`;
+  }
+  for (const c of s.spending) {
+    const l = LEVER[c.lever]!;
+    html += `<tr><td>${esc(l.label)}<div class="working">${esc(l.group)}, 2027-28</div></td>${signed(-c.first)}</tr>`;
+  }
+  const barnett = s.spending.reduce((sum, c) => sum + c.barnett, 0);
+  if (Math.abs(barnett) >= 5e5) {
+    html += `<tr><td>Scotland, Wales and Northern Ireland<div class="working">Their Barnett share of England-only spending changes (HM Treasury's formula)</div></td>${signed(-barnett)}</tr>`;
   }
   html += `<tr class="total"><td>Total${s.reckoner.length ? "" : " (static)"}</td>${signed(s.netRevenue)}</tr></table>`;
   html += `<table><tr><th>Each change on its own</th><th class="num">£ a year</th><th>Checks against HMRC</th></tr>`;
@@ -669,7 +691,8 @@ function renderWinners(deciles: Group[], family: Group[], regions: Group[], all:
       const shared = lastStatic?.reckoner.filter((c) => sharedOut(c.lever)) ?? [];
       return (
         (out.length ? `<p class="empty">Not included: ${esc(out.map((c) => LEVER[c.lever]!.label).join("; "))}. These fall on companies, estates and property buyers, and there's no published breakdown by household income to share them out with.</p>` : "") +
-        (shared.length ? `<p class="small">VAT and duties are shared out by income tenth in proportion to what each tenth pays now (ONS, 2023-24), the same for every household in a tenth: approximate.</p>` : "")
+        (shared.length ? `<p class="small">VAT and duties are shared out by income tenth in proportion to what each tenth pays now (ONS, 2023-24), the same for every household in a tenth: approximate.</p>` : "") +
+        (lastStatic?.spending.length ? `<p class="empty">Not included: spending changes. Public services and the benefits outside the household model aren't shared out to households yet.</p>` : "")
       );
     })()}
     <p class="small">Average change in net household income, by tenth of households ranked by income (adjusted for household size). All households: ${pounds(all.meanChange, true)} a year on average; ${share(all.lose)} lose and ${share(all.gain)} gain more than £1 a week.</p>

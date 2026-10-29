@@ -146,6 +146,8 @@ Progress, 29 October 2026: 1a, 1b and 1c are done (see COSTING.md). Seventeen na
 
 Checks: with nothing changed, the borrowing and rule margins are the OBR's; £1bn more day-to-day spending adds £1bn to borrowing and uses £1bn of the main rule's margin, while £1bn more investment adds £1bn to borrowing and leaves that margin alone (both hand-worked, with debt interest); the Barnett sums are checked by hand against HM Treasury's factors; the page is checked in the browser.
 
+Progress, 29 October 2026: done (see COSTING.md). 23 departments with day-to-day and investment sliders, six benefits outside the household model, the Barnett formula (reproducing HM Treasury's worked example), borrowing split between the current budget and investment, the OBR's spending multipliers, and five named spending policies.
+
 Not in this step: second-round effects (more public sector pay raising income tax, for example), which official costings usually leave out too; and showing who benefits from public services (the ONS publishes this by income tenth), which can come with the design pass.
 
 ## Decisions I'll need from you along the way

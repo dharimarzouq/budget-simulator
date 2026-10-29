@@ -122,6 +122,41 @@
     - { lever: cgt_lower, set: 0.20 }
     - { lever: cgt_higher, set: 0.40 }
 
+- id: health-plus-10bn
+  name: £10bn more a year for health and social care in England
+  area: Spending
+  about: The Department of Health and Social Care's day-to-day budget goes up by £10bn a year from 2027-28, growing with its plans after that. Scotland, Wales and Northern Ireland get their Barnett share on top.
+  changes:
+    - { lever: rdel_health, add: 10 }
+
+- id: schools-plus-2bn
+  name: £2bn more a year for education in England
+  area: Spending
+  about: The Department for Education's day-to-day budget goes up by £2bn a year from 2027-28. Scotland, Wales and Northern Ireland get their Barnett share on top.
+  changes:
+    - { lever: rdel_education, add: 2 }
+
+- id: councils-plus-5bn
+  name: £5bn more a year for councils in England
+  area: Spending
+  about: Day-to-day funding for local government in England goes up by £5bn a year from 2027-28. Scotland, Wales and Northern Ireland get their Barnett share on top.
+  changes:
+    - { lever: rdel_local_government, add: 5 }
+
+- id: defence-investment-plus-5bn
+  name: £5bn more a year for defence investment
+  area: Spending
+  about: The Ministry of Defence's investment budget goes up by £5bn a year from 2027-28. Defence is UK-wide, so there's no Barnett share. Investment doesn't count against the main fiscal rule, but it adds to borrowing and debt.
+  changes:
+    - { lever: cdel_defence, add: 5 }
+
+- id: state-pension-plus-5pc
+  name: Raise the State Pension by 5% more than planned
+  area: Spending
+  about: State Pension payments are 5% higher than the OBR forecasts, from 2027-28.
+  changes:
+    - { lever: ame_state_pension, add: 0.05 }
+
 - id: scrap-hicbc
   name: Scrap the High Income Child Benefit Charge
   area: Child Benefit

@@ -197,6 +197,19 @@ Corporation tax, capital gains, inheritance tax and stamp duty aren't shared out
 
 Example: VAT at 21% raises £8.8bn (HMRC). Shared out, the poorest tenth loses about £200 a year, 1.7% of its income; the richest loses about £540, a much smaller share of its income.
 
+## Spending
+
+`forecasts/departments-2026-10.yaml`, `src/policy/spending.ts`.
+
+- **Departments.** Each department has two sliders: day-to-day spending (RDEL) and investment (CDEL), in £bn a year more or less than planned, from 2027-28. The plans are the OBR's October 2026 figures (tables 5.7 and 5.8): day-to-day to 2028-29, investment to 2029-30. After that a change grows in line with the OBR's total for that kind of spending, an assumption since the government hasn't set departmental plans that far ahead. A spending change costs exactly what's set, so there's no costing estimate to grade; the uncertainty is in its effect on the economy.
+- **Benefits outside the household model:** the State Pension, Disability Living Allowance and PIP, Attendance Allowance, Pension Credit, Housing Benefit and Carer's Allowance, each as a % change on the OBR's forecast (Table 5.9). Not shared out to households yet.
+- **The Barnett formula.** A change to a UK department's budget changes the Scottish, Welsh and Northern Ireland block grants by change × comparability × population share × factors, from HM Treasury's Statement of Funding Policy (June 2025): population shares of England's population of 9.52%, 5.49% and 3.33%; a 5% needs-based factor for Wales; a 24% needs-based factor and a 2.5% VAT abatement for Northern Ireland; and each department's comparability factor (Annex B). Tests reproduce the Treasury's worked example. Two simplifications: the OBR's combined "Business, Innovation, Science and Trade" line uses Science's factor, and small and independent bodies are taken as 0. HM Treasury notes a possible error in Transport's factor, to be corrected in its next edition.
+- **Borrowing and the rules.** Day-to-day spending and benefits change the current budget (the main rule); investment adds to borrowing and debt but not to the current budget. The effect on the economy uses the OBR's multipliers for each: day-to-day departmental spending 0.45, investment 1.00 and benefits 0.60 in the first year, fading to nothing by the fifth.
+
+Example: £10bn more a year for health and social care in England costs £11.9bn in 2027-28 with the Barnett share (£1.9bn). With £5bn more defence investment as well, the main rule is missed by £0.7bn in 2029-30 (met by £5.2bn allowing for the effect on the economy), and debt still falls, by a margin of £5.0bn.
+
+Not included: second-round effects such as more public sector pay bringing in more income tax (official costings usually leave these out too), and who benefits from public services, which the ONS publishes by income tenth.
+
 ## Universal Credit: check against an OBR costing
 
 There's no ready reckoner for Universal Credit, so UC costings are checked against the OBR's costings of real measures. The first is the removal of the two-child limit, which the OBR costed in its [November 2025 Economic and fiscal outlook](https://obr.uk/efo/economic-and-fiscal-outlook-november-2025/), Table 3.2 (checked against the document, 28 October 2026). It rises over the years because more families have a third child born after April 2017; 2026-27 is the like-for-like year.

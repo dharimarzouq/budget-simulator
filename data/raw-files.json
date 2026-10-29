@@ -46,5 +46,9 @@
  "ons_etb_fye2024.xlsx": {
   "url": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/personalandhouseholdfinances/incomeandwealth/datasets/theeffectsoftaxesandbenefitsonhouseholdincomefinancialyearending2014/financialyearending2024/etbreferencetablesfye202324final.xlsx",
   "sha256": "2e38c1694d922427509879b9553a4c3473b8ba1174898c2dd414668ecbb2bf73"
+ },
+ "hmt_statement_of_funding_policy_2025_06.pdf": {
+  "url": "https://assets.publishing.service.gov.uk/media/684859e3d0ca5d7801e4e6f6/Statement_of_Funding_Policy.pdf",
+  "sha256": "67d8a2ed0b6e75bebcd84d1ab68d0ee1afcf0e3bfb00a1fe38b0ca67a29e88cf"
  }
 }

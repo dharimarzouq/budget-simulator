@@ -2,19 +2,23 @@
 // is just a list of lever settings and the engine never changes. Where a lever moves several values
 // at once (e.g. the basic rate in England, Wales and Northern Ireland), it says so in its note.
 import type { RuleSet } from "../engine";
+import { DEPARTMENTS, planFor } from "./spending";
 
 /**
  * "change_share" is a change from today's rates as a share of them (0.01 is 1% higher), and "change_gbp" a change in
  * pounds, for duties where HMRC costs a change rather than a rate: both can go below zero.
  */
-export type LeverUnit = "rate" | "gbp" | "gbp_per_year" | "gbp_per_month" | "gbp_per_week" | "flag" | "change_share" | "change_gbp";
+export type LeverUnit = "rate" | "gbp" | "gbp_per_year" | "gbp_per_month" | "gbp_per_week" | "flag" | "change_share" | "change_gbp" | "change_bn";
 export type LeverValue = number | boolean;
 
 export interface Lever {
   id: string;
   group:
     | "Income tax" | "Income tax (Scotland)" | "National Insurance" | "Universal Credit" | "Child Benefit"
-    | "VAT and duties" | "Business and wealth taxes" | "Stamp duty";
+    | "VAT and duties" | "Business and wealth taxes" | "Stamp duty"
+    | "Day-to-day spending" | "Investment spending" | "Benefits outside the household model";
+  /** For changes that can go either way: how far the slider reaches each side of no change. */
+  limit?: number;
   label: string;
   unit: LeverUnit;
   /** A sensible step for controls; rates are fractions, so 0.01 is one percentage point. */
@@ -69,7 +73,19 @@ function other(id: string, group: Lever["group"], label: string, unit: LeverUnit
     set: (r, v) => void (r.otherTaxes[key] = num(v)),
   };
 }
-const ONE_SIDED = "HMRC costs only a rise; a cut is costed as the mirror image, which is less certain.";
+/** A spending change (spending.ts): £bn a year on a department's budget, or a share of a benefit's forecast. */
+function spend(id: string, group: Lever["group"], label: string, unit: LeverUnit, step: number, limit: number, note?: string): Lever {
+  return {
+    id, group, label, unit, step, limit, note,
+    get: (r) => r.spending[id] ?? 0,
+    set: (r, v) => void (r.spending[id] = num(v)),
+  };
+}
+const BARNETT_NOTE = "Scotland, Wales and Northern Ireland get their Barnett share of a change on top, for the parts of this budget that are devolved.";
+// Each side of no change: 30% of the 2027-28 plan, at least £1bn, in whole £bn.
+const reach = (plan: number) => Math.max(1, Math.round(plan * 0.3));
+
+const ONE_SIDED ="HMRC costs only a rise; a cut is costed as the mirror image, which is less certain.";
 
 export const LEVERS: Lever[] = [
   // Income tax
@@ -180,6 +196,22 @@ export const LEVERS: Lever[] = [
   other("sdlt_12", "Stamp duty", "Residential, over £1.5 million", "rate", 0.01, "sdlt12", "England and Northern Ireland. HMRC finds a rise here loses money."),
   other("sdlt_additional", "Stamp duty", "Surcharge on additional homes", "rate", 0.01, "sdltAdditional", "England and Northern Ireland. HMRC finds a rise here loses money."),
   other("sdlt_non_resident", "Stamp duty", "Surcharge for non-UK residents", "rate", 0.01, "sdltNonResident", "England and Northern Ireland."),
+
+  // Spending, from April 2027 (spending.ts).
+  ...Object.entries(DEPARTMENTS).flatMap(([id, d]): Lever[] => {
+    const devolved = Object.values(d.comparability).some((c) => c > 0) ? ` ${BARNETT_NOTE}` : "";
+    const plan = (kind: "rdel" | "cdel") => `Planned for 2027-28: £${planFor(id, kind).toFixed(1)}bn.`;
+    return [
+      spend(`rdel_${id}`, "Day-to-day spending", d.label, "change_bn", 0.1, reach(planFor(id, "rdel")), `${plan("rdel")} More or less than planned, a year.${devolved}`),
+      spend(`cdel_${id}`, "Investment spending", d.label, "change_bn", 0.1, reach(planFor(id, "cdel")), `${plan("cdel")} More or less than planned, a year. Doesn't count against the main fiscal rule.${devolved}`),
+    ];
+  }),
+  spend("ame_state_pension", "Benefits outside the household model", "State Pension", "change_share", 0.01, 0.2, "More or less than the OBR forecasts, as a share of it (£159.6bn in 2027-28)."),
+  spend("ame_disability", "Benefits outside the household model", "Disability Living Allowance and PIP", "change_share", 0.01, 0.2, "Personal Independence Payment and Disability Living Allowance, as a share of the OBR's forecast."),
+  spend("ame_attendance", "Benefits outside the household model", "Attendance Allowance", "change_share", 0.01, 0.2, "As a share of the OBR's forecast."),
+  spend("ame_pension_credit", "Benefits outside the household model", "Pension Credit", "change_share", 0.01, 0.2, "As a share of the OBR's forecast."),
+  spend("ame_housing_benefit", "Benefits outside the household model", "Housing Benefit", "change_share", 0.01, 0.2, "As a share of the OBR's forecast."),
+  spend("ame_carers", "Benefits outside the household model", "Carer's Allowance", "change_share", 0.01, 0.2, "As a share of the OBR's forecast."),
 ];
 
 export const LEVER = Object.fromEntries(LEVERS.map((l) => [l.id, l])) as Record<string, Lever>;

@@ -5,6 +5,8 @@ import { calculate, type AdultResult, type Household, type RuleSet } from "../en
 import type { Population } from "../population";
 import { applyPolicy, effectiveChanges, type Policy } from "./policy";
 import { isReckonerLever, reckonerCosts, type ReckonerCost } from "./reckoner";
+import { isSpendingLever, spendingCosts, totalSpending, type SpendingCost } from "./spending";
+import { FORECAST, START_YEAR } from "../economy/fiscal";
 
 /** £ a year across the population. */
 export interface Effects {
@@ -142,8 +144,10 @@ export interface Costing {
   change: Effects;
   /** Taxes the household model doesn't cover, costed from HMRC's figures, which already allow for responses. */
   reckoner: ReckonerCost[];
+  /** Spending changes in the budget's first year, with their Barnett consequentials. */
+  spending: SpendingCost[];
   /** Positive raises money, negative costs money. Static for the household model (nobody changes what they do), plus
-   * HMRC's costings of other taxes in their first year. */
+   * HMRC's costings of other taxes in their first year, less spending changes in the budget's first year. */
   netRevenue: number;
   /** Each lever on its own, and what's left over from levers interacting. */
   perLever: { lever: string; netRevenue: number }[];
@@ -160,22 +164,31 @@ export interface Costing {
 export function costPolicy(pop: Population, rules: RuleSet, policy: Policy, base: Run = run(pop, rules), options: { behaviour?: boolean } = {}): Costing {
   const changes = effectiveChanges(rules, policy);
   const reformedRules = applyPolicy(rules, changes);
-  // Changes to taxes the household model doesn't cover leave every household's result as it is.
-  const reformed = changes.some((c) => !isReckonerLever(c.lever)) ? run(pop, reformedRules) : base;
+  // Changes to taxes the household model doesn't cover, or to spending, leave every household's result as it is.
+  const reformed = changes.some((c) => inHouseholdModel(c.lever)) ? run(pop, reformedRules) : base;
   const change = difference(reformed.totals, base.totals);
   const reckoner = reckonerCosts(rules, reformedRules);
-  const total = netRevenue(change) + firstYear(reckoner);
+  const spending = spendingCosts(rules, reformedRules, START);
+  const total = netRevenue(change) + firstYear(reckoner) - totalSpending(spending);
   const own = (c: Policy[number]) =>
     isReckonerLever(c.lever)
       ? firstYear(reckonerCosts(rules, applyPolicy(rules, [c])))
-      : netRevenue(difference(run(pop, applyPolicy(rules, [c])).totals, base.totals));
+      : isSpendingLever(c.lever)
+        ? -totalSpending(spendingCosts(rules, applyPolicy(rules, [c]), START))
+        : netRevenue(difference(run(pop, applyPolicy(rules, [c])).totals, base.totals));
   const perLever = changes.length > 1 ? changes.map((c) => ({ lever: c.lever, netRevenue: own(c) })) : changes.map((c) => ({ lever: c.lever, netRevenue: total }));
   const interaction = total - perLever.reduce((s, l) => s + l.netRevenue, 0);
   const b = changes.length && options.behaviour !== false ? behaviouralEffect(pop, rules, reformedRules) : { central: 0, low: 0, high: 0 };
   const behaviour = { central: b.central, low: b.low, high: b.high };
   const withBehaviour = { central: total + behaviour.central, low: total + behaviour.low, high: total + behaviour.high };
-  return { base, reformed, change, reckoner, netRevenue: total, perLever, interaction, behaviour, withBehaviour };
+  return { base, reformed, change, reckoner, spending, netRevenue: total, perLever, interaction, behaviour, withBehaviour };
 }
+
+/** The budget's first year, as an index into the OBR's forecast years: spending changes are set for this year. */
+export const START = FORECAST.years.indexOf(START_YEAR);
+
+/** Whether a lever changes what the household model works out (rather than a tax costed from HMRC's figures, or spending). */
+export const inHouseholdModel = (lever: string) => !isReckonerLever(lever) && !isSpendingLever(lever);
 
 /** What HMRC's costings raise in the first year of a change, £. */
 export const firstYear = (costs: ReckonerCost[]) => costs.reduce((s, c) => s + c.raises[0]!, 0);

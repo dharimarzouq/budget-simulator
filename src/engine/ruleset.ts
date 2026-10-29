@@ -74,6 +74,11 @@ export interface RuleSet {
     vedChange: number;
     apdReducedChange: number;
   };
+  /**
+   * Spending changes, by lever id (src/policy/spending.ts): departments' budgets in £bn a year more than planned, and
+   * benefits outside the household model as a share of the forecast. Empty in the rules; never read by the engine.
+   */
+  spending: Record<string, number>;
   /** Used only for behavioural costings, never by the household calculation. */
   behaviour: {
     taxableIncomeElasticity: Band[];
@@ -192,6 +197,7 @@ export function ruleSet(year: string): RuleSet {
       vedChange: 0,
       apdReducedChange: 0,
     },
+    spending: {},
     behaviour: {
       taxableIncomeElasticity: b("behaviour", "taxable_income_elasticity"),
       rangeLow: n("behaviour", "elasticity_range_low"),

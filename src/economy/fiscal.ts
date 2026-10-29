@@ -5,6 +5,7 @@
 import forecastData from "../../forecasts/obr-2026-10.yaml";
 import type { Effects } from "../policy/costing";
 import type { ReckonerCost } from "../policy/reckoner";
+import { spendingInYear, type SpendingCost } from "../policy/spending";
 
 export interface Forecast {
   forecast: string;
@@ -17,7 +18,7 @@ export interface Forecast {
     stability: { label: string; margin: number; source: string; table: string };
     debt: { label: string; margin: number; source: string; table: string; note: string };
   };
-  multipliers: { label: string; tax: number[]; welfare: number[]; source: string; table: string; note: string; range_low: number; range_high: number; range_note: string };
+  multipliers: { label: string; tax: number[]; welfare: number[]; rdel: number[]; cdel: number[]; source: string; table: string; note: string; range_low: number; range_high: number; range_note: string };
   cyclical_borrowing: { label: string; this_year: number; last_year: number; source: string; note: string };
 }
 
@@ -50,8 +51,11 @@ export interface Year {
   behaviour: number;
   /** Extra debt interest, £bn. */
   debtInterest: number;
-  /** Change in borrowing, £bn (positive means more borrowing). Every change here is to current spending or receipts,
-   * so the current budget deficit changes by the same amount. */
+  /** More day-to-day spending (departments, benefits outside the household model, and their Barnett share), £bn. */
+  spending: number;
+  /** More investment spending (with its Barnett share), £bn: borrowing, but not the current budget. */
+  investment: number;
+  /** Change in borrowing, £bn (positive means more borrowing). The current budget deficit changes by this less investment. */
   borrowing: number;
   /** Extra debt at the end of the year (end-March), £bn. */
   debt: number;
@@ -100,6 +104,8 @@ export interface Options {
    * with the forecast.
    */
   reckoner?: ReckonerCost[];
+  /** Spending changes, set for the budget's first year and growing with each department's plans or benefit's forecast. */
+  spending?: SpendingCost[];
 }
 
 /**
@@ -107,7 +113,7 @@ export interface Options {
  * grows in line with the OBR's forecast for its tax or benefit; behaviour grows with income tax.
  */
 export function fiscalPath(change: Effects, behaviour: number, opts: Options = {}): Path {
-  const { economy = false, multiplierScale = 1, compound = true, start = START_YEAR, reckoner = [] } = opts;
+  const { economy = false, multiplierScale = 1, compound = true, start = START_YEAR, reckoner = [], spending = [] } = opts;
   const first = index("2026-27");
   const s0 = index(start);
   const rates = interestRates();
@@ -130,29 +136,42 @@ export function fiscalPath(change: Effects, behaviour: number, opts: Options = {
     const taxRaised = on ? TAXES.reduce((s, k) => s + (change[k] * growth(CARRIED_BY[k], i)) / BN, 0) + fromHmrc : 0;
     const benefitsCut = on ? -BENEFITS.reduce((s, k) => s + (change[k] * growth(CARRIED_BY[k], i)) / BN, 0) : 0;
     const b = on ? (behaviour * growth("income_tax", i)) / BN : 0;
+    // Spending changes by kind, Barnett shares included (they're the same kind of spending for the devolved governments).
+    let rdel = 0, cdel = 0, ame = 0;
+    if (on) {
+      for (const c of spending) {
+        const v = spendingInYear(c, i, s0);
+        const x = (v.amount + v.barnett) / BN;
+        if (c.kind === "rdel") rdel += x;
+        else if (c.kind === "cdel") cdel += x;
+        else ame += x;
+      }
+    }
 
     // Effect on GDP, % of GDP: each year's measure times the multiplier for how long the policy has been running.
-    // Raising tax or cutting benefits takes demand out of the economy.
+    // Raising tax or cutting benefits takes demand out of the economy; more spending adds to it.
     let gdpEffect = 0;
     if (economy && on) {
       const age = Math.min(i - s0, m.tax.length - 1);
-      gdpEffect = (-multiplierScale * (m.tax[age]! * (taxRaised + b) + m.welfare[age]! * benefitsCut) / gdp[i]!) * 100;
+      const demand = -(m.tax[age]! * (taxRaised + b) + m.welfare[age]! * (benefitsCut - ame)) + m.rdel[age]! * rdel + m.cdel[age]! * cdel;
+      gdpEffect = ((multiplierScale * demand) / gdp[i]!) * 100;
     }
     // A smaller economy means less tax and more spending: the OBR's 0.5 this year and 0.2 last year.
     const cyclical = economy ? (-(cyc.this_year * gdpEffect + cyc.last_year * lastGdp) / 100) * gdp[i]! : 0;
 
-    const primary = -(taxRaised + benefitsCut + b) + cyclical;
+    const primary = -(taxRaised + benefitsCut + b) + rdel + ame + cdel + cyclical;
     // Interest on the debt at the start of the year and half of this year's extra borrowing; with compounding, the
     // interest is borrowed too (solved exactly: x = r × (debt + (primary + x) / 2)).
     const r = rates[i]!;
     const debtInterest = compound ? (r * (debt + primary / 2)) / (1 - r / 2) : r * (debt + primary / 2);
     const borrowing = primary + (compound ? debtInterest : 0);
     debt += borrowing;
-    years.push({ year: FORECAST.years[i]!, taxRaised, benefitsCut, behaviour: b, debtInterest, borrowing, debt, gdp: gdpEffect, cyclical });
+    years.push({ year: FORECAST.years[i]!, taxRaised, benefitsCut, behaviour: b, spending: rdel + ame, investment: cdel, debtInterest, borrowing, debt, gdp: gdpEffect, cyclical });
     lastGdp = gdpEffect;
   }
 
-  // The rules, in their target year. Stability: the current budget surplus falls by the extra borrowing. Debt: the
+  // The rules, in their target year. Stability: the current budget surplus falls by the extra borrowing, except what
+  // went on investment, which the rule leaves out. Debt: the
   // margin is how much higher debt could be at the end of the target year and still be falling as a share of GDP;
   // extra debt at the end of the year before raises that limit in proportion to GDP growth.
   const t = FORECAST.years.indexOf(FORECAST.fiscal_rules.target_year);
@@ -161,7 +180,7 @@ export function fiscalPath(change: Effects, behaviour: number, opts: Options = {
   const yt = years.find((y) => y.year === FORECAST.fiscal_rules.target_year)!;
   return {
     years,
-    stabilityMargin: FORECAST.fiscal_rules.stability.margin - yt.borrowing,
+    stabilityMargin: FORECAST.fiscal_rules.stability.margin - (yt.borrowing - yt.investment),
     debtMargin: FORECAST.fiscal_rules.debt.margin + (at(t - 1) * centred[t]!) / centred[t - 1]! - at(t),
   };
 }
