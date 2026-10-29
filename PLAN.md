@@ -1,3 +1,63 @@
+# Handoff: where things stand (29 October 2026)
+
+Start here if you're picking this up in a new chat. Then read CLAUDE.md, RESEARCH.md and COSTING.md as needed.
+
+## State
+- **Live:** https://dharimarzouq.github.io/budget-simulator/ (repo github.com/dharimarzouq/budget-simulator, public, MIT).
+  - Pushing to `main` republishes the site through `.github/workflows/pages.yml`.
+  - Last published commit: "Design pass: Budget box look…" (293c7b6).
+  - The working tree was clean after it.
+- **Milestone 1:** done (rules engine, synthetic population, costing, behaviour, borrowing and fiscal rules).
+- **Milestone 2:**
+  - Step 1 (taxes and named policies, 1a–1c): done and published. 1d waits on DWP (see below).
+  - Step 2 (spending, with Barnett): done and published.
+  - Step 3 (history and the impact chart): done and published.
+  - Step 4 (design pass, "Budget box"): done and published 29 October 2026. Details are under "Step 4 in detail" below.
+- **Tests:** 180 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
+
+## What's next, in order
+1. **Finish checking step 4:**
+   - a keyboard-only pass of the whole page;
+   - the wide three-column layout (≥1600px). The tax chart sits in its own column there, and the scoreboard is pinned at the top of the results column.
+   - Fix anything found, show Ari, and ask before publishing.
+2. **1d, the 2027-28 rules,** once DWP publishes the 2027-28 benefit and State Pension rates (usually late November). Show Ari a plan first. What's already known:
+   - The income tax and NICs thresholds are frozen to 2031.
+   - Budget 2026 adds 2p on property and savings income from April 2027, an income tax exemption for low-income pensioners, and a bigger trading allowance.
+   - When this lands, `START_YEAR` (2027-28) should be costed on these rules rather than carried forward from 2026-27.
+3. **Ideas raised but not planned** (each needs a plan and Ari's go):
+   - who benefits from public services by income tenth (ONS);
+   - sharing spending changes out to households;
+   - a light/dark switch on the page.
+4. **Ari's decisions:**
+   - The name, which also sets the web address. Still "budget-simulator".
+   - Sending the UK Data Service request in UKDS-REQUEST.md is Ari's to do.
+
+## Working agreements (from Ari)
+- Show a plan before each piece of work and wait for "go". Ask before anything hard to undo. **Ask before every push to main**, because a push publishes the site.
+- Plain language. Say when something is synthetic, approximate or missing. Static and with-responses figures are always shown separately.
+- Ari keeps published-table inputs even when the fit gets worse. Document the gap rather than tuning it away.
+- Commits end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Never put Ari's personal email address in commits.
+- `data/statxplore.key` (git-ignored) is an API key: never print, log or commit it.
+
+## Practical notes
+- **Running it:**
+  - Dev server: `npx vite --port 5174 --strictPort`.
+  - Build: `npx vite build`.
+  - Python data builds: `.venv`, plus `.venv-pe` for the PolicyEngine check.
+- **Windows PowerShell gotchas:**
+  - Write commit messages with `[IO.File]::WriteAllText(path, text, (New-Object Text.UTF8Encoding $false))` and `git commit -F path`, because Set-Content adds a BOM.
+  - Write `${id}:` rather than `$id:` inside strings.
+- If Vitest misses a new YAML file, delete `node_modules\.vitest-cache`.
+- **Where the main code is:**
+  - `src/app.ts`: the page: scoreboard (`renderHeadline`), tabs, assumptions, scorecard (`scorecard`), share picture (`savePicture`).
+  - `src/costing.worker.ts`: costing off the main thread. It sends each lever's costing parts for the scorecard.
+  - `src/economy/fiscal.ts`: the borrowing and debt path, and the fiscal rules.
+  - `src/impact.ts`: the history chart.
+  - `src/sharepic.ts`: the share picture.
+  - `src/policy/*`: levers, removals, named policies, HMRC's ready reckoner, spending and Barnett, grades.
+  - `src/style.css`: theme tokens on `:root`, light and dark.
+- **Assumptions** live in the URL as `respond=none|low|central|high` (central by default) and `economy=1`. They change which figures are shown, never a costing.
+
 # Milestone 1 plan: income tax, NICs, Universal Credit, Child Benefit
 
 Status: steps 1–4 done (27 October 2026), plus an early household calculator page and the benefit cap. Step 4 covered PolicyEngine UK (all 50 test households match; see tools/README.md); checking against gov.uk worked examples is still to do. Step 5, the synthetic population, is next. I'll check in with results after each step.
@@ -177,7 +237,7 @@ Look chosen by Ari: "Budget box", warm and editorial, like a Budget document. La
 
 Checks: every existing test passes; the page is tried at phone, laptop and wide sizes, light and dark, and by keyboard alone; contrast is measured; nothing in the costing changes (the same budget gives the same figures before and after).
 
-Progress, 29 October 2026: 4a–4g done, not yet published.
+Progress, 29 October 2026: 4a–4g done and published.
 - Every text colour measures at least 4.5:1 in both themes.
 - The scoreboard's big figure follows Assumptions, with the static figure always shown under it.
 - The scorecard rows add up exactly to the change in borrowing in every year.
