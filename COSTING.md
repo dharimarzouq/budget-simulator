@@ -171,6 +171,32 @@ These are much bigger changes than anything HMRC's ready reckoner checks, so eve
 
 **Example:** a 2p cut in the basic rate (to 18%) costs £14.9bn in 2027-28 with behaviour, rising to £17.7bn by 2031-32. With interest, borrowing in 2029-30 is £18.4bn higher, and the main rule is missed by £3.9bn. Allowing for the effect on the economy, it's missed by £0.8bn (range: missed by £2.3bn to met by £0.8bn). Debt still falls in 2029-30, by a margin of £7.2bn.
 
+## Named policies
+
+`policies/library.yaml` and `src/policy/library.ts`. A named policy ("Raise VAT to 21%", "Scrap the two-child limit") is a plain-English measure that sets one or more sliders, to a value or by an amount from today's. The sliders stay: adding a policy moves them, and moving them yourself still works. A policy shows as added when all its settings are in place, adjusted when only some are, and neither when its sliders have been moved somewhere else.
+
+## Taxes outside the household model: HMRC's ready reckoner
+
+`costings/hmrc-ready-reckoner-2025-06.yaml`, `src/policy/reckoner.ts`. The household model can't cost VAT, duties, corporation tax, capital gains tax, inheritance tax, stamp duty or insurance premium tax: it has no companies, estates, property sales or shopping. HMRC publishes its own costings of standard changes to these taxes ("Direct effects of illustrative tax changes", June 2025), which allow for how people respond. Changes are costed from those:
+
+- **Exactly a change HMRC costs** (1 point on VAT, £5,000 on the inheritance tax threshold): HMRC's own figure, grade A, check "close". Tests reproduce every HMRC figure exactly.
+- **Another size:** scaled along straight lines from no change through HMRC's figures, grade B, check "fair". Where HMRC costs only a rise (corporation tax, capital gains, inheritance tax, vehicle and air passenger duty), a cut is the mirror image, which is less certain.
+- **Far beyond HMRC's figures:** "known gap". For a line with one figure, beyond three times that change; the duties, which HMRC costs as a 1% change in their rates, beyond 10%. These limits are our judgement.
+
+HMRC's figures already include responses, so these count the same in both headline figures. HMRC gives three years from a change; in the borrowing section they are the first three years of the budget (from April 2027), grown in line with the OBR's October 2026 forecast for that tax, and the third year then carries on with the forecast.
+
+HMRC's capital gains figures stand out: raising either rate loses money in most years, because people hold on to assets. Stamp duty is similar at the top: raising the 12% rate or the surcharge on additional homes loses money.
+
+Today's rates come from GOV.UK (`rules/2026-27/other_taxes.yaml`). For the duties, vehicle excise duty and air passenger duty, the sliders are a change from today's rates in HMRC's units (a share of today's duty, or pounds), so no rate of our own is needed.
+
+## Who pays VAT and duties
+
+`costings/ons-etb-2023-24.yaml`, `src/policy/indirect.ts`. A change in VAT, fuel, alcohol or tobacco duty, vehicle excise duty, insurance premium tax or air passenger duty is shared out across income tenths in proportion to what each tenth pays now, from the ONS's "Effects of taxes and benefits on household income" for 2023-24 (Table 2b: average paid by income decile, times households in it). Every household in a tenth gets the same share. Approximate: the ONS ranks individuals and the simulator ranks households, and within a tenth some households pay far more than others. Fuel and vehicle duty count both what households pay directly and what the ONS assigns to them through other prices.
+
+Corporation tax, capital gains, inheritance tax and stamp duty aren't shared out: the ONS doesn't break them down by tenth, and who really bears corporation tax (shareholders, workers or customers) is disputed. The page says so rather than guess.
+
+Example: VAT at 21% raises £8.8bn (HMRC). Shared out, the poorest tenth loses about £200 a year, 1.7% of its income; the richest loses about £540, a much smaller share of its income.
+
 ## Universal Credit: check against an OBR costing
 
 There's no ready reckoner for Universal Credit, so UC costings are checked against the OBR's costings of real measures. The first is the removal of the two-child limit, which the OBR costed in its [November 2025 Economic and fiscal outlook](https://obr.uk/efo/economic-and-fiscal-outlook-november-2025/), Table 3.2 (checked against the document, 28 October 2026). It rises over the years because more families have a third child born after April 2017; 2026-27 is the like-for-like year.

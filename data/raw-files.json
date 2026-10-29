@@ -42,5 +42,9 @@
  "obr_working_paper_3.pdf": {
   "url": "https://obr.uk/download/working-paper-no-3-cyclically-adjusting-the-public-finances/",
   "sha256": "caab471b627e6b3708fca44ea54e4ff427aece52079cc523a800f3c1fbe435d0"
+ },
+ "ons_etb_fye2024.xlsx": {
+  "url": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/personalandhouseholdfinances/incomeandwealth/datasets/theeffectsoftaxesandbenefitsonhouseholdincomefinancialyearending2014/financialyearending2024/etbreferencetablesfye202324final.xlsx",
+  "sha256": "2e38c1694d922427509879b9553a4c3473b8ba1174898c2dd414668ecbb2bf73"
  }
 }

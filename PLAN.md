@@ -133,6 +133,8 @@ Checks: every tax costing reproduces HMRC's figures exactly for the changes HMRC
 
 Order within the step: 1a, then 1b (VAT, corporation tax, capital gains and inheritance tax first, then the duties), then 1c, then 1d.
 
+Progress, 29 October 2026: 1a, 1b and 1c are done (see COSTING.md). Seventeen named policies sit above the sliders. Twenty-five new sliders cover VAT, duties, insurance premium tax, corporation tax, capital gains and inheritance tax, and stamp duty, costed from HMRC's ready reckoner. VAT and duties are shared out to households by income tenth from the ONS. 1d is waiting: the income tax and NICs thresholds for 2027-28 are known (frozen to 2031), but DWP's 2027-28 benefit rates usually come out in late November.
+
 ## Decisions I'll need from you along the way
 
 - Name (still "budget-simulator"; it's part of the web address, so settle it before sharing widely)
