@@ -13,10 +13,11 @@ function niceStep(span: number): number {
   return ([1, 2, 5, 10].find((k) => k * mag >= raw) ?? 10) * mag;
 }
 
-export function initImpact(el: HTMLElement): (standard: Path, economy: Path, changed: boolean) => void {
+export function initImpact(el: HTMLElement): (standard: Path, economy: Path, changed: boolean, economyByDefault?: boolean) => void {
   let measure: Measure = "borrowing";
   let since = "1995-96";
   let withEconomy = false;
+  let byDefault: boolean | undefined; // the Assumptions setting, which the checkbox follows when it changes
   let standard: Path | undefined, economy: Path | undefined, changed = false;
 
   el.innerHTML = `
@@ -133,10 +134,14 @@ export function initImpact(el: HTMLElement): (standard: Path, economy: Path, cha
     withEconomy = (ev.target as HTMLInputElement).checked;
     draw();
   });
-  return (s, e, c) => {
+  return (s, e, c, d) => {
     standard = s;
     economy = e;
     changed = c;
+    if (d !== undefined && d !== byDefault) {
+      byDefault = withEconomy = d;
+      el.querySelector<HTMLInputElement>("[data-economy]")!.checked = d;
+    }
     draw();
   };
 }

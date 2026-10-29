@@ -8,8 +8,13 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <p class="small"><a href="./index.html">← Back to the budget</a></p>
-    <h1>How we know</h1>
+    <header class="top">
+      <div>
+        <h1>How we know</h1>
+        <p class="small">Where every figure in the UK budget simulator comes from, and how far to trust it.</p>
+      </div>
+      <nav><a href="./index.html">← Back to the budget</a></nav>
+    </header>
     <p>
       Every figure on the budget page comes from two things: the 2026-27 rules, written down with their sources below, and a
       made-up population of households weighted to match published UK totals. Costings are checked against HMRC's own; the
@@ -43,7 +48,9 @@
         paid and benefits received, times each household's weight, added up, is what the change raises or costs in a year.
         That's the "static" figure: it assumes nobody earns, claims or arranges their affairs any differently. Each change
         is also costed on its own; changes overlap (a tax rise reduces Universal Credit, which is worked out on pay after
-        tax), so the parts don't quite add up to the whole, and the difference is shown as the interaction.
+        tax), so the parts don't quite add up to the whole. The scorecard shows each change year by year, with the
+        difference as the overlap between the changes, then people's responses and interest on the debt, adding up to the
+        change in borrowing.
       </p>
       <p>
         Winners and losers compare each household's income after tax and benefits, before and after, ranked by income

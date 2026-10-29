@@ -177,6 +177,15 @@ Look chosen by Ari: "Budget box", warm and editorial, like a Budget document. La
 
 Checks: every existing test passes; the page is tried at phone, laptop and wide sizes, light and dark, and by keyboard alone; contrast is measured; nothing in the costing changes (the same budget gives the same figures before and after).
 
+Progress, 29 October 2026: 4a–4g done, not yet published.
+- Every text colour measures at least 4.5:1 in both themes.
+- The scoreboard's big figure follows Assumptions, with the static figure always shown under it.
+- The scorecard rows add up exactly to the change in borrowing in every year.
+- Departments show a bar against their 2027-28 plan.
+- The picture is a 1200×630 PNG.
+- Assumptions are kept in the link (`respond=`, `economy=1`).
+- Not done: a full keyboard pass of the whole page, and the wide (three-column) size.
+
 ## Decisions I'll need from you along the way
 
 - Name (still "budget-simulator"; it's part of the web address, so settle it before sharing widely)

@@ -1,19 +1,28 @@
+/* Source Serif 4 (SIL Open Font License 1.1), served with the site, for headings. */
+@import "@fontsource-variable/source-serif-4/index.css";
+
+/* The "budget box" look: cream paper, deep ink, a deep red for headings, active tabs and the scoreboard.
+   Your budget is deep blue in charts; gains green, losses burnt orange. */
 :root {
-  --surface: #fcfcfb; --surface-2: #f3f2ee; --ink: #0b0b0b; --ink-2: #52514e; --rule: #dddcd6;
-  --grid: #ebeae5; --series: #2a78d6; --link: #1c5cab; --loss: #b4331f; --gain: #2a6f2d; --accent-bg: #e6f1fb;
+  --surface: #f5efe3; --surface-2: #ebe2d0; --ink: #231a12; --ink-2: #5a4836; --rule: #cfc0a6;
+  --grid: #e2d7c2; --series: #1f4e8c; --link: #1f4e8c; --loss: #a3441a; --gain: #2e6b30; --accent-bg: #ecdcc0;
+  --red: #8e1b1b; --on-red: #f5efe3;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --serif: "Source Serif 4 Variable", Georgia, "Times New Roman", serif;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --surface: #1a1a19; --surface-2: #252523; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #3a3a37;
-    --grid: #2c2c2a; --series: #3987e5; --link: #86b6ef; --loss: #f0806b; --gain: #7ccf80; --accent-bg: #1d2b3a; }
+  :root { --surface: #1c1612; --surface-2: #2a221b; --ink: #f2eadb; --ink-2: #c9b9a0; --rule: #4a3d30;
+    --grid: #30271f; --series: #84abe3; --link: #9dbdeb; --loss: #f0965e; --gain: #8ccb85; --accent-bg: #3a2b1f;
+    --red: #e8877b; --on-red: #1c1612; }
 }
 * { box-sizing: border-box; }
 body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; padding: 16px; color: var(--ink); background: var(--surface); }
 body:not(.bench-page) { max-width: 1040px; }
 a { color: var(--link); }
-h1 { margin: 0; font-size: 22px; }
-h2 { font-size: 17px; margin: 1.6em 0 0.5em; }
-h3 { font-size: 15px; }
+h1, h2, h3, legend { font-family: var(--serif); }
+h1 { margin: 0; font-size: 26px; font-weight: 700; color: var(--red); letter-spacing: -0.01em; }
+h2 { font-size: 20px; font-weight: 650; color: var(--red); margin: 1.6em 0 0.5em; }
+h3 { font-size: 16px; font-weight: 600; }
 .small { color: var(--ink-2); font-size: 13px; }
 .num, td.num, th.num { text-align: right; white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 table { border-collapse: collapse; width: 100%; }
@@ -25,12 +34,12 @@ tr.total td { font-weight: 600; border-top: 2px solid var(--ink-2); }
 button { font: inherit; font-size: 13px; padding: 4px 10px; color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 4px; cursor: pointer; }
 button:hover { background: var(--surface-2); }
 input, select { font: inherit; width: 100%; padding: 3px 6px; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; }
-input[type="checkbox"], input[type="range"] { width: auto; padding: 0; }
+input[type="checkbox"], input[type="range"] { width: auto; padding: 0; accent-color: var(--red); }
 details summary { cursor: pointer; }
 .scroll-x { overflow-x: auto; }
 
 /* Top bar and the two columns */
-.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; border-bottom: 3px double var(--red); padding-bottom: 10px; }
 .top nav { display: flex; gap: 8px; align-items: center; }
 /* Two columns (levers beside the results), three on wide screens (the tax chart in a column of its own), one on phones.
    Below three columns the chart moves into the results: after the headline, or after borrowing on phones (app.ts). */
@@ -59,11 +68,30 @@ label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .lever[hidden], .group[hidden] { display: none; }
 .lever.changed .undo { visibility: visible; }
 .lever .flag { grid-column: 1 / span 2; }
+/* A department's plan (with your change), against the biggest department's. */
+.lever .plan-bar { grid-column: 1 / -1; height: 4px; background: var(--surface-2); border-radius: 2px; }
+.lever .plan-bar span { display: block; height: 100%; background: var(--series); border-radius: 2px; }
 .lever .remove { margin-left: 6px; padding: 0 6px; font-size: 11px; color: var(--ink-2); font-family: system-ui, sans-serif; }
 .lever .remove:hover { color: var(--loss); border-color: var(--loss); }
 .lever.removed { grid-template-columns: minmax(0, 1fr) auto; background: var(--surface-2); padding-left: 6px; padding-right: 6px; }
 .lever.removed .removed-note { color: var(--ink-2); font-size: 12px; }
-/* Named policies, above the sliders */
+/* Tabs over the levers: policies, taxes, spending, assumptions. */
+.tabs { display: flex; gap: 0; position: sticky; top: 0; z-index: 2; margin: 2px 0 8px; background: var(--surface); border-bottom: 2px solid var(--red); }
+.tabs [role="tab"] { flex: 1 1 auto; min-width: 0; border: 1px solid transparent; border-bottom: 0; border-radius: 4px 4px 0 0; padding: 6px 3px 5px;
+  font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.tabs [role="tab"][aria-selected="true"] { background: var(--red); border-color: var(--red); color: var(--on-red); }
+.tab-count:not(:empty) { display: inline-block; min-width: 16px; margin-left: 1px; padding: 0 3px; border-radius: 9px; font-size: 11px; line-height: 16px;
+  background: var(--accent-bg); color: var(--ink); }
+.tabpanel[hidden] { display: none; }
+.searching-note { display: none; margin: 0 0 6px; }
+/* While searching, or showing changes only, every tab's matches show at once. */
+.searching .searching-note { display: block; }
+.searching .tabpanel.searchable[hidden] { display: block; }
+.assumptions fieldset { margin-top: 8px; }
+.assumptions label.check { align-items: flex-start; margin: 6px 0; }
+.assumptions input[type="radio"] { width: auto; margin-top: 3px; accent-color: var(--red); }
+
+/* Named policies */
 .policies > p { margin: 4px 0 6px; }
 .policy { padding: 6px 0; border-bottom: 1px dashed var(--grid); font-size: 13px; }
 .policy[hidden] { display: none; }
@@ -75,7 +103,23 @@ label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .bubble span { opacity: 0.8; }
 
 /* Results */
-#headline { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+/* The scoreboard, pinned to the top of the results while they scroll. */
+.scoreboard { position: sticky; top: 0; z-index: 6; background: var(--surface); border-top: 4px solid var(--red); border-bottom: 1px solid var(--rule);
+  padding: 8px 0 10px; margin-bottom: 4px; }
+.score { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 18px; }
+.score .cell { min-width: 0; }
+.score .wide { grid-column: span 2; }
+.score .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); display: flex; align-items: center; }
+.score .value { font-family: var(--mono); font-size: 19px; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.score .value.small { font-family: inherit; font-size: 14px; }
+.score .unit { font-family: system-ui, sans-serif; font-size: 12px; color: var(--ink-2); }
+.score .sub { font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+.score .sub strong { font-family: var(--mono); font-weight: 600; }
+.score .info-text { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.room { position: relative; height: 6px; margin: 3px 0 2px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 3px; }
+.room span { display: block; height: 100%; background: var(--gain); border-radius: 2px; }
+.room i { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); }
+.room.missed { border-color: var(--loss); }
 .metric { background: var(--surface-2); border-radius: 6px; padding: 10px 12px; }
 .metric .label { font-size: 12px; color: var(--ink-2); }
 .metric .value { font-family: var(--mono); font-size: 20px; font-variant-numeric: tabular-nums; }
@@ -94,6 +138,16 @@ button.info[aria-expanded="true"] { background: var(--ink); color: var(--surface
 .info-text[hidden] { display: none; }
 .lever .info-text { grid-column: 1 / -1; }
 
+/* How to use: shown once, then from the header. */
+dialog#guide { max-width: 560px; width: calc(100% - 32px); padding: 4px 22px 18px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--rule); border-top: 4px solid var(--red); border-radius: 6px; box-shadow: 0 8px 30px rgb(0 0 0 / 0.25); }
+dialog#guide::backdrop { background: rgb(20 14 10 / 0.45); }
+dialog#guide ol { padding-left: 20px; }
+dialog#guide li { margin: 6px 0; }
+dialog#guide form { text-align: right; }
+button.primary { background: var(--red); border-color: var(--red); color: var(--on-red); font-weight: 600; padding: 6px 18px; }
+button.primary:hover { background: var(--red); filter: brightness(1.1); }
+
 /* Keyboard focus is always visible. */
 :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .chart svg:focus-visible { outline-offset: 4px; }
@@ -103,7 +157,7 @@ button.info[aria-expanded="true"] { background: var(--ink); color: var(--surface
 .show-working ul { margin: 6px 0; padding-left: 20px; }
 .toggle { display: inline-flex; gap: 0; margin-bottom: 8px; }
 .toggle button { border-radius: 0; } .toggle button:first-child { border-radius: 4px 0 0 4px; } .toggle button:last-child { border-radius: 0 4px 4px 0; }
-.toggle button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.toggle button[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: var(--on-red); }
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 .chart { position: relative; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -111,13 +165,14 @@ button.info[aria-expanded="true"] { background: var(--ink); color: var(--surface
 .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 4px;
   padding: 4px 8px; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 0.12); display: none; }
 /* While a new costing is on its way the old figures stay, with a note. */
-.updating { display: none; position: sticky; top: 0; z-index: 5; width: max-content; margin: 0 0 6px auto; padding: 2px 8px;
+.updating { display: none; position: absolute; top: 6px; right: 0; padding: 2px 8px;
   font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 4px; }
 .pending .updating { display: block; }
 
 /* How it works (the How we know page) */
 details.how { border-bottom: 1px solid var(--rule); padding: 4px 0; margin: 0; }
-details.how > summary { font-weight: 600; padding: 6px 0; }
+details.how > summary { font-family: var(--serif); font-size: 17px; font-weight: 600; padding: 6px 0; }
+details.how > summary::marker { color: var(--red); }
 details.how p, details.how ul { max-width: 72ch; }
 
 /* Borrowing and debt */
@@ -165,6 +220,7 @@ details { margin-top: 8px; }
   body.levers-open #levers-panel { display: block; }
   body.levers-open { overflow: hidden; }
   #levers-drawer > summary { display: none; }
+  .tabs { top: 50px; } /* under the panel's own header */
   .levers-head { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;
     padding: 10px 0; margin-bottom: 4px; background: var(--surface); border-bottom: 1px solid var(--rule); }
   .summary-bar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--bar); gap: 10px; align-items: center;
@@ -173,6 +229,9 @@ details { margin-top: 8px; }
   .summary-text strong { font-family: var(--mono); }
   .summary-bar button { flex: none; font-size: 14px; padding: 6px 14px; background: var(--ink); color: var(--surface); border-color: var(--ink); }
   .calc { grid-template-columns: minmax(0, 1fr); }
+  .scoreboard { position: relative; } /* the bar at the bottom keeps the result in view instead */
+  .score { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .score .wide { grid-column: 1 / -1; }
   .top nav { flex-wrap: wrap; }
 }
 @media (max-width: 600px) {

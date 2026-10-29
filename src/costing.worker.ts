@@ -15,13 +15,16 @@ export type Request = { type: "load"; url: string } | { type: "cost"; id: number
 export type Reply =
   | { type: "ready"; units: number; households: number }
   | { type: "static"; id: number; change: Effects; reckoner: ReckonerCost[]; spending: SpendingCost[]; netRevenue: number; distribution: Distribution }
-  | { type: "levers"; id: number; perLever: { lever: string; netRevenue: number }[]; interaction: number }
+  /** Each change on its own, with the parts the borrowing path is built from, so it can be costed year by year. */
+  | { type: "levers"; id: number; perLever: LeverCost[]; interaction: number }
   | { type: "behaviour"; id: number; behaviour: Behaviour }
   /** How far through the behavioural figure, 0 to 1. */
   | { type: "progress"; id: number; done: number }
   /** While the population loads, what's happening. */
   | { type: "loading"; stage: string }
   | { type: "error"; message: string };
+
+export type LeverCost = { lever: string; netRevenue: number; change: Effects; reckoner: ReckonerCost[]; spending: SpendingCost[] };
 
 const rules = ruleSet("2026-27");
 let pop: Population | undefined;
@@ -58,16 +61,18 @@ async function work() {
       await tick(); // let a newer request in before the slower parts
       if (latest) continue;
       // Then each change on its own, one run each, stopping if a newer request comes in.
-      const perLever: { lever: string; netRevenue: number }[] = [];
-      if (changes.length === 1) perLever.push({ lever: changes[0]!.lever, netRevenue: total });
+      const perLever: LeverCost[] = [];
+      if (changes.length === 1) perLever.push({ lever: changes[0]!.lever, netRevenue: total, change, reckoner, spending });
       else {
+        const none = difference(base.totals, base.totals);
         for (const ch of changes) {
+          const alone = applyPolicy(rules, [ch]);
           const own = isReckonerLever(ch.lever)
-            ? firstYear(reckonerCosts(rules, applyPolicy(rules, [ch])))
+            ? { change: none, reckoner: reckonerCosts(rules, alone), spending: [] }
             : isSpendingLever(ch.lever)
-              ? -totalSpending(spendingCosts(rules, applyPolicy(rules, [ch]), START))
-              : netRevenue(difference(run(pop, applyPolicy(rules, [ch])).totals, base.totals));
-          perLever.push({ lever: ch.lever, netRevenue: own });
+              ? { change: none, reckoner: [], spending: spendingCosts(rules, alone, START) }
+              : { change: difference(run(pop, alone).totals, base.totals), reckoner: [], spending: [] };
+          perLever.push({ lever: ch.lever, netRevenue: netRevenue(own.change) + firstYear(own.reckoner) - totalSpending(own.spending), ...own });
           await tick();
           if (latest) break;
         }

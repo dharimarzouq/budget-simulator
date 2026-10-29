@@ -20,10 +20,25 @@
       <nav>
         <button type="button" id="share">Copy link to this budget</button>
         <button type="button" id="copy-summary">Copy summary</button>
+        <button type="button" id="picture">Save a picture</button>
         <button type="button" id="reset">Reset all</button>
+        <button type="button" id="open-guide">How to use</button>
         <a href="./how.html">How we know</a>
       </nav>
     </header>
+
+    <dialog id="guide" aria-labelledby="guide-title">
+      <h2 id="guide-title">How to use the budget simulator</h2>
+      <ol>
+        <li><strong>Make your budget.</strong> Add a ready-made policy, or move the sliders under Taxes and Spending. Each change shows today's value beside it.</li>
+        <li><strong>Watch the scoreboard.</strong> The strip at the top shows what your budget raises or costs a year, whether the government's two fiscal rules are still met in 2029-30, and how many households lose or gain.</li>
+        <li><strong>Read down the page.</strong> Borrowing and debt since 1948 with your budget added; who gains and loses by income, family and region; a scorecard of each measure year by year; tax on one person; and a household like yours.</li>
+        <li><strong>Choose your assumptions.</strong> Under Assumptions, pick how strongly people respond to tax changes, and whether to include the effect on the economy.</li>
+        <li><strong>Share it.</strong> The link keeps every change. You can also copy a summary or save a picture.</li>
+      </ol>
+      <p class="small">Every figure is an estimate: made-up households weighted to match published UK totals, HMRC's and the OBR's published figures, and grades and checks that say how far to trust each one. How it's all worked out is under How we know.</p>
+      <form method="dialog"><button type="submit" class="primary">Start</button></form>
+    </dialog>
 
     <div class="bench">
       <aside id="levers-panel" aria-label="Levers">
@@ -37,12 +52,38 @@
             <input type="search" id="lever-search" placeholder="Find a lever: basic rate, taper…" aria-label="Find a lever" />
             <label class="check"><input type="checkbox" id="changed-only" /> Changed only</label>
           </div>
-          <details class="group policies" open>
-            <summary>Policies</summary>
-            <p class="small">Ready-made measures. Adding one moves the sliders below; you can fine-tune from there.</p>
+          <div class="tabs" role="tablist" aria-label="What to change">
+            <button type="button" role="tab" id="tab-policies" aria-controls="panel-policies" aria-selected="true">Policies <span class="tab-count"></span></button>
+            <button type="button" role="tab" id="tab-taxes" aria-controls="panel-taxes" aria-selected="false" tabindex="-1">Taxes <span class="tab-count"></span></button>
+            <button type="button" role="tab" id="tab-spending" aria-controls="panel-spending" aria-selected="false" tabindex="-1">Spending <span class="tab-count"></span></button>
+            <button type="button" role="tab" id="tab-assumptions" aria-controls="panel-assumptions" aria-selected="false" tabindex="-1">Assumptions <span class="tab-count"></span></button>
+          </div>
+          <p class="small searching-note">Showing matches from every tab.</p>
+          <div id="panel-policies" class="tabpanel searchable policies" role="tabpanel" aria-labelledby="tab-policies">
+            <p class="small">Ready-made measures. Adding one moves the sliders in Taxes or Spending; you can fine-tune from there.</p>
             <div id="policies"></div>
-          </details>
-          <div id="levers"></div>
+          </div>
+          <div id="levers">
+            <div id="panel-taxes" class="tabpanel searchable" role="tabpanel" aria-labelledby="tab-taxes" hidden></div>
+            <div id="panel-spending" class="tabpanel searchable" role="tabpanel" aria-labelledby="tab-spending" hidden></div>
+          </div>
+          <div id="panel-assumptions" class="tabpanel assumptions" role="tabpanel" aria-labelledby="tab-assumptions" hidden>
+            <p class="small">These choose which figures the scoreboard, the bar on phones and the borrowing chart use. They don't change any costing: the other figures stay on the page.</p>
+            <fieldset>
+              <legend>How people respond to tax changes</legend>
+              <p class="small">People may work, earn or report income differently when income tax or National Insurance changes. The scoreboard always shows the static figure too.</p>
+              <label class="check"><input type="radio" name="respond" value="none" /> Nobody responds (static)</label>
+              <label class="check"><input type="radio" name="respond" value="low" /> Smaller: half the Scottish Fiscal Commission's estimates</label>
+              <label class="check"><input type="radio" name="respond" value="central" /> Central: the Scottish Fiscal Commission's estimates</label>
+              <label class="check"><input type="radio" name="respond" value="high" /> Larger: one and a half times them</label>
+            </fieldset>
+            <fieldset>
+              <legend>The economy</legend>
+              <label class="check"><input type="checkbox" id="assume-economy" /> Include the effect on the economy (grade C)</label>
+              <p class="small">Official costings leave the economy as the OBR forecasts it. With this on, your budget changes the size of the economy using the OBR's fiscal multipliers, and that feeds back into borrowing. Approximate: the OBR calls its multipliers a highly uncertain starting point.</p>
+            </fieldset>
+            <p class="small">HMRC's costings and spending changes aren't affected: they already allow for responses, or cost what you set.</p>
+          </div>
         </details>
         <div id="bubble" class="bubble" aria-hidden="true"></div>
       </aside>
@@ -53,22 +94,25 @@
       </section>
 
       <main id="results">
-        <div id="updating" class="updating" role="status">Updating…</div>
-        <section id="headline" aria-live="polite"></section>
+        <!-- The scoreboard: what the budget does, kept in view while the rest scrolls. -->
+        <div id="scoreboard" class="scoreboard">
+          <section id="headline" class="score" aria-live="polite" aria-label="Your budget at a glance"></section>
+          <div id="updating" class="updating" role="status">Updating…</div>
+        </div>
         <section>
           <h2>Borrowing and debt</h2>
           <div id="impact"></div>
           <div id="fiscal"></div>
         </section>
         <section>
-          <h2>Where the money comes from</h2>
-          <div id="breakdown"></div>
-        </section>
-        <section>
           <h2>Winners and losers</h2>
           <div id="winners"></div>
         </section>
         <section>
+          <h2>Scorecard</h2>
+          <div id="breakdown"></div>
+        </section>
+        <section id="household">
           <h2>A household like yours</h2>
           <p class="small">Enter a household to see it under today's rules and under your budget.</p>
           <div class="calc">

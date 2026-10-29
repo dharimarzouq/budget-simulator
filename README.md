@@ -35,7 +35,8 @@ The population is already built. Rebuilding it from the published tables needs P
 
 ## Data and licences
 
-The code is under the [MIT licence](LICENSE).
+The code is under the [MIT licence](LICENSE). Headings use Source Serif 4 (Adobe, SIL Open Font License 1.1), served
+with the site from the `@fontsource-variable/source-serif-4` package.
 
 The data comes from public sources, each recorded with its URL, publisher, licence and date in
 [rules/sources.yaml](rules/sources.yaml) and [data/targets/targets.yaml](data/targets/targets.yaml). All of it is
