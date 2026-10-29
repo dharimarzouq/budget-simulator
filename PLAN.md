@@ -135,6 +135,19 @@ Order within the step: 1a, then 1b (VAT, corporation tax, capital gains and inhe
 
 Progress, 29 October 2026: 1a, 1b and 1c are done (see COSTING.md). Seventeen named policies sit above the sliders. Twenty-five new sliders cover VAT, duties, insurance premium tax, corporation tax, capital gains and inheritance tax, and stamp duty, costed from HMRC's ready reckoner. VAT and duties are shared out to households by income tenth from the ONS. 1d is waiting: the income tax and NICs thresholds for 2027-28 are known (frozen to 2031), but DWP's 2027-28 benefit rates usually come out in late November.
 
+## Step 2 in detail: spending (proposed 29 October 2026, waiting for go)
+
+- **2a. The plans to start from.** Each department's day-to-day budget (RDEL) and investment budget (CDEL) in the OBR's October 2026 forecast (tables 5.7 and 5.8: Health, Education, Defence, Home Office, Justice, Transport and so on, plus the Scottish, Welsh and Northern Ireland block grants). Day-to-day plans run to 2028-29 and investment to 2029-30; after that each department grows in line with the OBR's total, an assumption the page will state.
+- **2b. Spending sliders.** For each department, a change to day-to-day and to investment spending in £bn a year from April 2027, growing with the department's plans after that. The cost is exactly what you set, so there's no costing uncertainty; the uncertainty is in the effect on the economy.
+- **2c. Benefits the household model doesn't cover,** as a % change on the OBR's forecast for each: the State Pension, disability benefits (PIP, DLA, Attendance Allowance), Pension Credit, Housing Benefit, Carer's Allowance. Costed directly from the forecast. Not shared out to households in this step.
+- **2d. Scotland, Wales and Northern Ireland.** Changing an England-only budget, such as the NHS in England or schools, automatically changes the block grants by the Barnett formula, using HM Treasury's published comparability factors and population shares (Statement of Funding Policy). Without this, £10bn more for the NHS in England would look about £2bn cheaper than it really is.
+- **2e. Borrowing and the rules.** Day-to-day spending and benefits count against the main rule (the current budget); investment doesn't, but it adds to borrowing and debt. The borrowing section will track the two separately. The effect on the economy uses the OBR's own multipliers for each: day-to-day departmental spending 0.45, investment 1.00 and benefits 0.60 in the first year, all fading.
+- **2f. Named spending policies,** such as "£10bn more a year for the NHS in England" or "Defence to 3% of GDP", alongside the tax ones.
+
+Checks: with nothing changed, the borrowing and rule margins are the OBR's; £1bn more day-to-day spending adds £1bn to borrowing and uses £1bn of the main rule's margin, while £1bn more investment adds £1bn to borrowing and leaves that margin alone (both hand-worked, with debt interest); the Barnett sums are checked by hand against HM Treasury's factors; the page is checked in the browser.
+
+Not in this step: second-round effects (more public sector pay raising income tax, for example), which official costings usually leave out too; and showing who benefits from public services (the ONS publishes this by income tenth), which can come with the design pass.
+
 ## Decisions I'll need from you along the way
 
 - Name (still "budget-simulator"; it's part of the web address, so settle it before sharing widely)
