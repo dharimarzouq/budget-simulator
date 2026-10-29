@@ -163,6 +163,20 @@ Progress, 29 October 2026: done (see COSTING.md). The impact chart sits at the t
 
 Checks: history matches the OBR's published figures for the years they overlap; with nothing changed, "your choices" lies exactly on the forecast; a hand-worked year for each tab; readable at phone width and by keyboard.
 
+## Step 4 in detail: the design pass (proposed 29 October 2026, waiting for go)
+
+Look chosen by Ari: "Budget box", warm and editorial, like a Budget document. Layout as agreed: scoreboard on top, four places to make changes, results in order of importance.
+
+- **4a. The look.** Cream paper, deep ink, a deep red for headings, active tabs and the scoreboard; serif headings (Source Serif 4, an openly licensed font served with the site, falling back to Georgia) and plain sans-serif text, with figures in tabular numerals. A dark version: deep brown-black paper, cream text, a lighter red. Red is the look's colour, so it isn't also used to mean "loss": your budget's line on charts is deep blue, gains green and losses a distinct burnt orange, always with a sign. Every colour pair is checked for contrast in both versions.
+- **4b. The scoreboard,** pinned to the top: what your budget raises or costs a year against existing plans (the headline figure); a bar for the room left under the main fiscal rule, and whether the debt rule is met; households losing and gaining. On phones it is the bar at the bottom, as now.
+- **4c. Four places to make changes,** as tabs: Policies (the named measures), Taxes (all the tax sliders), Spending (departments as bars against their plans, which you drag or type into; the benefits outside the household model), and Assumptions (whether to allow for how people respond, and the low, central or high figure; whether to include the effect on the economy). The assumptions set what the scoreboard and charts show, so there is one headline figure rather than several side by side; the others stay a click away in the working.
+- **4d. Results in order:** the impact chart; who gains and loses; where the money comes from, laid out like the Treasury's scorecard table (each measure, its cost by year, its grade and check); tax on one person; a household like yours.
+- **4e. First visit:** a three-step "how to play", shown once (remembered in the browser) and reopenable from the header.
+- **4f. Sharing:** a picture of your plan (scoreboard, your changes, the impact chart) to save or share, as well as the link and the copied summary.
+- **4g. How we know** in the same look.
+
+Checks: every existing test passes; the page is tried at phone, laptop and wide sizes, light and dark, and by keyboard alone; contrast is measured; nothing in the costing changes (the same budget gives the same figures before and after).
+
 ## Decisions I'll need from you along the way
 
 - Name (still "budget-simulator"; it's part of the web address, so settle it before sharing widely)
