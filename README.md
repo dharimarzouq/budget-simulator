@@ -3,6 +3,8 @@
 Change UK taxes and benefits for 2026-27 and see what it raises or costs, who gains and loses, and what it does to
 borrowing and the fiscal rules. Every number shows its source, method and how far to trust it.
 
+**Try it:** https://dharimarzouq.github.io/budget-simulator/ (rebuilt from `main` on every push, once the tests pass).
+
 **Every figure is an estimate.** Costings run on made-up households weighted to match published UK totals, not on real
 people's data. See the "How we know" page in the app, and [COSTING.md](COSTING.md) and [POPULATION.md](POPULATION.md),
 for the method, the checks against official figures, and where they fall short.
