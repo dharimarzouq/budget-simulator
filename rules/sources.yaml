@@ -75,6 +75,20 @@ govuk-ipt:
   licence: Open Government Licence v3.0
   updated: 2019-03-06
   accessed: 2026-10-29
+obr-public-finances-databank-2026-10:
+  title: "Public finances databank, October 2026 Economic and fiscal outlook"
+  publisher: Office for Budget Responsibility
+  url: https://obr.uk/data/
+  licence: Open Government Licence v3.0
+  published: 2026-10-28
+  accessed: 2026-10-29
+ons-gdp-abmi-2026-09:
+  title: "Gross Domestic Product: chained volume measures, seasonally adjusted (ABMI), quarterly national accounts"
+  publisher: Office for National Statistics
+  url: https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/abmi/qna
+  licence: Open Government Licence v3.0
+  published: 2026-09-30
+  accessed: 2026-10-29
 hmt-statement-of-funding-policy-2025-06:
   title: "Statement of Funding Policy: funding the Scottish Parliament, Welsh Parliament and Northern Ireland Assembly (June 2025)"
   publisher: HM Treasury

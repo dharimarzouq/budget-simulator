@@ -26,6 +26,9 @@ FILES = {
     "obr_efo_2026_10_tables.zip": "https://obr.uk/download/october-2026-economic-and-fiscal-outlook-detailed-forecast-tables-zip-file/",
     "obr_fer_2026_06.html": "https://www.gov.uk/government/publications/forecast-evaluation-report-june-2026/forecast-evaluation-report-june-2026",
     "obr_working_paper_3.pdf": "https://obr.uk/download/working-paper-no-3-cyclically-adjusting-the-public-finances/",
+    # History for the impact charts (data/build_history.py writes forecasts/history-2026-10.yaml from these).
+    "obr_public_finances_databank_2026_10.xlsx": "https://obr.uk/download/public-finances-databank-october-2026-efo/",
+    "ons_abmi_gdp_cvm.csv": "https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/abmi/qna",
     # Barnett formula factors (forecasts/departments-2026-10.yaml is read off Annexes A and B by hand).
     "hmt_statement_of_funding_policy_2025_06.pdf": "https://assets.publishing.service.gov.uk/media/684859e3d0ca5d7801e4e6f6/Statement_of_Funding_Policy.pdf",
     # Who pays VAT and duties, by income tenth (costings/ons-etb-2023-24.yaml is read off Table 2b by hand).

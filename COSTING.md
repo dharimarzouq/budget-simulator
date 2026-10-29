@@ -210,6 +210,15 @@ Example: £10bn more a year for health and social care in England costs £11.9bn
 
 Not included: second-round effects such as more public sector pay bringing in more income tax (official costings usually leave these out too), and who benefits from public services, which the ONS publishes by income tenth.
 
+## History: the impact chart
+
+`forecasts/history-2026-10.yaml` (built by `data/build_history.py`), `src/economy/history.ts`, `src/impact.ts`. Seven measures as a share of GDP: the current budget, borrowing, debt, tax (current receipts), total spending, net investment, and real GDP growth, each as outturn, the OBR's forecast and your budget.
+
+- **History and forecast** come from one source, the OBR's public finances databank published with the October 2026 forecast, so they join without a seam. Borrowing and the other aggregates go back to 1948-49; net debt to 1974-75. Its forecast years match the forecast tables the simulator uses (tested). For 2025-26 its debt figure is 0.2 points above the forecast report's Table A.9, which the databank has on a slightly later basis.
+- **Debt** is public sector net debt, the familiar measure with the longer history. The debt rule uses net financial liabilities, published only from 2008-09; the rule's margin is shown separately.
+- **Growth** is real GDP growth by financial year, from the ONS's quarterly GDP (ABMI) for outturn and the OBR's quarterly forecast after that. For 2025-26 the two differ by 0.1 points.
+- **Your budget** is the OBR's forecast plus the budget's effect, from the same borrowing and debt path as the table: tax adds what the budget raises; spending adds day-to-day and investment spending, benefit changes and debt interest; the current budget is borrowing less investment. Shares use the OBR's GDP. Growth only changes in the version allowing for the effect on the economy (grade C), by the change in the GDP effect from one year to the next.
+
 ## Universal Credit: check against an OBR costing
 
 There's no ready reckoner for Universal Credit, so UC costings are checked against the OBR's costings of real measures. The first is the removal of the two-child limit, which the OBR costed in its [November 2025 Economic and fiscal outlook](https://obr.uk/efo/economic-and-fiscal-outlook-november-2025/), Table 3.2 (checked against the document, 28 October 2026). It rises over the years because more families have a third child born after April 2017; 2026-27 is the like-for-like year.

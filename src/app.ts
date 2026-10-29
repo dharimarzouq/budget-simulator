@@ -7,6 +7,7 @@ import { applyPolicy, coveredLevers, effectiveChanges, policyFromQuery, policyTo
 import { REMOVAL, REMOVAL_FOR } from "./policy/removals";
 import { LIBRARY, NAMED, resolve, status } from "./policy/library";
 import { initTaxChart } from "./taxchart";
+import { initImpact } from "./impact";
 import { FORECAST, baseline, fiscalPath, type Path } from "./economy/fiscal";
 import { CHECK_LABEL, CHECK_MEANING, COSTING_GRADE, GRADE_MEANING, costingGrade, leverCheck, policyCheck, type Check } from "./policy/grades";
 import { isReckonerLever, type Fit } from "./policy/reckoner";
@@ -536,6 +537,7 @@ function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
   const path = fiscalPath(s.change, behaviour, { reckoner: s.reckoner, spending: s.spending });
   const econ = fiscalPath(s.change, behaviour, { economy: true, reckoner: s.reckoner, spending: s.spending });
   const lowHigh = [FORECAST.multipliers.range_low, FORECAST.multipliers.range_high].map((k) => fiscalPath(s.change, behaviour, { economy: true, multiplierScale: k, reckoner: s.reckoner, spending: s.spending }));
+  updateImpact(path, econ, changed);
   const psnb = baseline("psnb"), psnfl = baseline("psnfl"), centred = baseline("gdp_centred");
   const years = path.years.map((y) => y.year);
   const rules = FORECAST.fiscal_rules;
@@ -726,6 +728,7 @@ function updateHousehold() {
 }
 
 let redrawTaxChart: (() => void) | undefined;
+const updateImpact = initImpact($("impact"));
 renderForm(form);
 form.addEventListener("input", updateHousehold);
 renderLevers();
@@ -733,6 +736,9 @@ filterLevers();
 renderPolicies();
 wireLevers();
 redrawTaxChart = initTaxChart($("tax-chart"), rules, () => applyPolicy(rules, currentPolicy()));
+// The impact chart shows the OBR's forecast until a costing arrives.
+const noChange = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, childBenefit: 0, universalCredit: 0 };
+updateImpact(fiscalPath(noChange, 0), fiscalPath(noChange, 0, { economy: true }), false);
 placeTaxChart();
 updateHousehold();
 $("headline").innerHTML = currentPolicy().length ? `<div class="empty">Loading 39,000 made-up households to cost your budget…</div>` : EMPTY;

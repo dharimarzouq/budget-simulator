@@ -50,5 +50,13 @@
  "hmt_statement_of_funding_policy_2025_06.pdf": {
   "url": "https://assets.publishing.service.gov.uk/media/684859e3d0ca5d7801e4e6f6/Statement_of_Funding_Policy.pdf",
   "sha256": "67d8a2ed0b6e75bebcd84d1ab68d0ee1afcf0e3bfb00a1fe38b0ca67a29e88cf"
+ },
+ "obr_public_finances_databank_2026_10.xlsx": {
+  "url": "https://obr.uk/download/public-finances-databank-october-2026-efo/",
+  "sha256": "16a4bf46d8692e18790e87add342c6c44aa909cebb19f68ae857126a36d36459"
+ },
+ "ons_abmi_gdp_cvm.csv": {
+  "url": "https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/abmi/qna",
+  "sha256": "dcaf17307f08611f96e859136a5ebff3381480c8abd4fa0d5ada9f7aeb415690"
  }
 }

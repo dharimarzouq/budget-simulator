@@ -126,6 +126,13 @@ details.how p, details.how ul { max-width: 72ch; }
 table.fiscal th[colspan] { padding-top: 12px; color: var(--ink); }
 table.fiscal td:first-child { min-width: 150px; position: sticky; left: 0; background: var(--surface); }
 
+/* The impact chart */
+.impact-tabs { flex-wrap: wrap; margin-bottom: 6px; }
+#impact .chart-controls { margin-bottom: 4px; }
+.key-outturn { border-top: 2px solid var(--ink); }
+.key-forecast { border-top: 2px dashed var(--ink-2); margin-left: 10px; }
+#impact { margin-bottom: 14px; }
+
 /* The live tax chart */
 .chart-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
 .chart-controls label { display: flex; gap: 6px; align-items: center; font-size: 13px; }

@@ -159,6 +159,8 @@ The aim: every result shown as history, the official forecast, and your choices,
 - **3c. Your choices:** the borrowing and debt path the simulator already works out, turned into the same measures (receipts plus what your budget raises, spending plus what it adds, and so on). The version with the effect on the economy can be switched on, labelled grade C.
 - **3d. An impact chart with seven tabs:** current budget, borrowing, debt, tax, total spending, investment, and growth. Each shows history as a solid line, the OBR forecast dashed, and your choices in colour, from 1995 by default with a switch to go back to 1946. Hover, tap or the arrow keys give the year's three figures, and each tab has a table version for screen readers. For now it sits in the borrowing and debt section; step 4 gives it its proper place.
 
+Progress, 29 October 2026: done (see COSTING.md). The impact chart sits at the top of the borrowing and debt section, with seven tabs, history from 1995 (or 1948), the OBR's forecast and your budget, an economy switch, a cursor box, arrow keys and a table version.
+
 Checks: history matches the OBR's published figures for the years they overlap; with nothing changed, "your choices" lies exactly on the forecast; a hand-worked year for each tab; readable at phone width and by keyboard.
 
 ## Decisions I'll need from you along the way
