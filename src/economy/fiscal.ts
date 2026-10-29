@@ -4,6 +4,7 @@
 // borrowing, using the OBR's fiscal multipliers.
 import forecastData from "../../forecasts/obr-2026-10.yaml";
 import type { Effects } from "../policy/costing";
+import type { ReckonerCost } from "../policy/reckoner";
 
 export interface Forecast {
   forecast: string;
@@ -93,6 +94,12 @@ export interface Options {
   /** Extra debt interest is itself borrowed and earns interest (on by default; off to check against the ready reckoner). */
   compound?: boolean;
   start?: string;
+  /**
+   * Taxes costed from HMRC's ready reckoner. HMRC gives three years from a change, which here are the first three years
+   * of your budget, grown in line with the OBR's forecast for that tax; after the third, the third year's costing grows
+   * with the forecast.
+   */
+  reckoner?: ReckonerCost[];
 }
 
 /**
@@ -100,7 +107,7 @@ export interface Options {
  * grows in line with the OBR's forecast for its tax or benefit; behaviour grows with income tax.
  */
 export function fiscalPath(change: Effects, behaviour: number, opts: Options = {}): Path {
-  const { economy = false, multiplierScale = 1, compound = true, start = START_YEAR } = opts;
+  const { economy = false, multiplierScale = 1, compound = true, start = START_YEAR, reckoner = [] } = opts;
   const first = index("2026-27");
   const s0 = index(start);
   const rates = interestRates();
@@ -114,7 +121,13 @@ export function fiscalPath(change: Effects, behaviour: number, opts: Options = {
   let lastGdp = 0;
   for (let i = first; i < FORECAST.years.length; i++) {
     const on = i >= s0;
-    const taxRaised = on ? TAXES.reduce((s, k) => s + (change[k] * growth(CARRIED_BY[k], i)) / BN, 0) : 0;
+    const fromHmrc = on
+      ? reckoner.reduce((s, c) => {
+          const col = Math.min(i - s0, c.raises.length - 1);
+          return s + (c.raises[col]! / BN) * (series(c.receipts)[i]! / series(c.receipts)[first + col]!);
+        }, 0)
+      : 0;
+    const taxRaised = on ? TAXES.reduce((s, k) => s + (change[k] * growth(CARRIED_BY[k], i)) / BN, 0) + fromHmrc : 0;
     const benefitsCut = on ? -BENEFITS.reduce((s, k) => s + (change[k] * growth(CARRIED_BY[k], i)) / BN, 0) : 0;
     const b = on ? (behaviour * growth("income_tax", i)) / BN : 0;
 

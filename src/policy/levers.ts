@@ -3,12 +3,18 @@
 // at once (e.g. the basic rate in England, Wales and Northern Ireland), it says so in its note.
 import type { RuleSet } from "../engine";
 
-export type LeverUnit = "rate" | "gbp_per_year" | "gbp_per_month" | "gbp_per_week" | "flag";
+/**
+ * "change_share" is a change from today's rates as a share of them (0.01 is 1% higher), and "change_gbp" a change in
+ * pounds, for duties where HMRC costs a change rather than a rate: both can go below zero.
+ */
+export type LeverUnit = "rate" | "gbp" | "gbp_per_year" | "gbp_per_month" | "gbp_per_week" | "flag" | "change_share" | "change_gbp";
 export type LeverValue = number | boolean;
 
 export interface Lever {
   id: string;
-  group: "Income tax" | "Income tax (Scotland)" | "National Insurance" | "Universal Credit" | "Child Benefit";
+  group:
+    | "Income tax" | "Income tax (Scotland)" | "National Insurance" | "Universal Credit" | "Child Benefit"
+    | "VAT and duties" | "Business and wealth taxes" | "Stamp duty";
   label: string;
   unit: LeverUnit;
   /** A sensible step for controls; rates are fractions, so 0.01 is one percentage point. */
@@ -54,6 +60,16 @@ function value<K extends keyof RuleSet>(
     set: (r, v) => void ((r[area] as Record<string, LeverValue>)[key as string] = unit === "flag" ? Boolean(v) : num(v)),
   };
 }
+
+/** A tax the household model doesn't cover: costed from HMRC's ready reckoner (reckoner.ts), under the same id. */
+function other(id: string, group: Lever["group"], label: string, unit: LeverUnit, step: number, key: keyof RuleSet["otherTaxes"], note?: string): Lever {
+  return {
+    id, group, label, unit, step, note,
+    get: (r) => r.otherTaxes[key],
+    set: (r, v) => void (r.otherTaxes[key] = num(v)),
+  };
+}
+const ONE_SIDED = "HMRC costs only a rise; a cut is costed as the mirror image, which is less certain.";
 
 export const LEVERS: Lever[] = [
   // Income tax
@@ -137,6 +153,33 @@ export const LEVERS: Lever[] = [
   value("cb_other", "Child Benefit", "Each other child", "gbp_per_week", 0.05, "childBenefit", "otherWeekly"),
   value("cb_charge_threshold", "Child Benefit", "High Income Child Benefit Charge starts at", "gbp_per_year", 1000, "childBenefit", "chargeThreshold"),
   value("cb_charge_width", "Child Benefit", "Charge reaches 100% this far above the threshold", "gbp_per_year", 1000, "childBenefit", "chargeTaperWidth"),
+
+  // Costed from HMRC's ready reckoner, not the household model.
+  other("vat_standard", "VAT and duties", "VAT standard rate", "rate", 0.01, "vatStandard", "Most goods and services."),
+  other("vat_reduced", "VAT and duties", "VAT reduced rate", "rate", 0.01, "vatReduced", "Home energy, children's car seats and some others."),
+  other("fuel_duty", "VAT and duties", "Fuel duty on petrol and diesel", "change_share", 0.01, "fuelDutyChange", "A change from today's rate, as a share of it."),
+  other("beer_cider_duty", "VAT and duties", "Beer and cider duty", "change_share", 0.01, "beerCiderDutyChange", "A change from today's rates, as a share of them."),
+  other("wine_duty", "VAT and duties", "Wine duty", "change_share", 0.01, "wineDutyChange", "A change from today's rates, as a share of them."),
+  other("spirits_duty", "VAT and duties", "Spirits duty", "change_share", 0.01, "spiritsDutyChange", "A change from today's rates, as a share of them."),
+  other("tobacco_duty", "VAT and duties", "Tobacco duty", "change_share", 0.01, "tobaccoDutyChange", "A change from today's rates, as a share of them."),
+  other("ved", "VAT and duties", "Vehicle excise duty, change per car a year", "change_gbp", 5, "vedChange", `£1 a year on motorbikes for each £5 on cars, as HMRC costs it. ${ONE_SIDED}`),
+  other("apd_reduced", "VAT and duties", "Air passenger duty, reduced rate (short-haul economy), change per passenger", "change_gbp", 1, "apdReducedChange", ONE_SIDED),
+  other("ipt_standard", "VAT and duties", "Insurance premium tax, standard rate", "rate", 0.01, "iptStandard"),
+  other("ipt_higher", "VAT and duties", "Insurance premium tax, higher rate", "rate", 0.01, "iptHigher", "Travel insurance and some policies sold with appliances and cars."),
+  other("corporation_tax", "Business and wealth taxes", "Corporation tax main rate", "rate", 0.01, "corporationTax", `Profits over £250,000. ${ONE_SIDED}`),
+  other("cgt_lower", "Business and wealth taxes", "Capital gains tax, basic-rate taxpayers", "rate", 0.01, "cgtLower", `HMRC finds rises raise little or lose money, as people hold on to assets. ${ONE_SIDED}`),
+  other("cgt_higher", "Business and wealth taxes", "Capital gains tax, higher-rate taxpayers", "rate", 0.01, "cgtHigher", `HMRC finds rises lose money, as people hold on to assets. ${ONE_SIDED}`),
+  other("cgt_allowance", "Business and wealth taxes", "Capital gains tax-free allowance", "gbp_per_year", 500, "cgtAllowance", ONE_SIDED),
+  other("cgt_badr", "Business and wealth taxes", "Business Asset Disposal Relief rate", "rate", 0.01, "cgtBadr", `Capital gains tax on selling a business. ${ONE_SIDED}`),
+  other("iht_rate", "Business and wealth taxes", "Inheritance tax rate", "rate", 0.01, "ihtRate", ONE_SIDED),
+  other("iht_nil_rate_band", "Business and wealth taxes", "Inheritance tax threshold", "gbp", 5000, "ihtNilRateBand", ONE_SIDED),
+  other("iht_residence_nil_rate_band", "Business and wealth taxes", "Extra inheritance tax threshold for a home left to children", "gbp", 5000, "ihtResidenceNilRateBand", ONE_SIDED),
+  other("sdlt_2", "Stamp duty", "Residential, £125,001 to £250,000", "rate", 0.01, "sdlt2", "England and Northern Ireland; Scotland and Wales have their own taxes."),
+  other("sdlt_5", "Stamp duty", "Residential, £250,001 to £925,000", "rate", 0.01, "sdlt5", "England and Northern Ireland."),
+  other("sdlt_10", "Stamp duty", "Residential, £925,001 to £1.5 million", "rate", 0.01, "sdlt10", "England and Northern Ireland."),
+  other("sdlt_12", "Stamp duty", "Residential, over £1.5 million", "rate", 0.01, "sdlt12", "England and Northern Ireland. HMRC finds a rise here loses money."),
+  other("sdlt_additional", "Stamp duty", "Surcharge on additional homes", "rate", 0.01, "sdltAdditional", "England and Northern Ireland. HMRC finds a rise here loses money."),
+  other("sdlt_non_resident", "Stamp duty", "Surcharge for non-UK residents", "rate", 0.01, "sdltNonResident", "England and Northern Ireland."),
 ];
 
 export const LEVER = Object.fromEntries(LEVERS.map((l) => [l.id, l])) as Record<string, Lever>;

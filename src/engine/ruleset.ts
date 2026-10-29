@@ -40,6 +40,40 @@ export interface RuleSet {
     chargeThreshold: number;
     chargeTaperWidth: number;
   };
+  /**
+   * Taxes the household calculation doesn't model, costed from HMRC's ready reckoner (src/policy/reckoner.ts). The
+   * rates are today's; the "change" fields are changes from today's rates (zero in the rules), for duties where HMRC
+   * costs a change rather than a rate.
+   */
+  otherTaxes: {
+    vatStandard: number;
+    vatReduced: number;
+    corporationTax: number;
+    cgtLower: number;
+    cgtHigher: number;
+    cgtAllowance: number;
+    cgtBadr: number;
+    ihtRate: number;
+    ihtNilRateBand: number;
+    ihtResidenceNilRateBand: number;
+    sdlt2: number;
+    sdlt5: number;
+    sdlt10: number;
+    sdlt12: number;
+    sdltAdditional: number;
+    sdltNonResident: number;
+    iptStandard: number;
+    iptHigher: number;
+    /** Changes, as a share of today's duty rates (0.01 is 1% higher). */
+    fuelDutyChange: number;
+    beerCiderDutyChange: number;
+    wineDutyChange: number;
+    spiritsDutyChange: number;
+    tobaccoDutyChange: number;
+    /** Changes in £: vehicle excise duty (£5 a year a car, £1 a motorbike, per HMRC's line) and air passenger duty's reduced rate. */
+    vedChange: number;
+    apdReducedChange: number;
+  };
   /** Used only for behavioural costings, never by the household calculation. */
   behaviour: {
     taxableIncomeElasticity: Band[];
@@ -130,6 +164,33 @@ export function ruleSet(year: string): RuleSet {
       otherWeekly: n("child_benefit", "other_child_weekly"),
       chargeThreshold: n("child_benefit", "hicbc_threshold"),
       chargeTaperWidth: n("child_benefit", "hicbc_taper_width"),
+    },
+    otherTaxes: {
+      vatStandard: n("other_taxes", "vat_standard_rate"),
+      vatReduced: n("other_taxes", "vat_reduced_rate"),
+      corporationTax: n("other_taxes", "corporation_tax_main_rate"),
+      cgtLower: n("other_taxes", "cgt_lower_rate"),
+      cgtHigher: n("other_taxes", "cgt_higher_rate"),
+      cgtAllowance: n("other_taxes", "cgt_annual_exempt_amount"),
+      cgtBadr: n("other_taxes", "cgt_badr_rate"),
+      ihtRate: n("other_taxes", "iht_rate"),
+      ihtNilRateBand: n("other_taxes", "iht_nil_rate_band"),
+      ihtResidenceNilRateBand: n("other_taxes", "iht_residence_nil_rate_band"),
+      sdlt2: n("other_taxes", "sdlt_residential_rate_2"),
+      sdlt5: n("other_taxes", "sdlt_residential_rate_5"),
+      sdlt10: n("other_taxes", "sdlt_residential_rate_10"),
+      sdlt12: n("other_taxes", "sdlt_residential_rate_12"),
+      sdltAdditional: n("other_taxes", "sdlt_additional_dwellings"),
+      sdltNonResident: n("other_taxes", "sdlt_non_resident"),
+      iptStandard: n("other_taxes", "ipt_standard_rate"),
+      iptHigher: n("other_taxes", "ipt_higher_rate"),
+      fuelDutyChange: 0,
+      beerCiderDutyChange: 0,
+      wineDutyChange: 0,
+      spiritsDutyChange: 0,
+      tobaccoDutyChange: 0,
+      vedChange: 0,
+      apdReducedChange: 0,
     },
     behaviour: {
       taxableIncomeElasticity: b("behaviour", "taxable_income_elasticity"),

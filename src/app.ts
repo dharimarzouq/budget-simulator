@@ -5,9 +5,11 @@ import { readForm, renderForm, renderResult } from "./calculator";
 import { LEVERS, LEVER, type Lever, type LeverValue } from "./policy/levers";
 import { applyPolicy, coveredLevers, effectiveChanges, policyFromQuery, policyToQuery, type Policy } from "./policy/policy";
 import { REMOVAL, REMOVAL_FOR } from "./policy/removals";
+import { LIBRARY, NAMED, resolve, status } from "./policy/library";
 import { initTaxChart } from "./taxchart";
 import { FORECAST, baseline, fiscalPath, type Path } from "./economy/fiscal";
-import { CHECK_LABEL, CHECK_MEANING, COSTING_GRADE, GRADE_MEANING, leverCheck, policyCheck, type Check } from "./policy/grades";
+import { CHECK_LABEL, CHECK_MEANING, COSTING_GRADE, GRADE_MEANING, costingGrade, leverCheck, policyCheck, type Check } from "./policy/grades";
+import { isReckonerLever, type Fit } from "./policy/reckoner";
 import type { Group } from "./policy/distribution";
 import type { Reply, Request } from "./costing.worker";
 
@@ -48,11 +50,17 @@ document.addEventListener("click", (ev) => {
   b.setAttribute("aria-expanded", String(open));
   panel.hidden = !open;
 });
-const PER: Record<string, string> = { gbp_per_year: "", gbp_per_month: " a month", gbp_per_week: " a week" };
+const PER: Record<string, string> = { gbp: "", gbp_per_year: "", gbp_per_month: " a month", gbp_per_week: " a week", change_gbp: "" };
 
 function showValue(l: Lever, v: LeverValue): string {
   if (l.unit === "flag") return v ? "On" : "Off";
   if (l.unit === "rate") return `${+((v as number) * 100).toFixed(2)}%`;
+  if (l.unit === "change_share" || l.unit === "change_gbp") {
+    const n = v as number;
+    if (Math.abs(n) < 1e-9) return "no change";
+    const sign = n > 0 ? "+" : "−";
+    return l.unit === "change_share" ? `${sign}${+Math.abs(n * 100).toFixed(2)}%` : `${sign}£${Math.abs(n).toLocaleString("en-GB")}`;
+  }
   const n = v as number;
   return `£${n.toLocaleString("en-GB", { maximumFractionDigits: n % 1 ? 2 : 0, minimumFractionDigits: n % 1 ? 2 : 0 })}${PER[l.unit]}`;
 }
@@ -65,6 +73,7 @@ function policyChanged() {
   const q = policyToQuery(currentPolicy());
   history.replaceState(null, "", q ? `?${q}` : location.pathname);
   showCount();
+  renderPolicies();
   requestCosting();
   updateHousehold();
 }
@@ -95,6 +104,9 @@ function setRemoval(id: string, removed: boolean) {
  */
 function range(l: Lever): { min: number; max: number; step: number; scale: number } {
   const today = +((l.get(rules) as number) * 100).toFixed(4);
+  // Changes from today's duties: either way, up to 20% or ten steps.
+  if (l.unit === "change_share") return { min: -20, max: 20, step: 1, scale: 100 };
+  if (l.unit === "change_gbp") return { min: -10 * l.step, max: 10 * l.step, step: l.step, scale: 1 };
   if (l.unit === "rate") return { min: today - Math.min(10, Math.floor(today)), max: Math.min(100, today + 10), step: 1, scale: 100 };
   return { min: 0, max: Math.max((l.get(rules) as number) * 2, l.step * 20), step: l.step, scale: 1 };
 }
@@ -121,7 +133,7 @@ function leverRow(l: Lever): string {
   const shown = +((v as number) * scale).toFixed(4);
   return `<div class="lever" data-id="${l.id}">${name}
     <input type="range" min="${min}" max="${max}" step="${step}" value="${shown}" data-range="${l.id}" aria-label="${esc(l.label)}" aria-valuetext="${esc(showValue(l, v))}">
-    <input type="number" step="${l.unit === "rate" ? "any" : step}" value="${shown}" data-number="${l.id}" aria-label="${esc(l.label)}${l.unit === "rate" ? ", %" : ", £"}">
+    <input type="number" step="${scale === 100 ? "any" : step}" value="${shown}" data-number="${l.id}" aria-label="${esc(l.label)}${scale === 100 ? ", %" : ", £"}">
     ${undo}</div>`;
 }
 
@@ -155,6 +167,56 @@ function refreshLeverRow(id: string) {
     }
     row.querySelector("[data-range]")!.setAttribute("aria-valuetext", showValue(l, v)); // read out as "21%", not "21"
   }
+}
+
+// ---- named policies --------------------------------------------------------------------------------
+const STATUS_LABEL = { on: "Added", adjusted: "Adjusted", off: "" } as const;
+
+function renderPolicies() {
+  const current = currentPolicy();
+  $("policies").innerHTML = LIBRARY.map((p) => {
+    const s = status(p, rules, current);
+    const i = info(p.name, p.about);
+    return `<div class="policy ${s}" data-policy="${p.id}">
+      <div class="policy-name"><span>${esc(p.name)}${i.button}</span><span class="small">${esc(p.area)}</span></div>${i.panel}
+      <div class="policy-actions">${s === "off" ? "" : `<span class="small">${STATUS_LABEL[s]}</span>`}
+        ${s !== "on" ? `<button type="button" data-add-policy="${p.id}">${s === "off" ? "Add" : "Set as named"}</button>` : ""}
+        ${s !== "off" ? `<button type="button" data-drop-policy="${p.id}">Take out</button>` : ""}</div>
+    </div>`;
+  }).join("");
+  filterPolicies();
+}
+
+/** Add a named policy: move its levers to its values (a removal takes out the levers it makes meaningless). */
+function addPolicy(id: string) {
+  for (const c of resolve(NAMED[id]!, rules)) {
+    const x = REMOVAL[c.lever];
+    if (x) {
+      for (const l of [x.lever, ...x.hides]) policy.delete(l);
+      policy.set(c.lever, true);
+    } else if (LEVER[c.lever]!.get(rules) === c.value) policy.delete(c.lever);
+    else policy.set(c.lever, c.value);
+  }
+  renderLevers();
+  filterLevers();
+  policyChanged();
+}
+
+/** Take a named policy out: its levers go back to today's values. */
+function dropPolicy(id: string) {
+  for (const c of resolve(NAMED[id]!, rules)) policy.delete(c.lever);
+  renderLevers();
+  filterLevers();
+  policyChanged();
+}
+
+function filterPolicies() {
+  const q = (($("lever-search") as HTMLInputElement).value || "").toLowerCase();
+  const changedOnly = ($("changed-only") as HTMLInputElement).checked;
+  document.querySelectorAll<HTMLElement>(".policy").forEach((el) => {
+    const p = NAMED[el.dataset.policy!]!;
+    el.hidden = (!!q && !`${p.name} ${p.area} ${p.about}`.toLowerCase().includes(q)) || (changedOnly && el.classList.contains("off"));
+  });
 }
 
 /** How many changes, beside the levers and on the phone's Levers button. */
@@ -192,6 +254,8 @@ function showBubble(input: HTMLInputElement, l: Lever, value: number) {
   const diff =
     Math.abs(d) < 1e-9
       ? "today's value"
+      : l.unit === "change_share" || l.unit === "change_gbp"
+        ? "on today's rates" // the value is already the change
       : l.unit === "rate"
         ? `${d > 0 ? "+" : "−"}${+Math.abs(d * 100).toFixed(2)} ${Math.abs(d * 100) === 1 ? "point" : "points"}`
         : `${d > 0 ? "+" : "−"}${showValue(l, Math.abs(d))}`;
@@ -221,8 +285,9 @@ function wireLevers() {
     if (id) {
       const l = LEVER[id]!;
       const n = Number(t.value);
-      if (t.value === "" || !Number.isFinite(n) || n < 0) return;
-      const value = l.unit === "rate" ? Math.round(Math.min(n, 100) * 100) / 10000 : n;
+      const signed = l.unit === "change_share" || l.unit === "change_gbp"; // a change from today can go below zero
+      if (t.value === "" || t.value === "-" || !Number.isFinite(n) || (n < 0 && !signed)) return;
+      const value = range(l).scale === 100 ? Math.round(Math.min(n, 100) * 100) / 10000 : n;
       // Keep the twin control in step while typing or dragging.
       const twin = t.dataset.range ? t.parentElement!.querySelector<HTMLInputElement>("[data-number]") : t.parentElement!.querySelector<HTMLInputElement>("[data-range]");
       if (twin) twin.value = t.value;
@@ -238,8 +303,13 @@ function wireLevers() {
     if (d.restore) setRemoval(d.restore, false);
   });
   for (const end of ["pointerup", "change", "blur"]) panel.addEventListener(end, hideBubble, true);
-  $("lever-search").addEventListener("input", filterLevers);
-  $("changed-only").addEventListener("change", filterLevers);
+  $("lever-search").addEventListener("input", () => (filterLevers(), filterPolicies()));
+  $("changed-only").addEventListener("change", () => (filterLevers(), filterPolicies()));
+  $("policies").addEventListener("click", (ev) => {
+    const d = (ev.target as HTMLElement).dataset;
+    if (d.addPolicy) addPolicy(d.addPolicy);
+    if (d.dropPolicy) dropPolicy(d.dropPolicy);
+  });
   $("reset").addEventListener("click", () => {
     policy.clear();
     renderLevers();
@@ -379,25 +449,38 @@ function renderHeadline(s: Static, b: BehaviourFigures | undefined) {
     $("headline").innerHTML = EMPTY;
     return;
   }
-  const check = policyCheck(changes);
+  const fits = fitsOf(s);
+  const household = changes.some((c) => !isReckonerLever(c.lever)); // anything the household model works out
+  const check = policyCheck(changes, fits);
+  const g = costingGrade(changes, fits);
+  const grade = info(`grade ${g}`, `Grade ${g}: ${GRADE_MEANING[g]} The scale: A ${GRADE_MEANING.A} B ${GRADE_MEANING.B} C ${GRADE_MEANING.C} D ${GRADE_MEANING.D}`);
+  const hmrc = s.reckoner.length ? "; other taxes are HMRC's costings, which already allow for responses" : "";
   const raised = (x: number) => `<span class="${x < 0 ? "neg" : "pos"}">${bn(x)}</span>`;
   const behaviour = !b
     ? `<div class="value small">working it out… <span id="behaviour-progress"></span></div><div class="sub">the other figures don't wait for it</div>`
     : b.low === 0 && b.high === 0
       ? `<div class="value">${raised(s.netRevenue)}</div><div class="sub">${
-          changes.some((c) => !/^(uc|cb)_/.test(REMOVAL[c.lever]?.lever ?? c.lever)) // any tax change
-            ? "responses make no difference to what's raised here"
-            : "no tax changes; benefits are costed static"
+          !household
+            ? "responses are already in HMRC's costings"
+            : changes.some((c) => !isReckonerLever(c.lever) && !/^(uc|cb)_/.test(REMOVAL[c.lever]?.lever ?? c.lever)) // a household tax change
+              ? "responses make no difference to what's raised here"
+              : "no household tax changes; benefits are costed static"
         }</div>`
       : `<div class="value">${raised(s.netRevenue + b.central)}</div><div class="sub">range ${bn(s.netRevenue + Math.min(b.low, b.high), false)} to ${bn(s.netRevenue + Math.max(b.low, b.high), false)}</div>`;
   const all = s.distribution.all;
   $("headline").innerHTML = `
-    <div class="metric"><div class="label">Raised a year, nobody responding (static)</div><div class="value">${raised(s.netRevenue)}</div><div class="sub">positive raises money, negative costs it</div></div>
+    <div class="metric"><div class="label">Raised a year, nobody responding (static)</div><div class="value">${raised(s.netRevenue)}</div><div class="sub">positive raises money, negative costs it${hmrc}</div></div>
     <div class="metric"><div class="label">Allowing for how people respond</div>${behaviour}</div>
-    <div class="metric"><div class="label">Households losing / gaining</div><div class="value">${share(all.lose)} / ${share(all.gain)}</div><div class="sub">by more than £1 a week</div></div>
-    <div class="metric"><div class="label">How far to trust it</div><div class="value small"><span class="grade">${COSTING_GRADE}</span>${grade.button} ${checkBadge(check)}</div>${grade.panel}<div class="sub">grade ${COSTING_GRADE}: our own model; checks against HMRC: ${CHECK_LABEL[check]}</div></div>`;
+    <div class="metric"><div class="label">Households losing / gaining</div>${
+      household
+        ? `<div class="value">${share(all.lose)} / ${share(all.gain)}</div><div class="sub">by more than £1 a week${s.reckoner.length ? "; doesn't yet include taxes costed from HMRC's figures" : ""}</div>`
+        : `<div class="value small">not worked out</div><div class="sub">who pays these taxes isn't shared out to households yet</div>`
+    }</div>
+    <div class="metric"><div class="label">How far to trust it</div><div class="value small"><span class="grade">${g}</span>${grade.button} ${checkBadge(check)}</div>${grade.panel}<div class="sub">grade ${g}: ${g === "A" ? "HMRC's own costing" : "our own model, or HMRC's costings scaled"}; checks: ${CHECK_LABEL[check]}</div></div>`;
 }
-const grade = info(`grade ${COSTING_GRADE}`, `Grade ${COSTING_GRADE}: ${GRADE_MEANING[COSTING_GRADE]} The scale: A ${GRADE_MEANING.A} B ${GRADE_MEANING.B} C ${GRADE_MEANING.C} D ${GRADE_MEANING.D}`);
+
+/** How well HMRC's figures cover each change costed from them. */
+const fitsOf = (s: Static): Record<string, Fit> => Object.fromEntries(s.reckoner.map((c) => [c.lever, c.fit]));
 
 /** A few plain lines describing the budget, for pasting into a message. */
 function summaryText(): string {
@@ -410,7 +493,7 @@ function summaryText(): string {
     const s = lastStatic.netRevenue;
     const total = s + (lastBehaviour?.central ?? 0);
     lines.push(`${total < 0 ? "Costs" : "Raises"} ${bn(Math.abs(total), false)} a year${lastBehaviour ? `, allowing for how people respond (${bn(Math.abs(s), false)} before that)` : " before allowing for how people respond"}`);
-    const path = fiscalPath(lastStatic.change, lastBehaviour?.central ?? 0);
+    const path = fiscalPath(lastStatic.change, lastBehaviour?.central ?? 0, { reckoner: lastStatic.reckoner });
     const m = path.stabilityMargin;
     lines.push(`Main fiscal rule (current budget in surplus in 2029-30): ${m < 0 ? "missed" : "met"} by £${Math.abs(m).toFixed(1)}bn (OBR forecast: met by £${FORECAST.fiscal_rules.stability.margin.toFixed(1)}bn)`);
     const all = lastStatic.distribution.all;
@@ -432,9 +515,9 @@ const signedBn = (x: number) => (Math.abs(x) < 0.05 ? "£0.0bn" : `${x > 0 ? "+"
 function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
   const changed = currentPolicy().length > 0;
   const behaviour = b?.central ?? 0;
-  const path = fiscalPath(s.change, behaviour);
-  const econ = fiscalPath(s.change, behaviour, { economy: true });
-  const lowHigh = [FORECAST.multipliers.range_low, FORECAST.multipliers.range_high].map((k) => fiscalPath(s.change, behaviour, { economy: true, multiplierScale: k }));
+  const path = fiscalPath(s.change, behaviour, { reckoner: s.reckoner });
+  const econ = fiscalPath(s.change, behaviour, { economy: true, reckoner: s.reckoner });
+  const lowHigh = [FORECAST.multipliers.range_low, FORECAST.multipliers.range_high].map((k) => fiscalPath(s.change, behaviour, { economy: true, multiplierScale: k, reckoner: s.reckoner }));
   const psnb = baseline("psnb"), psnfl = baseline("psnfl"), centred = baseline("gdp_centred");
   const years = path.years.map((y) => y.year);
   const rules = FORECAST.fiscal_rules;
@@ -520,10 +603,14 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
     if (Math.abs(s.change[k]) < 5e5) continue;
     html += `<tr><td>${label}</td>${signed(sign * s.change[k])}</tr>`;
   }
-  html += `<tr class="total"><td>Total (static)</td>${signed(s.netRevenue)}</tr></table>`;
+  for (const c of s.reckoner) {
+    html += `<tr><td>${esc(LEVER[c.lever]!.label)}<div class="working">HMRC's costing, allowing for responses</div></td>${signed(c.raises[0]!)}</tr>`;
+  }
+  html += `<tr class="total"><td>Total${s.reckoner.length ? "" : " (static)"}</td>${signed(s.netRevenue)}</tr></table>`;
   html += `<table><tr><th>Each change on its own</th><th class="num">£ a year</th><th>Checks against HMRC</th></tr>`;
+  const fits = fitsOf(s);
   for (const ch of changes) {
-    const g = leverCheck(ch.lever);
+    const g = leverCheck(ch.lever, fits[ch.lever]);
     const own = levers?.perLever.find((p) => p.lever === ch.lever);
     html += `<tr><td>${changeText(ch.lever)}</td>${own ? signed(own.netRevenue) : `<td class="num small">working…</td>`}<td>${checkBadge(g.check, g.why)}</td></tr>`;
   }
@@ -531,9 +618,10 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
   html += `</table></div>`;
   html += `<details class="show-working"><summary>Show working</summary>
     <p>Every made-up household is run through the 2026-27 rules twice, as they are and with your changes, and the differences are added up, weighted to stand for the whole UK. "Static" means nobody changes what they earn or claim. The figure allowing for responses uses ${SOURCES.sfc}, rising with income, with a low and high figure at half and one and a half times them. Benefits and employer National Insurance stay static.</p>
-    <p>Confidence grade ${COSTING_GRADE}: ${esc(GRADE_MEANING[COSTING_GRADE])} (A would be an official costing, C international evidence, D an informed guess.)</p>
+    ${s.reckoner.length ? `<p>VAT, duties, corporation tax, capital gains and inheritance tax, stamp duty and insurance premium tax aren't in the household model. Changes to them are costed from ${SOURCES.rr}: HMRC's own costings of standard changes, which already allow for how people respond, scaled to the size of your change along straight lines between HMRC's figures. They count the same in both headline figures. HMRC gives its first year as 2026-27; later years are in the borrowing section.</p>` : ""}
+    <p>Confidence grade ${COSTING_GRADE}: ${esc(GRADE_MEANING[COSTING_GRADE])} Changes HMRC costs exactly are grade A: ${esc(GRADE_MEANING.A)} (C would be international evidence, D an informed guess.)</p>
     <p>How each change checks against ${SOURCES.rr} and other published figures:</p>
-    <ul>${changes.map((ch) => `<li>${esc(changeLabel(ch.lever))}: ${CHECK_LABEL[leverCheck(ch.lever).check]}. ${esc(leverCheck(ch.lever).why)}</li>`).join("")}</ul>
+    <ul>${changes.map((ch) => `<li>${esc(changeLabel(ch.lever))}: ${CHECK_LABEL[leverCheck(ch.lever, fits[ch.lever]).check]}. ${esc(leverCheck(ch.lever, fits[ch.lever]).why)}</li>`).join("")}</ul>
     <p>Close: ${esc(CHECK_MEANING.close)} Fair: ${esc(CHECK_MEANING.fair)} Known gap: ${esc(CHECK_MEANING.gap)} More in ${SOURCES.how}.</p></details>`;
   $("breakdown").innerHTML = html;
 }
@@ -572,6 +660,7 @@ function renderWinners(deciles: Group[], family: Group[], regions: Group[], all:
       <button type="button" data-mode="pounds" aria-pressed="${winnersMode === "pounds"}">£ a year</button>
       <button type="button" data-mode="percent" aria-pressed="${winnersMode === "percent"}">% of income</button>
     </div>
+    ${lastStatic?.reckoner.length ? `<p class="empty">Not included yet: changes to taxes costed from HMRC's figures (${esc(lastStatic.reckoner.map((c) => LEVER[c.lever]!.label).join("; "))}). Who pays them isn't shared out to households yet.</p>` : ""}
     <p class="small">Average change in net household income, by tenth of households ranked by income (adjusted for household size). All households: ${pounds(all.meanChange, true)} a year on average; ${share(all.lose)} lose and ${share(all.gain)} gain more than £1 a week.</p>
     <div class="chart">${svg}</div>
     ${table("By tenth", deciles)}
@@ -607,6 +696,7 @@ renderForm(form);
 form.addEventListener("input", updateHousehold);
 renderLevers();
 filterLevers();
+renderPolicies();
 wireLevers();
 redrawTaxChart = initTaxChart($("tax-chart"), rules, () => applyPolicy(rules, currentPolicy()));
 placeTaxChart();

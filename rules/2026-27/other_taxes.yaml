@@ -1,0 +1,102 @@
+year: 2026-27
+area: other_taxes
+label: Other taxes (costed from HMRC's ready reckoner, not the household model)
+limits:
+  - The engine doesn't model companies, estates, property sales or what households buy. Changes to these taxes are costed from HMRC's own published costings of standard changes (its "ready reckoner"), scaled to the size of the change; see the costing for how far each can be trusted.
+  - Only the main rates are listed. Smaller rates and reliefs (the corporation tax small profits rate, the 36% inheritance tax rate for estates leaving 10% to charity, and so on) stay as they are.
+parameters:
+  vat_standard_rate:
+    label: VAT standard rate
+    unit: rate
+    value: 0.20
+    source: govuk-vat-rates
+    legal: Value Added Tax Act 1994 s2
+  vat_reduced_rate:
+    label: VAT reduced rate (home energy, children's car seats and others)
+    unit: rate
+    value: 0.05
+    source: govuk-vat-rates
+    legal: Value Added Tax Act 1994 s29A
+  corporation_tax_main_rate:
+    label: Corporation tax main rate (profits over £250,000)
+    unit: rate
+    value: 0.25
+    source: govuk-corporation-tax-rates
+    note: The small profits rate (19%, profits up to £50,000) and marginal relief in between aren't levers.
+  cgt_lower_rate:
+    label: Capital gains tax, basic-rate taxpayers
+    unit: rate
+    value: 0.18
+    source: govuk-cgt-rates
+  cgt_higher_rate:
+    label: Capital gains tax, higher and additional-rate taxpayers
+    unit: rate
+    value: 0.24
+    source: govuk-cgt-rates
+  cgt_annual_exempt_amount:
+    label: Capital gains tax-free allowance (annual exempt amount)
+    unit: gbp_per_year
+    value: 3000
+    source: govuk-cgt-rates
+  cgt_badr_rate:
+    label: Business Asset Disposal Relief rate
+    unit: rate
+    value: 0.18
+    source: govuk-cgt-rates
+    note: From 6 April 2026.
+  iht_rate:
+    label: Inheritance tax rate
+    unit: rate
+    value: 0.40
+    source: govuk-iht
+  iht_nil_rate_band:
+    label: Inheritance tax threshold (nil-rate band)
+    unit: gbp
+    value: 325000
+    source: govuk-iht
+  iht_residence_nil_rate_band:
+    label: Extra threshold when a home goes to children or grandchildren (residence nil-rate band)
+    unit: gbp
+    value: 175000
+    source: govuk-iht
+    note: GOV.UK gives the combined threshold as £500,000.
+  sdlt_residential_rate_2:
+    label: Stamp duty, residential, £125,001 to £250,000
+    unit: rate
+    value: 0.02
+    source: govuk-sdlt-residential
+  sdlt_residential_rate_5:
+    label: Stamp duty, residential, £250,001 to £925,000
+    unit: rate
+    value: 0.05
+    source: govuk-sdlt-residential
+  sdlt_residential_rate_10:
+    label: Stamp duty, residential, £925,001 to £1.5 million
+    unit: rate
+    value: 0.10
+    source: govuk-sdlt-residential
+  sdlt_residential_rate_12:
+    label: Stamp duty, residential, over £1.5 million
+    unit: rate
+    value: 0.12
+    source: govuk-sdlt-residential
+  sdlt_additional_dwellings:
+    label: Stamp duty surcharge on additional homes
+    unit: rate
+    value: 0.05
+    source: govuk-sdlt-residential
+  sdlt_non_resident:
+    label: Stamp duty surcharge for non-UK residents
+    unit: rate
+    value: 0.02
+    source: govuk-sdlt-residential
+  ipt_standard_rate:
+    label: Insurance premium tax, standard rate
+    unit: rate
+    value: 0.12
+    source: govuk-ipt
+  ipt_higher_rate:
+    label: Insurance premium tax, higher rate (travel insurance and some others)
+    unit: rate
+    value: 0.20
+    source: govuk-ipt

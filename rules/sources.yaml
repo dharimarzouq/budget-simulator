@@ -32,6 +32,56 @@ govuk-child-benefit-rates:
   licence: Open Government Licence v3.0
   accessed: 2026-10-27
 
+govuk-ni-rates-2024-25:
+  title: "Rates and thresholds for employers 2024 to 2025"
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/guidance/rates-and-thresholds-for-employers-2024-to-2025
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-29
+govuk-vat-rates:
+  title: "VAT rates"
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/vat-rates
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-29
+govuk-corporation-tax-rates:
+  title: "Corporation Tax rates and reliefs"
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/corporation-tax-rates
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-29
+govuk-cgt-rates:
+  title: "Capital Gains Tax: what you pay it on, rates and allowances"
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/capital-gains-tax/rates
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-29
+govuk-iht:
+  title: "Inheritance Tax"
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/inheritance-tax
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-29
+govuk-sdlt-residential:
+  title: "Stamp Duty Land Tax: residential property rates"
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/stamp-duty-land-tax/residential-property-rates
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-29
+govuk-ipt:
+  title: "Insurance Premium Tax"
+  publisher: HM Revenue & Customs (GOV.UK)
+  url: https://www.gov.uk/guidance/insurance-premium-tax
+  licence: Open Government Licence v3.0
+  updated: 2019-03-06
+  accessed: 2026-10-29
+hmrc-ready-reckoner-2025-06:
+  title: "Direct effects of illustrative tax changes, June 2025 (tables)"
+  publisher: HM Revenue and Customs
+  url: https://assets.publishing.service.gov.uk/media/68552862b46781eacfd71d71/June_2025_TRR_ODS__1_.ods
+  licence: Open Government Licence v3.0
+  published: 2025-06
+  accessed: 2026-10-28
 govuk-hicbc:
   title: High Income Child Benefit Charge
   publisher: HM Revenue & Customs (GOV.UK)

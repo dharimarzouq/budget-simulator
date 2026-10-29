@@ -84,6 +84,85 @@ series:
     values: [13.44, 13.71, 13.91, 14.06, 14.02, 13.95, 13.91]
     source: obr-efo-2026-10
     table: "Detailed forecast tables, expenditure, Table 5.9"
+  # Taxes costed from HMRC's ready reckoner (costings/), carried on after its last year with these. Cash receipts.
+  vat:
+    label: VAT receipts
+    unit: gbp_bn
+    values: [179.86, 186.15, 193.97, 203.28, 211.70, 220.15, 228.41]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  corporation_tax:
+    label: Onshore corporation tax receipts
+    unit: gbp_bn
+    values: [92.89, 102.98, 110.39, 117.61, 123.22, 128.11, 133.40]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  cgt:
+    label: Capital gains tax receipts
+    unit: gbp_bn
+    values: [24.31, 25.59, 29.20, 32.39, 34.18, 37.71, 41.28]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  iht:
+    label: Inheritance tax receipts
+    unit: gbp_bn
+    values: [8.47, 9.11, 10.78, 12.30, 13.26, 14.24, 15.15]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  sdlt:
+    label: Stamp duty land tax receipts
+    unit: gbp_bn
+    values: [15.17, 15.04, 16.87, 18.94, 20.40, 22.01, 23.70]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  fuel_duties:
+    label: Fuel duty receipts
+    unit: gbp_bn
+    values: [24.56, 23.95, 25.71, 26.58, 26.27, 25.55, 24.43]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  tobacco_duties:
+    label: Tobacco duty receipts
+    unit: gbp_bn
+    values: [7.57, 7.38, 7.33, 7.07, 6.80, 6.56, 6.31]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  spirits_duties:
+    label: Spirits duty receipts
+    unit: gbp_bn
+    values: [4.07, 4.21, 4.32, 4.43, 4.54, 4.60, 4.67]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  wine_duties:
+    label: Wine duty receipts
+    unit: gbp_bn
+    values: [4.61, 4.74, 4.86, 4.98, 5.09, 5.15, 5.22]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  beer_cider_duties:
+    label: Beer and cider duty receipts
+    unit: gbp_bn
+    values: [3.76, 3.77, 3.85, 3.95, 4.06, 4.12, 4.16]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  apd:
+    label: Air passenger duty receipts
+    unit: gbp_bn
+    values: [4.62, 4.85, 4.74, 5.02, 5.32, 5.60, 5.89]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  ipt:
+    label: Insurance premium tax receipts
+    unit: gbp_bn
+    values: [9.04, 9.12, 9.43, 9.66, 9.91, 10.12, 10.33]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  ved:
+    label: Vehicle excise duty receipts
+    unit: gbp_bn
+    values: [8.87, 9.41, 10.08, 11.74, 12.51, 13.36, 14.24]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
   debt_interest_per_10bn:
     label: Extra debt interest from £10bn more borrowing each year from the start of 2026-27
     unit: gbp_bn

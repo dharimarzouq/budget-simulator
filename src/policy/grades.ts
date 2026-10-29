@@ -10,6 +10,7 @@
 //   gap     a known gap with published figures: treat as rough
 import type { Policy } from "./policy";
 import { REMOVAL } from "./removals";
+import { isReckonerLever, type Fit } from "./reckoner";
 
 export type Grade = "A" | "B" | "C" | "D";
 export const GRADE_MEANING: Record<Grade, string> = {
@@ -73,13 +74,29 @@ const REMOVED = c("gap", "Removing something altogether is far bigger than the s
 
 const UC_DEFAULT =c("fair", "No direct check of this change; Universal Credit spending matches the OBR within 1% and DWP's caseloads closely.");
 
-export function leverCheck(lever: string): { check: Check; why: string } {
+// Taxes costed from HMRC's ready reckoner, by how well its figures cover the change (reckoner.ts).
+const RECKONER_CHECK: Record<Fit, { check: Check; why: string }> = {
+  exact: c("close", "HMRC's own costing of exactly this change (its ready reckoner), which allows for how people respond."),
+  scaled: c("fair", "HMRC's costing of a standard change, scaled to the size of this one. A cut HMRC only costs as a rise is the mirror image of it."),
+  beyond: c("gap", "Far bigger than any change HMRC costs: scaled up from its figures, which assume small changes. Treat as rough."),
+};
+
+export function leverCheck(lever: string, fit?: Fit): { check: Check; why: string } {
   if (REMOVAL[lever]) return REMOVED;
+  if (isReckonerLever(lever)) return RECKONER_CHECK[fit ?? "scaled"];
   return CHECKS[lever] ?? (lever.startsWith("uc_") ? UC_DEFAULT : c("gap", "Not checked."));
 }
 
-/** The weakest check among the policy's changes ("close" if nothing changed). */
-export function policyCheck(policy: Policy): Check {
+/** The weakest check among the policy's changes ("close" if nothing changed). `fits` gives each HMRC-costed change's fit. */
+export function policyCheck(policy: Policy, fits: Record<string, Fit> = {}): Check {
   const order: Check[] = ["close", "fair", "gap"];
-  return policy.reduce<Check>((worst, ch) => (order.indexOf(leverCheck(ch.lever).check) > order.indexOf(worst) ? leverCheck(ch.lever).check : worst), "close");
+  return policy.reduce<Check>((worst, ch) => {
+    const check = leverCheck(ch.lever, fits[ch.lever]).check;
+    return order.indexOf(check) > order.indexOf(worst) ? check : worst;
+  }, "close");
+}
+
+/** A: every change is one HMRC costs exactly. Otherwise B: our own model, or HMRC's costings scaled. */
+export function costingGrade(policy: Policy, fits: Record<string, Fit> = {}): Grade {
+  return policy.length && policy.every((ch) => isReckonerLever(ch.lever) && fits[ch.lever] === "exact") ? "A" : COSTING_GRADE;
 }

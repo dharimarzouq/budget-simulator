@@ -3,7 +3,8 @@
 // latest request is finished.
 import { ruleSet } from "./engine";
 import { decodePopulation, type Population } from "./population";
-import { behaviouralEffect, difference, marginalRatesFor, netRevenue, run, type Behaviour, type Effects, type Run } from "./policy/costing";
+import { behaviouralEffect, difference, firstYear, marginalRatesFor, netRevenue, run, type Behaviour, type Effects, type Run } from "./policy/costing";
+import { isReckonerLever, reckonerCosts, type ReckonerCost } from "./policy/reckoner";
 import { distribution, type Distribution } from "./policy/distribution";
 import { applyPolicy, effectiveChanges, type Policy } from "./policy/policy";
 
@@ -11,7 +12,7 @@ export type Request = { type: "load"; url: string } | { type: "cost"; id: number
 
 export type Reply =
   | { type: "ready"; units: number; households: number }
-  | { type: "static"; id: number; change: Effects; netRevenue: number; distribution: Distribution }
+  | { type: "static"; id: number; change: Effects; reckoner: ReckonerCost[]; netRevenue: number; distribution: Distribution }
   | { type: "levers"; id: number; perLever: { lever: string; netRevenue: number }[]; interaction: number }
   | { type: "behaviour"; id: number; behaviour: Behaviour }
   /** How far through the behavioural figure, 0 to 1. */
@@ -38,14 +39,17 @@ async function work() {
       const { id, policy } = latest;
       latest = undefined;
       const changes = effectiveChanges(rules, policy);
-      // The package as a whole first: one run of the population.
-      const reformed = changes.length ? run(pop, applyPolicy(rules, changes)) : base;
+      const reformedRules = applyPolicy(rules, changes);
+      // The package as a whole first: one run of the population (not needed if only taxes it doesn't cover change).
+      const household = changes.filter((c) => !isReckonerLever(c.lever));
+      const reformed = household.length ? run(pop, reformedRules) : base;
       const change = difference(reformed.totals, base.totals);
       // A setting the engine can't work with should say so, never show up as "NaN".
       const broken = Object.entries(change).filter(([, v]) => !Number.isFinite(v)).map(([k]) => k);
       if (broken.length) throw new Error(`these settings give a result that can't be worked out (${broken.join(", ")}). Please report it.`);
-      const total = netRevenue(change);
-      post({ type: "static", id, change, netRevenue: total, distribution: distribution(pop, base, reformed) });
+      const reckoner = reckonerCosts(rules, reformedRules);
+      const total = netRevenue(change) + firstYear(reckoner);
+      post({ type: "static", id, change, reckoner, netRevenue: total, distribution: distribution(pop, base, reformed) });
       await tick(); // let a newer request in before the slower parts
       if (latest) continue;
       // Then each change on its own, one run each, stopping if a newer request comes in.
@@ -53,7 +57,10 @@ async function work() {
       if (changes.length === 1) perLever.push({ lever: changes[0]!.lever, netRevenue: total });
       else {
         for (const ch of changes) {
-          perLever.push({ lever: ch.lever, netRevenue: netRevenue(difference(run(pop, applyPolicy(rules, [ch])).totals, base.totals)) });
+          const own = isReckonerLever(ch.lever)
+            ? firstYear(reckonerCosts(rules, applyPolicy(rules, [ch])))
+            : netRevenue(difference(run(pop, applyPolicy(rules, [ch])).totals, base.totals));
+          perLever.push({ lever: ch.lever, netRevenue: own });
           await tick();
           if (latest) break;
         }
@@ -62,7 +69,8 @@ async function work() {
       post({ type: "levers", id, perLever, interaction: total - perLever.reduce((s, l) => s + l.netRevenue, 0) });
       await tick();
       if (latest) continue;
-      if (!changes.length) {
+      // HMRC's costings already allow for responses: only the household model's changes need working out.
+      if (!household.length) {
         post({ type: "behaviour", id, behaviour: { central: 0, low: 0, high: 0 } });
         continue;
       }
@@ -72,7 +80,7 @@ async function work() {
       baseRates ??= marginalRatesFor(pop, rules, report(0, 0.5));
       await tick();
       if (latest) continue;
-      const b = behaviouralEffect(pop, rules, applyPolicy(rules, changes), baseRates, first ? report(0.5, 0.5) : report(0, 1));
+      const b = behaviouralEffect(pop, rules, reformedRules, baseRates, first ? report(0.5, 0.5) : report(0, 1));
       if (![b.central, b.low, b.high].every(Number.isFinite)) throw new Error("these settings give a behavioural figure that can't be worked out. Please report it.");
       if (!latest) post({ type: "behaviour", id, behaviour: { central: b.central, low: b.low, high: b.high } });
     }

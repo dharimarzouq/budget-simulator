@@ -1,0 +1,140 @@
+# HMRC's costings of standard tax changes ("Direct effects of illustrative tax changes", June 2025), for taxes the
+# household model doesn't cover. £ million raised (positive) or lost (negative) by each listed change, in the
+# 2026-27, 2027-28 and 2028-29 financial years. HMRC lists some lines as raised and some as costs; here every figure is
+# signed as money raised. "neg" (negligible) is entered as 0. Read off data/raw/hmrc_ready_reckoner_2025_06.ods.
+#
+# symmetric: HMRC words the line as a "change", so the same figure applies, with the sign flipped, to a change the other
+#   way. Otherwise HMRC lists only the changes given, and the other direction is a mirror image: less certain.
+# receipts: the OBR forecast line (forecasts/obr-2026-10.yaml) that carries the costing on after 2028-29.
+# trusted_to: how big a change the figures are scaled to before it's marked "far beyond" what HMRC costs. Our judgement,
+#   not HMRC's. Lines with one figure default to three times it; the duties, which HMRC costs as a 1% change in their
+#   rates, are trusted to a 10% change either way, still small next to the rates themselves.
+source: hmrc-ready-reckoner-2025-06
+years: [2026-27, 2027-28, 2028-29]
+lines:
+  vat_standard:
+    symmetric: true
+    receipts: vat
+    points:
+      - { change: 0.01, raises: [8800, 9200, 9550] }
+  vat_reduced:
+    symmetric: true
+    receipts: vat
+    points:
+      - { change: 0.01, raises: [490, 480, 480] }
+  corporation_tax:
+    receipts: corporation_tax
+    points:
+      - { change: 0.01, raises: [3600, 3900, 4000] }
+  cgt_lower:
+    receipts: cgt
+    points:
+      - { change: 0.01, raises: [-5, 10, 5] }
+      - { change: 0.05, raises: [-40, 20, -10] }
+      - { change: 0.10, raises: [-130, -55, -135] }
+  cgt_higher:
+    receipts: cgt
+    points:
+      - { change: 0.01, raises: [-15, 80, -30] }
+      - { change: 0.05, raises: [-170, -235, -870] }
+      - { change: 0.10, raises: [-540, -2060, -3565] }
+  cgt_allowance:
+    receipts: cgt
+    points:
+      - { change: 500, raises: [0, -35, -30] }
+  cgt_badr:
+    receipts: cgt
+    points:
+      - { change: 0.01, raises: [10, 135, 180] }
+      - { change: 0.05, raises: [40, 635, 840] }
+  iht_rate:
+    receipts: iht
+    points:
+      - { change: 0.01, raises: [105, 240, 290] }
+  iht_nil_rate_band:
+    receipts: iht
+    points:
+      - { change: 5000, raises: [-60, -140, -165] }
+  iht_residence_nil_rate_band:
+    receipts: iht
+    points:
+      - { change: 5000, raises: [-25, -55, -65] }
+  fuel_duty:
+    symmetric: true
+    trusted_to: 0.10
+    receipts: fuel_duties
+    # Petrol (100, 100, 100) and diesel (140, 135, 130) added; rebated oil is negligible.
+    points:
+      - { change: 0.01, raises: [240, 235, 230] }
+  beer_cider_duty:
+    symmetric: true
+    trusted_to: 0.10
+    receipts: beer_cider_duties
+    points:
+      - { change: 0.01, raises: [25, 30, 30] }
+  wine_duty:
+    symmetric: true
+    trusted_to: 0.10
+    receipts: wine_duties
+    points:
+      - { change: 0.01, raises: [40, 40, 40] }
+  spirits_duty:
+    symmetric: true
+    trusted_to: 0.10
+    receipts: spirits_duties
+    points:
+      - { change: 0.01, raises: [40, 40, 45] }
+  tobacco_duty:
+    symmetric: true
+    trusted_to: 0.10
+    receipts: tobacco_duties
+    points:
+      - { change: 0.01, raises: [5, 10, 15] }
+  ved:
+    receipts: ved
+    points:
+      - { change: 5, raises: [205, 210, 215] }
+  apd_reduced:
+    receipts: apd
+    points:
+      - { change: 1, raises: [115, 125, 130] }
+  ipt_standard:
+    symmetric: true
+    receipts: ipt
+    points:
+      - { change: 0.01, raises: [630, 640, 660] }
+  ipt_higher:
+    symmetric: true
+    receipts: ipt
+    points:
+      - { change: 0.01, raises: [20, 20, 20] }
+  sdlt_2:
+    receipts: sdlt
+    points:
+      - { change: -0.01, raises: [-450, -460, -525] }
+      - { change: 0.01, raises: [420, 425, 490] }
+  sdlt_5:
+    receipts: sdlt
+    points:
+      - { change: -0.01, raises: [-775, -795, -940] }
+      - { change: 0.01, raises: [685, 680, 815] }
+  sdlt_10:
+    receipts: sdlt
+    points:
+      - { change: -0.01, raises: [-40, -25, -35] }
+      - { change: 0.01, raises: [35, 15, 25] }
+  sdlt_12:
+    receipts: sdlt
+    points:
+      - { change: -0.01, raises: [10, 40, 35] }
+      - { change: 0.01, raises: [-25, -60, -60] }
+  sdlt_additional:
+    receipts: sdlt
+    points:
+      - { change: -0.01, raises: [-90, -5, -100] }
+      - { change: 0.01, raises: [-45, -130, -50] }
+  sdlt_non_resident:
+    receipts: sdlt
+    points:
+      - { change: -0.01, raises: [-10, 5, -25] }
+      - { change: 0.01, raises: [-10, -25, 0] }

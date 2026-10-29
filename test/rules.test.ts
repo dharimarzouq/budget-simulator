@@ -7,12 +7,13 @@ const num = (area: string, name: string) => param(Y, area, name).value as number
 const bands = (area: string, name: string) => param(Y, area, name).bands!;
 
 describe("rules files", () => {
-  it("loads all five areas for 2026-27 (four of rules, plus behaviour for costings)", () => {
+  it("loads all six areas for 2026-27 (four the household model uses, other taxes, and behaviour for costings)", () => {
     expect(Object.keys(rules).sort()).toEqual([
       "2026-27/behaviour",
       "2026-27/child_benefit",
       "2026-27/income_tax",
       "2026-27/national_insurance",
+      "2026-27/other_taxes",
       "2026-27/universal_credit",
     ]);
   });

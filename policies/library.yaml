@@ -1,0 +1,130 @@
+# Named policies: plain-English measures that set one or more levers. Choosing one moves the sliders; the sliders stay
+# for anyone who wants finer control. Each change either sets a lever to a value ("set") or moves it from today's
+# value ("add"), in the lever's own units (rates as fractions, so 0.01 is one percentage point). A removal is set
+# with "remove". Every number a policy reaches comes from the rules files and their sources; a policy that relies on a
+# figure of its own (such as an earlier year's rate) names its source.
+- id: basic-rate-up-1p
+  name: Raise the basic rate by 1p
+  area: Income tax
+  about: The basic rate of income tax goes from 20% to 21% in England, Wales and Northern Ireland. Scotland sets its own rates.
+  changes:
+    - { lever: it_basic, add: 0.01 }
+
+- id: basic-rate-down-1p
+  name: Cut the basic rate by 1p
+  area: Income tax
+  about: The basic rate of income tax goes from 20% to 19% in England, Wales and Northern Ireland.
+  changes:
+    - { lever: it_basic, add: -0.01 }
+
+- id: personal-allowance-15k
+  name: Raise the personal allowance to £15,000
+  area: Income tax
+  about: The tax-free amount everyone gets goes from £12,570 to £15,000, across the UK. Where the higher rate starts moves up with it.
+  changes:
+    - { lever: it_pa, set: 15000 }
+
+- id: higher-rate-threshold-60k
+  name: Start the higher rate at £60,000
+  area: Income tax
+  about: The higher rate starts at £60,000 of income instead of £50,270, by widening the basic rate band to £47,430 (with the £12,570 personal allowance on top).
+  changes:
+    - { lever: it_basic_band, set: 47430 }
+
+- id: fifty-pence-rate
+  name: Bring back a 50p top rate
+  area: Income tax
+  about: The additional rate, paid on income over £125,140, goes from 45% to 50% (it was 50% from 2010 to 2013).
+  changes:
+    - { lever: it_additional, set: 0.5 }
+
+- id: keep-allowance-over-100k
+  name: Let everyone keep the personal allowance
+  area: Income tax
+  about: No more withdrawing the personal allowance from people earning over £100,000, which gives them a 60% marginal rate between £100,000 and £125,140.
+  changes:
+    - { lever: it_taper, remove: true }
+
+- id: employee-ni-down-2p
+  name: Cut employee National Insurance by 2p
+  area: National Insurance
+  about: The main rate employees pay goes from 8% to 6%.
+  changes:
+    - { lever: ni_main, add: -0.02 }
+
+- id: reverse-employer-ni-rise
+  name: Reverse the April 2025 employer NI rise
+  area: National Insurance
+  about: Employer National Insurance goes back to 13.8%, starting at £9,100 a year of each employee's pay, as before April 2025.
+  source: govuk-ni-rates-2024-25
+  changes:
+    - { lever: ni_employer, set: 0.138 }
+    - { lever: ni_st, set: 9100 }
+
+- id: two-child-limit-back
+  name: Bring back the two-child limit
+  area: Universal Credit
+  about: Universal Credit stops paying the child element for a third or later child born after April 2017, as it did until April 2026.
+  changes:
+    - { lever: uc_two_child_limit, set: true }
+
+- id: uc-taper-50
+  name: Lower the Universal Credit taper to 50%
+  area: Universal Credit
+  about: Universal Credit is withdrawn at 50p for each extra £1 earned after tax, instead of 55p, so people keep more of what they earn.
+  changes:
+    - { lever: uc_taper, set: 0.5 }
+
+- id: uc-standard-allowance-up-50
+  name: Raise the Universal Credit standard allowance by £50 a month
+  area: Universal Credit
+  about: The basic amount of Universal Credit goes up by £50 a month for everyone, single or couple, under or over 25.
+  changes:
+    - { lever: uc_single_u25, add: 50 }
+    - { lever: uc_single, add: 50 }
+    - { lever: uc_couple_u25, add: 50 }
+    - { lever: uc_couple, add: 50 }
+
+- id: child-benefit-up-5
+  name: Raise Child Benefit by £5 a week
+  area: Child Benefit
+  about: Child Benefit goes up by £5 a week for every child, eldest and others.
+  changes:
+    - { lever: cb_eldest, add: 5 }
+    - { lever: cb_other, add: 5 }
+
+- id: vat-up-1p
+  name: Raise VAT to 21%
+  area: VAT and duties
+  about: The standard rate of VAT goes from 20% to 21%. Costed from HMRC's own figure for this change.
+  changes:
+    - { lever: vat_standard, add: 0.01 }
+
+- id: fuel-duty-up-5pc
+  name: Raise fuel duty by 5%
+  area: VAT and duties
+  about: Duty on petrol and diesel goes up by 5% of today's rate. Costed from HMRC's figure for a 1% change, scaled.
+  changes:
+    - { lever: fuel_duty, set: 0.05 }
+
+- id: corporation-tax-up-1p
+  name: Raise corporation tax to 26%
+  area: Business and wealth taxes
+  about: The main rate on company profits over £250,000 goes from 25% to 26%. Costed from HMRC's own figure for this change.
+  changes:
+    - { lever: corporation_tax, add: 0.01 }
+
+- id: cgt-like-income
+  name: Tax capital gains at income tax rates
+  area: Business and wealth taxes
+  about: Capital gains tax goes to 20% for basic-rate taxpayers and 40% for higher-rate taxpayers (a simplification; additional-rate taxpayers would pay 45% on income). HMRC finds rises in capital gains tax lose money as people hold on to assets, and this is far beyond the changes it costs, so treat the figure as rough.
+  changes:
+    - { lever: cgt_lower, set: 0.20 }
+    - { lever: cgt_higher, set: 0.40 }
+
+- id: scrap-hicbc
+  name: Scrap the High Income Child Benefit Charge
+  area: Child Benefit
+  about: Nobody pays Child Benefit back through their tax, however much they earn.
+  changes:
+    - { lever: cb_charge_threshold, remove: true }
