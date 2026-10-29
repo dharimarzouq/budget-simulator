@@ -150,6 +150,17 @@ Progress, 29 October 2026: done (see COSTING.md). 23 departments with day-to-day
 
 Not in this step: second-round effects (more public sector pay raising income tax, for example), which official costings usually leave out too; and showing who benefits from public services (the ONS publishes this by income tenth), which can come with the design pass.
 
+## Step 3 in detail: history (proposed 29 October 2026, waiting for go)
+
+The aim: every result shown as history, the official forecast, and your choices, so you can see whether a number is high or low against the past.
+
+- **3a. History.** The OBR's public finances databank (updated monthly, Open Government Licence) has outturn back to 1946-47: borrowing, the current budget, debt, receipts, total spending and net investment, in £bn and as a share of GDP. Real GDP growth comes from the ONS. The newest outturn year must match the OBR's own figure for it in the October 2026 forecast (2025-26), or the gap is explained.
+- **3b. The forecast,** joined on from 2026-27 to 2031-32: the October 2026 figures already in the simulator, as a share of GDP.
+- **3c. Your choices:** the borrowing and debt path the simulator already works out, turned into the same measures (receipts plus what your budget raises, spending plus what it adds, and so on). The version with the effect on the economy can be switched on, labelled grade C.
+- **3d. An impact chart with seven tabs:** current budget, borrowing, debt, tax, total spending, investment, and growth. Each shows history as a solid line, the OBR forecast dashed, and your choices in colour, from 1995 by default with a switch to go back to 1946. Hover, tap or the arrow keys give the year's three figures, and each tab has a table version for screen readers. For now it sits in the borrowing and debt section; step 4 gives it its proper place.
+
+Checks: history matches the OBR's published figures for the years they overlap; with nothing changed, "your choices" lies exactly on the forecast; a hand-worked year for each tab; readable at phone width and by keyboard.
+
 ## Decisions I'll need from you along the way
 
 - Name (still "budget-simulator"; it's part of the web address, so settle it before sharing widely)
