@@ -197,6 +197,19 @@ Corporation tax, capital gains, inheritance tax and stamp duty aren't shared out
 
 Example: VAT at 21% raises £8.8bn (HMRC). Shared out, the poorest tenth loses about £200 a year, 1.7% of its income; the richest loses about £540, a much smaller share of its income.
 
+## Reforms
+
+`src/policy/reforms.ts`. A reform pack brings in a new tax (or changes how one works) and replaces some of today's taxes. It plugs in like everything else:
+
+- **What it replaces** is a set of lever settings and removals, so those taxes are costed exactly as they would be from the Taxes tab (the household model, HMRC's ready reckoner, and so on), each shown as its own row under the pack in the scorecard. While a pack is in, the levers it takes over leave the Taxes tab; a pack wins over your own setting of them.
+- **Its own new taxes** are costed by the pack, part by part. Each part gives three years of figures, the OBR forecast line that carries it on after that, its grade (A to D) and check, and, if it reaches households, each income tenth's share of it. A part's figure is either static, with how people respond given separately (added to the responses row for the whole package, and grown with income tax: an approximation), or from a costing that already allows for responses, and it says which.
+- **The headline grade and check** are the weakest of every change and every part.
+- **The link** carries `rf_<pack>=1` for each pack in, and `rf_<pack>_<option>=<value>` for options changed from their defaults.
+
+The household calculator includes what a pack replaces where it's in the engine, but not the pack's new taxes yet; the page says so.
+
+**Check:** a test pack, only on the development site, cuts VAT and brings in a new tax identical to the slice cut (HMRC's costing of the cut, turned round, shared out as VAT is). It costs exactly zero in every year, with or without the effect on the economy, and nobody gains or loses (`test/reforms.test.ts`, for 1, 2 and 5 points). Without the new tax, the cut does cost money, so the zero isn't from nothing happening.
+
 ## Spending
 
 `forecasts/departments-2026-10.yaml`, `src/policy/spending.ts`.

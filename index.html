@@ -58,6 +58,7 @@
             <button type="button" role="tab" id="tab-policies" aria-controls="panel-policies" aria-selected="true">Policies <span class="tab-count"></span></button>
             <button type="button" role="tab" id="tab-taxes" aria-controls="panel-taxes" aria-selected="false" tabindex="-1">Taxes <span class="tab-count"></span></button>
             <button type="button" role="tab" id="tab-spending" aria-controls="panel-spending" aria-selected="false" tabindex="-1">Spending <span class="tab-count"></span></button>
+            <button type="button" role="tab" id="tab-reforms" aria-controls="panel-reforms" aria-selected="false" tabindex="-1">Reforms <span class="tab-count"></span></button>
             <button type="button" role="tab" id="tab-assumptions" aria-controls="panel-assumptions" aria-selected="false" tabindex="-1">Assumptions <span class="tab-count"></span></button>
           </div>
           <p class="small searching-note">Showing matches from every tab.</p>
@@ -68,6 +69,10 @@
           <div id="levers">
             <div id="panel-taxes" class="tabpanel searchable" role="tabpanel" aria-labelledby="tab-taxes" hidden></div>
             <div id="panel-spending" class="tabpanel searchable" role="tabpanel" aria-labelledby="tab-spending" hidden></div>
+          </div>
+          <div id="panel-reforms" class="tabpanel reforms" role="tabpanel" aria-labelledby="tab-reforms" hidden>
+            <p class="small">Bigger changes to how tax works: a new tax that replaces some of today's. While one is in, the taxes it replaces leave the Taxes tab and appear under it in the results.</p>
+            <div id="reforms"></div>
           </div>
           <div id="panel-assumptions" class="tabpanel assumptions" role="tabpanel" aria-labelledby="tab-assumptions" hidden>
             <p class="small">These choose which figures the scoreboard, the bar on phones and the borrowing chart use. They don't change any costing: the other figures stay on the page.</p>

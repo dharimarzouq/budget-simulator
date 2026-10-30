@@ -16,6 +16,7 @@ import { planFor } from "./policy/spending";
 import { drawPicture, type Picture } from "./sharepic";
 import { inHouseholdModel } from "./policy/costing";
 import type { Group } from "./policy/distribution";
+import { PACK, PACKS, combine, packLevers, reformsFromQuery, reformsToQuery, replacements, weakest, withDefaults, type ActiveReform, type Options, type ReformPart } from "./policy/reforms";
 import type { Reply, Request } from "./costing.worker";
 
 const rules = ruleSet("2026-27");
@@ -81,7 +82,20 @@ function showValue(l: Lever, v: LeverValue): string {
 
 // ---- the policy, kept in the URL so a budget can be shared -------------------------------------
 const policy = new Map<string, LeverValue>(policyFromQuery(location.search.slice(1)).map((c) => [c.lever, c.value]));
-const currentPolicy = (): Policy => effectiveChanges(rules, [...policy].map(([lever, value]) => ({ lever, value })));
+/** Reform packs in, with their options (reforms.ts). */
+const reforms = new Map<string, Options>(reformsFromQuery(location.search.slice(1)).map((r) => [r.pack, r.options]));
+const activeReforms = (): ActiveReform[] => [...reforms].map(([pack, options]) => ({ pack, options }));
+/** Levers the reform packs in have taken over (hidden on the page while the pack is in). */
+const packTaken = () => packLevers(activeReforms(), rules);
+/** The whole policy: your levers, and what the reform packs replace (a pack wins over your setting of the same lever). */
+const currentPolicy = (): Policy => effectiveChanges(rules, combine([...policy].map(([lever, value]) => ({ lever, value })), activeReforms(), rules));
+/** Your own changes: the policy without what the reform packs replace. */
+const ownPolicy = (): Policy => {
+  const taken = packTaken();
+  return currentPolicy().filter((c) => !taken.has(c.lever));
+};
+/** Anything changed at all (a pack may change nothing that's a lever). */
+const hasChanges = () => currentPolicy().length > 0 || reforms.size > 0;
 
 // ---- assumptions, kept in the URL beside the policy ----------------------------------------------
 type Respond = "none" | "low" | "central" | "high";
@@ -95,7 +109,7 @@ const RESPOND_LABEL: Record<Respond, string> = { none: "nobody responding", low:
 const chosen = (b: { low: number; central: number; high: number } | undefined) => (!b || assume.respond === "none" ? 0 : b[assume.respond]);
 
 function writeUrl() {
-  const q = [policyToQuery(currentPolicy()), assume.respond !== "central" ? `respond=${assume.respond}` : "", assume.economy ? "economy=1" : ""].filter(Boolean).join("&");
+  const q = [policyToQuery(ownPolicy()), reformsToQuery(activeReforms()), assume.respond !== "central" ? `respond=${assume.respond}` : "", assume.economy ? "economy=1" : ""].filter(Boolean).join("&");
   history.replaceState(null, "", q ? `?${q}` : location.pathname);
 }
 
@@ -103,6 +117,7 @@ function policyChanged() {
   writeUrl();
   showCount();
   renderPolicies();
+  renderReforms();
   requestCosting();
   updateHousehold();
 }
@@ -189,9 +204,10 @@ const tabOf = (lever: string): "taxes" | "spending" => (SPENDING_GROUPS.includes
 function renderLevers() {
   const open = new Set([...document.querySelectorAll<HTMLDetailsElement>(".group[open]")].map((d) => d.dataset.group));
   const touched = (g: string) => LEVERS.some((l) => l.group === g && (policy.has(l.id) || (REMOVAL_FOR[l.id] && policy.has(REMOVAL_FOR[l.id]!.id))));
-  // Levers hidden by a removal, other than the removed lever itself (whose row says "Removed").
+  // Levers hidden by a removal, other than the removed lever itself (whose row says "Removed"), and levers a reform pack has taken over.
   const covered = coveredLevers(currentPolicy());
   for (const id of policy.keys()) if (REMOVAL[id]) covered.delete(REMOVAL[id]!.lever);
+  for (const id of packTaken()) covered.add(id);
   const groups = (gs: string[]) =>
     gs
       .map((g, i) => `<details class="group" data-group="${esc(g)}"${open.has(g) || (!open.size && i === 0) || touched(g) ? " open" : ""}><summary>${esc(g)}</summary>
@@ -274,15 +290,16 @@ function filterPolicies() {
 
 /** How many changes, beside the levers and on the phone's Levers button. */
 function showCount() {
-  const changes = currentPolicy();
-  const n = changes.length;
+  const own = ownPolicy();
+  const n = own.length + reforms.size;
   const text = n ? `(${n} changed)` : "";
   $("changed-count").textContent = text;
   $("changed-count-phone").textContent = text;
   const counts = {
-    policies: LIBRARY.filter((p) => status(p, rules, changes) !== "off").length,
-    taxes: changes.filter((c) => tabOf(c.lever) === "taxes").length,
-    spending: changes.filter((c) => tabOf(c.lever) === "spending").length,
+    policies: LIBRARY.filter((p) => status(p, rules, currentPolicy()) !== "off").length,
+    taxes: own.filter((c) => tabOf(c.lever) === "taxes").length,
+    spending: own.filter((c) => tabOf(c.lever) === "spending").length,
+    reforms: reforms.size,
     assumptions: Number(assume.respond !== "central") + Number(assume.economy),
   };
   for (const [tab, k] of Object.entries(counts)) $(`tab-${tab}`).querySelector(".tab-count")!.textContent = k ? String(k) : "";
@@ -317,11 +334,72 @@ function wireGuide() {
     localStorage.setItem("guide-seen", "1");
   } catch {}
   // Not for someone opening a shared budget: they came to see it.
-  if (!seen && !currentPolicy().length) guide.showModal();
+  if (!seen && !hasChanges()) guide.showModal();
 }
 
-// ---- tabs: policies, taxes, spending, assumptions ----------------------------------------------
-const TABS = ["policies", "taxes", "spending", "assumptions"] as const;
+// ---- reform packs ------------------------------------------------------------------------------
+function renderReforms() {
+  if (!PACKS.length) {
+    $("reforms").innerHTML = `<p class="empty">None yet. The first, a land value tax replacing council tax, business rates and stamp duty, is being built.</p>`;
+    return;
+  }
+  $("reforms").innerHTML = PACKS.map((p) => {
+    const opts = reforms.get(p.id);
+    const i = info(p.name, p.about);
+    const options = opts
+      ? `<div class="reform-options">${p.options
+          .map((o) => {
+            const oi = info(o.label, o.about);
+            const v = opts[o.id]!;
+            const input =
+              o.kind === "flag"
+                ? `<input type="checkbox" data-pack="${p.id}" data-option="${o.id}"${v ? " checked" : ""}>`
+                : `<input type="number" data-pack="${p.id}" data-option="${o.id}" min="${o.min ?? ""}" max="${o.max ?? ""}" step="${o.step ?? "any"}" value="${v}">`;
+            return `<label><span>${esc(o.label)}${oi.button}</span>${input}</label>${oi.panel}`;
+          })
+          .join("")}</div>
+        <p class="small">Replaces:</p><ul class="replaces small">${replacements([{ pack: p.id, options: opts }], rules).map((c) => `<li>${esc(changeLine(c))}</li>`).join("")}</ul>`
+      : "";
+    return `<div class="policy ${opts ? "on" : "off"}" data-pack="${p.id}">
+      <div class="policy-name"><span>${esc(p.name)}${i.button}</span></div>${i.panel}${options}
+      <div class="policy-actions">${opts ? `<span class="small">Added</span><button type="button" data-drop-pack="${p.id}">Take out</button>` : `<button type="button" data-add-pack="${p.id}">Add</button>`}</div>
+    </div>`;
+  }).join("");
+}
+
+/** Add a reform pack (your own settings of the levers it takes over give way to it) or take it out. */
+function setReform(id: string, options: Options | undefined) {
+  if (options) {
+    reforms.set(id, withDefaults(PACK[id]!, options));
+    for (const l of packTaken()) policy.delete(l);
+  } else reforms.delete(id);
+  renderLevers();
+  filterLevers();
+  policyChanged();
+}
+
+function wireReforms() {
+  const panel = $("reforms");
+  panel.addEventListener("click", (ev) => {
+    const d = (ev.target as HTMLElement).dataset;
+    const id = d.addPack ?? d.dropPack;
+    if (d.addPack) setReform(d.addPack, {});
+    if (d.dropPack) setReform(d.dropPack, undefined);
+    if (id) refocus(`[data-pack="${id}"] .policy-actions button`);
+  });
+  panel.addEventListener("change", (ev) => {
+    const t = ev.target as HTMLInputElement;
+    const pack = t.dataset.pack, option = t.dataset.option;
+    if (!pack || !option || !reforms.has(pack)) return;
+    const value = t.type === "checkbox" ? t.checked : Number(t.value);
+    if (typeof value === "number" && (t.value === "" || !Number.isFinite(value))) return;
+    setReform(pack, { ...reforms.get(pack)!, [option]: value });
+    refocus(`[data-pack="${pack}"][data-option="${option}"]`);
+  });
+}
+
+// ---- tabs: policies, taxes, spending, reforms, assumptions ---------------------------------------
+const TABS = ["policies", "taxes", "spending", "reforms", "assumptions"] as const;
 function selectTab(tab: (typeof TABS)[number], focus = false) {
   for (const t of TABS) {
     const button = $(`tab-${t}`);
@@ -459,6 +537,7 @@ function wireLevers() {
   });
   $("reset").addEventListener("click", () => {
     policy.clear();
+    reforms.clear();
     renderLevers();
     filterLevers();
     policyChanged();
@@ -529,7 +608,7 @@ function requestCosting() {
   timer = window.setTimeout(() => {
     if (!ready) return;
     $("results").classList.add("pending");
-    worker.postMessage({ type: "cost", id: ++requestId, policy: currentPolicy() } satisfies Request);
+    worker.postMessage({ type: "cost", id: ++requestId, policy: currentPolicy(), reforms: activeReforms() } satisfies Request);
   }, 120);
 }
 
@@ -541,7 +620,7 @@ worker.onmessage = (ev: MessageEvent<Reply>) => {
     return;
   }
   if (m.type === "loading") {
-    if (!currentPolicy().length) return; // the empty-state message stays
+    if (!hasChanges()) return; // the empty-state message stays
     $("headline").innerHTML = `<div class="empty">${esc(m.stage)}</div>`;
     return;
   }
@@ -613,23 +692,24 @@ const RULE_ABOUT = {
 function renderHeadline(s: Static | undefined, b: BehaviourFigures | undefined) {
   const changes = currentPolicy();
   const fr = FORECAST.fiscal_rules;
-  if (!changes.length || !s) {
+  if (!hasChanges() || !s) {
     $("headline").innerHTML = `<div class="cell wide"><div class="label">Your budget</div><div class="value small">No changes yet</div><div class="sub">${EMPTY_TEXT}</div></div>
       ${ruleCell("Main fiscal rule, 2029-30", RULE_ABOUT.stability, fr.stability.margin, fr.stability.margin, false)}
       ${ruleCell("Debt rule, 2029-30", RULE_ABOUT.debt, fr.debt.margin, fr.debt.margin, false)}`;
     return;
   }
   const fits = fitsOf(s);
-  const household = changes.some((c) => inHouseholdModel(c.lever) || sharedOut(c.lever)); // anything that reaches households
+  const household = reachesHouseholds(changes, s);
   const modelled = changes.some((c) => inHouseholdModel(c.lever)); // anything the household model works out
-  const check = policyCheck(changes, fits);
-  const g = costingGrade(changes, fits);
+  const check = overallCheck(changes, s);
+  const g = overallGrade(changes, s);
   const scale = `The scale: A ${GRADE_MEANING.A} B ${GRADE_MEANING.B} C ${GRADE_MEANING.C} D ${GRADE_MEANING.D}`;
   const grade = info(`grade ${g ?? "for spending"}`, g ? `Grade ${g}: ${GRADE_MEANING[g]} ${scale}` : `Spending changes cost what you set, so there's no estimate to grade. ${scale}`);
   const raisedAbout = info(
     "what it raises",
     "Positive raises money, negative costs it, in the budget's first year. Static: nobody changes what they earn or claim. Allowing for responses: people work, earn and report income differently, using the Scottish Fiscal Commission's elasticities, with a low and high figure." +
       (s.reckoner.length ? " Other taxes are HMRC's costings, which already allow for responses, so they count the same in both." : "") +
+      (s.reforms.length ? " A reform's own new tax is costed by the reform, which says whether its figure allows for responses." : "") +
       (s.spending.length ? " Spending changes are for 2027-28 and cost what you set." : ""),
   );
   const raised = (x: number) => `<span class="${x < 0 ? "neg" : "pos"}">${bn(x)}</span>`;
@@ -646,13 +726,13 @@ function renderHeadline(s: Static | undefined, b: BehaviourFigures | undefined) 
       : !b
         ? `${RESPOND_LABEL[assume.respond]}: working it out… <span id="behaviour-progress"></span>`
         : !modelled
-          ? s.reckoner.length
-            ? "responses are already in HMRC's costings"
+          ? s.reckoner.length || s.reforms.length
+            ? "responses are already in these costings"
             : "spending changes cost what's set"
           : changes.some((c) => inHouseholdModel(c.lever) && !/^(uc|cb)_/.test(REMOVAL[c.lever]?.lever ?? c.lever)) // a household tax change
             ? "responses make no difference to what's raised here"
             : "no household tax changes; benefits are costed static";
-  const path = fiscalPath(s.change, chosen(b), { economy: assume.economy, reckoner: s.reckoner, spending: s.spending });
+  const path = fiscalPath(s.change, chosen(b), { economy: assume.economy, ...pathParts(s) });
   const all = s.distribution.all;
   $("headline").innerHTML = `
     <div class="cell wide"><div class="label">Raised (+) or cost (−) a year${raisedAbout.button}</div>${raisedAbout.panel}
@@ -662,7 +742,7 @@ function renderHeadline(s: Static | undefined, b: BehaviourFigures | undefined) 
     <div class="cell"><div class="label">Households losing / gaining</div>${
       household
         ? `<div class="value">${share(all.lose)} / ${share(all.gain)}</div><div class="sub">by more than £1 a week${
-            s.reckoner.some((c) => !sharedOut(c.lever)) || s.spending.length ? "; leaves out changes not shared out" : ""
+            s.reckoner.some((c) => !sharedOut(c.lever)) || s.spending.length || s.reforms.some((p) => !p.byTenth) ? "; leaves out changes not shared out" : ""
           }</div>`
         : `<div class="value small">not worked out</div><div class="sub">${s.spending.length && !s.reckoner.length ? "spending isn't shared out to households" : "these changes aren't shared out yet"}</div>`
     }</div>
@@ -673,20 +753,35 @@ function renderHeadline(s: Static | undefined, b: BehaviourFigures | undefined) 
 
 /** How well HMRC's figures cover each change costed from them. */
 const fitsOf = (s: Static): Record<string, Fit> => Object.fromEntries(s.reckoner.map((c) => [c.lever, c.fit]));
+/** The weakest check of the changes and the reform packs' parts. */
+const CHECK_ORDER: Check[] = ["close", "fair", "gap"];
+const overallCheck = (changes: Policy, s: Static): Check =>
+  [policyCheck(changes, fitsOf(s)), ...s.reforms.map((p) => p.check)].reduce((w, c) => (CHECK_ORDER.indexOf(c) > CHECK_ORDER.indexOf(w) ? c : w));
+/** The weakest grade of the changes and the reform packs' parts (null if there's no estimate to grade). */
+const overallGrade = (changes: Policy, s: Static) => weakest([costingGrade(changes, fitsOf(s)), ...s.reforms.map((p) => p.grade)]);
+/** Whether anything reaches households: the household model, taxes shared out by income, or a pack's part that is. */
+const reachesHouseholds = (changes: Policy, s: Static) => changes.some((c) => inHouseholdModel(c.lever) || sharedOut(c.lever)) || s.reforms.some((p) => p.byTenth);
+/** What the borrowing path is built from, besides the household model's figures. */
+const pathParts = (s: Static) => ({ reckoner: s.reckoner, reforms: s.reforms, spending: s.spending });
+
+/** The changes in lines of plain text: your own, then each reform pack with what it replaces. */
+function changeLines(): string[] {
+  const packs = activeReforms().map((r) => `${PACK[r.pack]!.name}, replacing ${replacements([r], rules).map(changeLine).join(", ")}`);
+  return [...ownPolicy().map(changeLine), ...packs];
+}
 
 /** A few plain lines describing the budget, for pasting into a message. */
 function summaryText(): string {
-  const changes = currentPolicy();
   const lines = ["UK budget simulator, 2026-27 (estimates from made-up households weighted to published UK totals)"];
-  if (!changes.length || !lastStatic) {
-    lines.push(changes.length ? "Still working out the figures." : "No changes: today's budget.");
+  if (!hasChanges() || !lastStatic) {
+    lines.push(hasChanges() ? "Still working out the figures." : "No changes: today's budget.");
   } else {
-    lines.push(`Changes: ${changes.map(changeLine).join("; ")}`);
+    lines.push(`Changes: ${changeLines().join("; ")}`);
     const s = lastStatic.netRevenue;
     const responds = lastBehaviour && assume.respond !== "none";
     const total = s + chosen(lastBehaviour);
     lines.push(`${total < 0 ? "Costs" : "Raises"} ${bn(Math.abs(total), false)} a year${responds ? `, ${RESPOND_LABEL[assume.respond]} (${bn(Math.abs(s), false)} before that)` : " before allowing for how people respond"}`);
-    const path = fiscalPath(lastStatic.change, chosen(lastBehaviour), { economy: assume.economy, reckoner: lastStatic.reckoner, spending: lastStatic.spending });
+    const path = fiscalPath(lastStatic.change, chosen(lastBehaviour), { economy: assume.economy, ...pathParts(lastStatic) });
     const m = path.stabilityMargin;
     lines.push(`Main fiscal rule (current budget in surplus in 2029-30): ${m < 0 ? "missed" : "met"} by £${Math.abs(m).toFixed(1)}bn${assume.economy ? ", including the effect on the economy" : ""} (OBR forecast: met by £${FORECAST.fiscal_rules.stability.margin.toFixed(1)}bn)`);
     const all = lastStatic.distribution.all;
@@ -704,10 +799,10 @@ async function savePicture() {
   const fr = FORECAST.fiscal_rules;
   const ruleText = (x: number) => `${x < 0 ? "missed by" : "met by"} ${bnFixed(Math.abs(x))}`;
   let picture: Picture;
-  if (!changes.length || !s) {
+  if (!hasChanges() || !s) {
     const p = fiscalPath(noChange, 0);
     picture = {
-      changes: [changes.length ? "Still working out the figures" : "No changes: today's budget"],
+      changes: [hasChanges() ? "Still working out the figures" : "No changes: today's budget"],
       headline: "£0", headlineNote: "nothing changed", households: "no change", path: p,
       rules: [
         { label: "Main fiscal rule, 2029-30", text: ruleText(fr.stability.margin), met: true },
@@ -718,17 +813,17 @@ async function savePicture() {
   } else {
     const b = lastBehaviour;
     const total = s.netRevenue + chosen(b);
-    const path = fiscalPath(s.change, chosen(b), { economy: assume.economy, reckoner: s.reckoner, spending: s.spending });
+    const path = fiscalPath(s.change, chosen(b), { economy: assume.economy, ...pathParts(s) });
     const responds = b && assume.respond !== "none" && (b.low !== 0 || b.high !== 0);
     picture = {
-      changes: changes.map(changeLine),
+      changes: changeLines(),
       headline: `${total < 0 ? "Costs" : "Raises"} ${bn(Math.abs(total), false)} a year`,
       headlineNote: responds ? `${RESPOND_LABEL[assume.respond]} (${bn(s.netRevenue)} static)` : "static: nobody changes what they earn or claim",
       rules: [
         { label: `Main fiscal rule, 2029-30${assume.economy ? ", with the economy" : ""}`, text: ruleText(path.stabilityMargin), met: path.stabilityMargin >= 0 },
         { label: `Debt rule, 2029-30${assume.economy ? ", with the economy" : ""}`, text: ruleText(path.debtMargin), met: path.debtMargin >= 0 },
       ],
-      households: changes.some((c) => inHouseholdModel(c.lever) || sharedOut(c.lever))
+      households: reachesHouseholds(changes, s)
         ? `${share(s.distribution.all.lose)} lose, ${share(s.distribution.all.gain)} gain more than £1 a week`
         : "not worked out for these changes",
       path,
@@ -767,11 +862,11 @@ const bnFixed = (x: number, dp = 1) => `${x < 0 ? "−" : ""}£${Math.abs(x).toF
 const signedBn = (x: number) => (Math.abs(x) < 0.05 ? "£0.0bn" : `${x > 0 ? "+" : "−"}£${Math.abs(x).toFixed(1)}bn`);
 
 function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
-  const changed = currentPolicy().length > 0;
+  const changed = hasChanges();
   const behaviour = chosen(b);
-  const path = fiscalPath(s.change, behaviour, { reckoner: s.reckoner, spending: s.spending });
-  const econ = fiscalPath(s.change, behaviour, { economy: true, reckoner: s.reckoner, spending: s.spending });
-  const lowHigh = [FORECAST.multipliers.range_low, FORECAST.multipliers.range_high].map((k) => fiscalPath(s.change, behaviour, { economy: true, multiplierScale: k, reckoner: s.reckoner, spending: s.spending }));
+  const path = fiscalPath(s.change, behaviour, { ...pathParts(s) });
+  const econ = fiscalPath(s.change, behaviour, { economy: true, ...pathParts(s) });
+  const lowHigh = [FORECAST.multipliers.range_low, FORECAST.multipliers.range_high].map((k) => fiscalPath(s.change, behaviour, { economy: true, multiplierScale: k, ...pathParts(s) }));
   const shown = assume.economy ? econ : path; // what the assumptions pick, for the bar on phones
   updateImpact(path, econ, changed, assume.economy);
   const psnb = baseline("psnb"), psnfl = baseline("psnfl"), centred = baseline("gdp_centred");
@@ -848,12 +943,16 @@ function changeLine(c: { lever: string; value: LeverValue }): string {
 }
 
 /** A change's name with what it does underneath. */
-function changeText(id: string): string {
-  const x = REMOVAL[id];
-  if (x) return `${esc(changeLabel(id))}<div class="working">${esc(x.means)}</div>`;
-  const l = LEVER[id]!;
-  return `${esc(l.label)}<div class="working">${esc(l.group)}: ${esc(showValue(l, l.get(rules)))} → ${esc(showValue(l, policy.get(id)!))}</div>`;
+function changeText(c: { lever: string; value: LeverValue }): string {
+  const x = REMOVAL[c.lever];
+  if (x) return `${esc(changeLabel(c.lever))}<div class="working">${esc(x.means)}</div>`;
+  const l = LEVER[c.lever]!;
+  return `${esc(l.label)}<div class="working">${esc(l.group)}: ${esc(showValue(l, l.get(rules)))} → ${esc(showValue(l, c.value))}</div>`;
 }
+
+/** A reform pack's own part's name, with how it's costed underneath. */
+const partText = (p: ReformPart) =>
+  `${esc(p.label)}<div class="working">grade ${p.grade}; ${p.raisesInclude === "responses" ? "allows for responses" : "static, responses in their own row"}</div>`;
 
 /**
  * The scorecard: each measure on its own, year by year, then what joins them up (their overlap, people's responses, the
@@ -862,7 +961,7 @@ function changeText(id: string): string {
 function scorecard(s: Static, levers: Levers | undefined): string {
   const changes = currentPolicy();
   const b = lastBehaviour;
-  const shown = fiscalPath(s.change, chosen(b), { economy: assume.economy, reckoner: s.reckoner, spending: s.spending });
+  const shown = fiscalPath(s.change, chosen(b), { economy: assume.economy, ...pathParts(s) });
   const years = shown.years.filter((y) => y.year >= START_YEAR);
   const raisedBy = (y: Path["years"][number]) => y.taxRaised + y.benefitsCut - y.spending - y.investment;
   const cell = (x: number) => `<td class="num ${x < -0.05 ? "neg" : x > 0.05 ? "pos" : ""}">${signedBn(x)}</td>`;
@@ -871,19 +970,46 @@ function scorecard(s: Static, levers: Levers | undefined): string {
     `<tr class="${cls}"><td>${label}</td>${xs ? xs.map(cell).join("") : working}<td>${check}</td></tr>`;
   const fits = fitsOf(s);
   const sum = years.map(() => 0);
-  let html = `<div class="scroll-x"><table class="fiscal scorecard"><tr><th>£ billion a year: + raises money, − costs it</th>${years.map((y) => `<th class="num">${y.year}</th>`).join("")}<th>Checks</th></tr>`;
-  for (const ch of changes) {
-    const own = levers?.perLever.find((p) => p.lever === ch.lever);
-    const xs = own && fiscalPath(own.change, 0, { reckoner: own.reckoner, spending: own.spending }).years.filter((y) => y.year >= START_YEAR).map(raisedBy);
+  const ours = (p: Parameters<typeof fiscalPath>[2]) => fiscalPath(noChange, 0, p).years.filter((y) => y.year >= START_YEAR).map(raisedBy);
+  // One change on its own, year by year (once the worker has costed it on its own).
+  const alone = (lever: string) => {
+    const own = levers?.perLever.find((p) => p.lever === lever);
+    return own && fiscalPath(own.change, 0, { reckoner: own.reckoner, spending: own.spending }).years.filter((y) => y.year >= START_YEAR).map(raisedBy);
+  };
+  const changeRow = (ch: Policy[number], cls = "") => {
+    const xs = alone(ch.lever);
     xs?.forEach((x, i) => (sum[i]! += x));
     const g = leverCheck(ch.lever, fits[ch.lever]);
-    html += row(changeText(ch.lever), xs, checkBadge(g.check, g.why));
+    return row(changeText(ch), xs, checkBadge(g.check, g.why), cls);
+  };
+  let html = `<div class="scroll-x"><table class="fiscal scorecard"><tr><th>£ billion a year: + raises money, − costs it</th>${years.map((y) => `<th class="num">${y.year}</th>`).join("")}<th>Checks</th></tr>`;
+  const taken = packTaken();
+  let rows = 0;
+  for (const ch of changes.filter((c) => !taken.has(c.lever))) {
+    html += changeRow(ch);
+    rows++;
   }
-  if (changes.length > 1) {
+  // Each reform pack: its total, then its own new taxes and the taxes it replaces, each on its own.
+  for (const r of activeReforms()) {
+    const pack = PACK[r.pack]!;
+    const parts = s.reforms.filter((p) => p.pack === r.pack);
+    const replaced = changes.filter((c) => replacements([r], rules).some((x) => x.lever === c.lever));
+    const partRows = parts.map((p) => ours({ reforms: [p] }));
+    const replacedRows = replaced.map((c) => alone(c.lever));
+    const total = replacedRows.every(Boolean) ? years.map((_, i) => [...partRows, ...(replacedRows as number[][])].reduce((t, xs) => t + xs[i]!, 0)) : undefined;
+    html += row(`<strong>${esc(pack.name)}</strong><div class="working">a reform: its new taxes, less the taxes it replaces</div>`, total, "", "pack");
+    parts.forEach((p, k) => {
+      partRows[k]!.forEach((x, i) => (sum[i]! += x));
+      html += row(partText(p), partRows[k], checkBadge(p.check, p.why), "sub");
+    });
+    for (const c of replaced) html += changeRow(c, "sub");
+    rows += parts.length + replaced.length;
+  }
+  if (rows > 1) {
     html += row(`Overlap between the changes<div class="working">e.g. a tax rise reduces Universal Credit; a rate rise on a bigger allowance raises less</div>`, levers && years.map((y, i) => raisedBy(y) - sum[i]!));
   }
-  if (changes.some((c) => inHouseholdModel(c.lever)) && assume.respond !== "none") {
-    html += row(`People's responses<div class="working">${RESPOND_LABEL[assume.respond]}, to income tax and National Insurance changes</div>`, b && years.map((y) => y.behaviour));
+  if ((changes.some((c) => inHouseholdModel(c.lever)) || s.reforms.some((p) => p.responses)) && assume.respond !== "none") {
+    html += row(`People's responses<div class="working">${RESPOND_LABEL[assume.respond]}, to income tax and National Insurance changes${s.reforms.some((p) => p.responses) ? " and to reforms' new taxes" : ""}</div>`, b && years.map((y) => y.behaviour));
   }
   if (assume.economy) html += row(`Effect on the economy<div class="working">the OBR's multipliers (grade C)</div>`, years.map((y) => -y.cyclical));
   html += row(`Interest on the debt<div class="working">at the rates in the OBR's ready reckoner</div>`, years.map((y) => -y.debtInterest));
@@ -893,7 +1019,7 @@ function scorecard(s: Static, levers: Levers | undefined): string {
 
 function renderBreakdown(s: Static, levers: Levers | undefined) {
   const changes = currentPolicy();
-  if (!changes.length) {
+  if (!hasChanges()) {
     $("breakdown").innerHTML = `<p class="small">Nothing changed yet. Each measure you add gets a row here, costed year by year.</p>`;
     return;
   }
@@ -907,6 +1033,9 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
   for (const c of s.reckoner) {
     html += `<tr><td>${esc(LEVER[c.lever]!.label)}<div class="working">HMRC's costing, allowing for responses</div></td>${signed(c.raises[0]!)}</tr>`;
   }
+  for (const p of s.reforms) {
+    html += `<tr><td>${esc(p.label)}<div class="working">${esc(PACK[p.pack]!.name)}; ${p.raisesInclude === "responses" ? "allowing for responses" : "static"}</div></td>${signed(p.raises[0]!)}</tr>`;
+  }
   for (const c of s.spending) {
     const l = LEVER[c.lever]!;
     html += `<tr><td>${esc(l.label)}<div class="working">${esc(l.group)}, 2027-28</div></td>${signed(-c.first)}</tr>`;
@@ -915,15 +1044,18 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
   if (Math.abs(barnett) >= 5e5) {
     html += `<tr><td>Scotland, Wales and Northern Ireland<div class="working">Their Barnett share of England-only spending changes (HM Treasury's formula)</div></td>${signed(-barnett)}</tr>`;
   }
-  html += `<tr class="total"><td>Total${s.reckoner.length ? "" : " (static)"}</td>${signed(s.netRevenue)}</tr></table>`;
+  const withResponses = s.reckoner.length || s.reforms.some((p) => p.raisesInclude === "responses");
+  html += `<tr class="total"><td>Total${withResponses ? "" : " (static)"}</td>${signed(s.netRevenue)}</tr></table>`;
   const fits = fitsOf(s);
+  const packs = activeReforms().map((r) => PACK[r.pack]!);
   html += `<details class="show-working"><summary>Show working</summary>
     <p>Every made-up household is run through the 2026-27 rules twice, as they are and with your changes, and the differences are added up, weighted to stand for the whole UK. "Static" means nobody changes what they earn or claim. The figure allowing for responses uses ${SOURCES.sfc}, rising with income, with a low and high figure at half and one and a half times them. Benefits and employer National Insurance stay static.</p>
     <p>In the scorecard each measure is costed on its own, static, and carried forward the same way as the borrowing figures. Measures overlap, so on their own they don't quite add up to the whole package: the difference is the overlap row. People's responses, the economy (if included in Assumptions) and interest on the extra debt are worked out for the package as a whole. The bottom line is the change in borrowing, the same as in the borrowing section.</p>
     ${s.reckoner.length ? `<p>VAT, duties, corporation tax, capital gains and inheritance tax, stamp duty and insurance premium tax aren't in the household model. Changes to them are costed from ${SOURCES.rr}: HMRC's own costings of standard changes, which already allow for how people respond, scaled to the size of your change along straight lines between HMRC's figures. They count the same in both headline figures. HMRC gives its first year as 2026-27; later years are in the borrowing section.</p>` : ""}
     <p>Confidence grade ${COSTING_GRADE}: ${esc(GRADE_MEANING[COSTING_GRADE])} Changes HMRC costs exactly are grade A: ${esc(GRADE_MEANING.A)} (C would be international evidence, D an informed guess.)</p>
     <p>How each change checks against ${SOURCES.rr} and other published figures:</p>
-    <ul>${changes.map((ch) => `<li>${esc(changeLabel(ch.lever))}: ${CHECK_LABEL[leverCheck(ch.lever, fits[ch.lever]).check]}. ${esc(leverCheck(ch.lever, fits[ch.lever]).why)}</li>`).join("")}</ul>
+    <ul>${changes.map((ch) => `<li>${esc(changeLabel(ch.lever))}: ${CHECK_LABEL[leverCheck(ch.lever, fits[ch.lever]).check]}. ${esc(leverCheck(ch.lever, fits[ch.lever]).why)}</li>`).join("")}${s.reforms.map((p) => `<li>${esc(p.label)} (${esc(PACK[p.pack]!.name)}): grade ${p.grade}, ${CHECK_LABEL[p.check]}. ${esc(p.why)}</li>`).join("")}</ul>
+    ${packs.length ? `<p>Reforms: each brings in its own new taxes, costed by the reform and graded part by part, and replaces some of today's, which are costed the usual way and shown under it. A new tax's figures are carried on after its third year with the OBR's forecast for the tax it is most like. Where a reform gives how people respond, that's added to the responses for the whole package and grows with income tax: an approximation. Sources: ${packs.flatMap((p) => p.sources).map((x) => `<a href="${esc(x.url)}">${esc(x.label)}</a> (${esc(x.publisher)}, ${esc(x.date)})`).join("; ")}.</p>` : ""}
     <p>Close: ${esc(CHECK_MEANING.close)} Fair: ${esc(CHECK_MEANING.fair)} Known gap: ${esc(CHECK_MEANING.gap)} More in ${SOURCES.how}.</p></details>`;
   $("breakdown").innerHTML = html;
 }
@@ -931,7 +1063,7 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
 let winnersMode: "pounds" | "percent" = "pounds";
 
 function renderWinners(deciles: Group[], family: Group[], regions: Group[], all: Group) {
-  if (!currentPolicy().length) {
+  if (!hasChanges()) {
     $("winners").innerHTML = `<p class="small">Change a lever to see who gains and loses.</p>`;
     return;
   }
@@ -965,9 +1097,13 @@ function renderWinners(deciles: Group[], family: Group[], regions: Group[], all:
     ${(() => {
       const out = lastStatic?.reckoner.filter((c) => !sharedOut(c.lever)) ?? [];
       const shared = lastStatic?.reckoner.filter((c) => sharedOut(c.lever)) ?? [];
+      const partsOut = lastStatic?.reforms.filter((p) => !p.byTenth) ?? [];
+      const partsShared = lastStatic?.reforms.filter((p) => p.byTenth) ?? [];
       return (
         (out.length ? `<p class="empty">Not included: ${esc(out.map((c) => LEVER[c.lever]!.label).join("; "))}. These fall on companies, estates and property buyers, and there's no published breakdown by household income to share them out with.</p>` : "") +
         (shared.length ? `<p class="small">VAT and duties are shared out by income tenth in proportion to what each tenth pays now (ONS, 2023-24), the same for every household in a tenth: approximate.</p>` : "") +
+        (partsOut.length ? `<p class="empty">Not included: ${esc(partsOut.map((p) => p.label).join("; "))}, from a reform. It isn't shared out to households yet.</p>` : "") +
+        (partsShared.length ? `<p class="small">${esc(partsShared.map((p) => p.label).join("; "))}: shared out by income tenth as the reform sets out, the same for every household in a tenth: approximate.</p>` : "") +
         (lastStatic?.spending.length ? `<p class="empty">Not included: spending changes. Public services and the benefits outside the household model aren't shared out to households yet.</p>` : "")
       );
     })()}
@@ -994,8 +1130,9 @@ function updateHousehold() {
   const before = calculate(h, rules).netIncome;
   const after = calculate(h, reformed).netIncome;
   const d = after - before;
-  $("household-change").innerHTML = currentPolicy().length
-    ? `<div class="headline"><div>Today<strong>${pounds(before)}</strong></div><div>Under your budget<strong>${pounds(after)}</strong></div><div>Change, a year<strong class="${d < 0 ? "neg" : d > 0 ? "pos" : ""}">${pounds(d, true)}</strong></div></div>`
+  $("household-change").innerHTML = hasChanges()
+    ? `<div class="headline"><div>Today<strong>${pounds(before)}</strong></div><div>Under your budget<strong>${pounds(after)}</strong></div><div>Change, a year<strong class="${d < 0 ? "neg" : d > 0 ? "pos" : ""}">${pounds(d, true)}</strong></div></div>` +
+      (reforms.size ? `<p class="small">Reforms' new taxes aren't in this calculator yet, nor are VAT and the other taxes outside it; what it shows is income tax, National Insurance and benefits.</p>` : "")
     : "";
   renderResult($("result"), h, reformed);
   redrawTaxChart?.();
@@ -1008,7 +1145,9 @@ form.addEventListener("input", updateHousehold);
 renderLevers();
 filterLevers();
 renderPolicies();
+renderReforms();
 wireLevers();
+wireReforms();
 wireTabs();
 wireGuide();
 redrawTaxChart = initTaxChart($("tax-chart"), rules, () => applyPolicy(rules, currentPolicy()));
@@ -1017,6 +1156,6 @@ const noChange = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0
 updateImpact(fiscalPath(noChange, 0), fiscalPath(noChange, 0, { economy: true }), false, assume.economy);
 placeTaxChart();
 updateHousehold();
-if (currentPolicy().length) $("headline").innerHTML = `<div class="empty">Loading 39,000 made-up households to cost your budget…</div>`;
+if (hasChanges()) $("headline").innerHTML = `<div class="empty">Loading 39,000 made-up households to cost your budget…</div>`;
 else renderHeadline(undefined, undefined);
-showSummary(currentPolicy().length ? "Working out your budget…" : todaySummary());
+showSummary(hasChanges() ? "Working out your budget…" : todaySummary());

@@ -104,6 +104,8 @@ export interface Options {
    * with the forecast.
    */
   reckoner?: ReckonerCost[];
+  /** Reform packs' own parts (reforms.ts): three years, then carried on by their forecast line, as for `reckoner`. */
+  reforms?: { raises: number[]; receipts: string }[];
   /** Spending changes, set for the budget's first year and growing with each department's plans or benefit's forecast. */
   spending?: SpendingCost[];
 }
@@ -113,7 +115,7 @@ export interface Options {
  * grows in line with the OBR's forecast for its tax or benefit; behaviour grows with income tax.
  */
 export function fiscalPath(change: Effects, behaviour: number, opts: Options = {}): Path {
-  const { economy = false, multiplierScale = 1, compound = true, start = START_YEAR, reckoner = [], spending = [] } = opts;
+  const { economy = false, multiplierScale = 1, compound = true, start = START_YEAR, reckoner = [], reforms = [], spending = [] } = opts;
   const first = index("2026-27");
   const s0 = index(start);
   const rates = interestRates();
@@ -121,18 +123,19 @@ export function fiscalPath(change: Effects, behaviour: number, opts: Options = {
   const m = FORECAST.multipliers;
   const cyc = FORECAST.cyclical_borrowing;
   const growth = (name: string, i: number) => series(name)[i]! / series(name)[first]!;
+  // Three years as costed, then the third year grown with its forecast line.
+  const carried = (costs: { raises: number[]; receipts: string }[], i: number) =>
+    costs.reduce((s, c) => {
+      const col = Math.min(i - s0, c.raises.length - 1);
+      return s + (c.raises[col]! / BN) * (series(c.receipts)[i]! / series(c.receipts)[first + col]!);
+    }, 0);
 
   const years: Year[] = [];
   let debt = 0;
   let lastGdp = 0;
   for (let i = first; i < FORECAST.years.length; i++) {
     const on = i >= s0;
-    const fromHmrc = on
-      ? reckoner.reduce((s, c) => {
-          const col = Math.min(i - s0, c.raises.length - 1);
-          return s + (c.raises[col]! / BN) * (series(c.receipts)[i]! / series(c.receipts)[first + col]!);
-        }, 0)
-      : 0;
+    const fromHmrc = on ? carried(reckoner, i) + carried(reforms, i) : 0;
     const taxRaised = on ? TAXES.reduce((s, k) => s + (change[k] * growth(CARRIED_BY[k], i)) / BN, 0) + fromHmrc : 0;
     const benefitsCut = on ? -BENEFITS.reduce((s, k) => s + (change[k] * growth(CARRIED_BY[k], i)) / BN, 0) : 0;
     const b = on ? (behaviour * growth("income_tax", i)) / BN : 0;

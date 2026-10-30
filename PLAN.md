@@ -12,11 +12,11 @@ Start here if you're picking this up in a new chat. Then read CLAUDE.md, RESEARC
   - Step 2 (spending, with Barnett): done and published.
   - Step 3 (history and the impact chart): done and published.
   - Step 4 (design pass, "Budget box"): done and published 29 October 2026; the keyboard pass and wide sizes were checked and fixed 30 October. Details are under "Step 4 in detail" below.
-- **Milestone 3** (reform packs, starting with a land value tax): planned 30 October 2026, and Ari's decisions on it are recorded. Waiting for go.
-- **Tests:** 195 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
+- **Milestone 3** (reform packs, starting with a land value tax): planned 30 October 2026, and Ari's decisions on it are recorded. Steps 1 (gov.uk check) and 2 (the reform slot) done.
+- **Tests:** 202 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
 
 ## What's next, in order
-1. **Milestone 3** (see "Milestone 3 plan" below). Step 1, the gov.uk check, is done (30 October 2026). Next: step 2, the reform slot; then homes in the population, council tax and business rates, and the land value tax pack. Show Ari the plan for each step and wait for go.
+1. **Milestone 3** (see "Milestone 3 plan" below). Steps 1 (the gov.uk check) and 2 (the reform slot) are done (30 October 2026). Next: step 3, homes in the population; then council tax and business rates, and the land value tax pack. Show Ari the plan for each step and wait for go.
 2. **1d, the 2027-28 rules,** once DWP publishes the 2027-28 benefit and State Pension rates (usually late November). Show Ari a plan first. What's already known:
    - The income tax and NICs thresholds are frozen to 2031.
    - Budget 2026 adds 2p on property and savings income from April 2027, an income tax exemption for low-income pensioners, and a bigger trading allowance.
@@ -275,6 +275,13 @@ How every structural reform plugs in, so the LVT is the first of many rather tha
 - **2c. On the page:** a fifth tab, Reforms, beside Policies, Taxes, Spending and Assumptions. A pack's options open in place. The pack is one row in the scorecard, with the taxes it replaces shown as rows under it, so the net figure can be traced. The pack and its options go in the link like everything else.
 
 Check: a test pack that "replaces" a tax with an identical tax costs exactly zero in every year, with nobody gaining or losing.
+
+Progress, 30 October 2026: done, not yet committed or published.
+- `src/policy/reforms.ts`: the pack type (options, sources, what it replaces, its own parts each with a grade, check, static-or-with-responses flag and share by income tenth), the link format, and a test pack ("Swap VAT for an identical tax"), registered only on the development site (`import.meta.env.DEV`). The published site's Reforms tab says none are ready yet.
+- The costing worker adds packs' parts to the total, to who gains and loses, and to the responses; the borrowing path carries them on like HMRC's costings (`fiscalPath`'s `reforms` option).
+- The page: the Reforms tab (add, take out, options in place, what it replaces); the levers a pack takes over are hidden; the scorecard has a row per pack with its parts and replaced taxes under it; the first-year table, winners notes, show-working, summary and picture include packs.
+- `test/reforms.test.ts` (7 tests): zero in every year for 1, 2 and 5 points, with and without the economy; nobody gains or loses; a pack wins over your own lever; grades; the link. Checked in the browser too, alongside an income tax change, on a phone width, and with the pack taken out again.
+- Not done: How we know doesn't describe reforms yet (step 6).
 
 ## Step 3: homes in the population
 

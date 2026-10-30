@@ -104,6 +104,13 @@ label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .policy-name { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .policy-actions { display: flex; gap: 6px; justify-content: flex-end; align-items: center; margin-top: 4px; }
 .policy.on, .policy.adjusted { background: var(--accent-bg); padding-left: 6px; padding-right: 6px; }
+/* Reform packs: shown like named policies, with their options and what they replace once added. */
+.reforms > p { margin: 4px 0 6px; }
+.reform-options { display: grid; gap: 6px; margin-top: 6px; }
+.reform-options label { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.reform-options input[type="number"] { width: 6em; }
+.replaces { margin: 6px 0 0; padding-left: 18px; }
+.scorecard tr.sub td:first-child { padding-left: 18px; }
 .bubble { position: fixed; z-index: 40; display: none; pointer-events: none; background: var(--ink); color: var(--surface); border-radius: 4px;
   padding: 3px 8px; font-size: 13px; font-family: var(--mono); white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 0.2); }
 .bubble span { opacity: 0.8; }

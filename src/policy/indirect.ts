@@ -26,15 +26,20 @@ for (const t of Object.values(ETB.taxes)) for (const l of t.levers) BY_LEVER.set
 /** Whether a change to this lever is shared out to households. */
 export const sharedOut = (lever: string) => BY_LEVER.has(lever);
 
+/** Each tenth's share of what households pay now in the tax this lever sets, poorest first (a copy). */
+export const taxShares = (lever: string): number[] | undefined => BY_LEVER.get(lever)?.slice();
+
 /**
  * How much more each tenth of households pays in a year (£, total for the tenth; negative is less), from HMRC's
- * first-year costing of each change shared out as households pay the tax now.
+ * first-year costing of each change shared out as households pay the tax now, and from reform packs' parts shared
+ * out by their own shares.
  */
-export function indirectByTenth(costs: ReckonerCost[]): number[] {
+export function indirectByTenth(costs: ReckonerCost[], parts: { raises: number[]; byTenth?: number[] }[] = []): number[] {
   const out = new Array<number>(10).fill(0);
   for (const c of costs) {
     const s = BY_LEVER.get(c.lever);
     if (s) s.forEach((share, k) => (out[k]! += c.raises[0]! * share));
   }
+  for (const p of parts) p.byTenth?.forEach((share, k) => (out[k]! += p.raises[0]! * share));
   return out;
 }
