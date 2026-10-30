@@ -39,8 +39,26 @@ export interface Child {
   disability: "none" | "lower" | "higher";
 }
 
+export type CouncilTaxBand = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
+
+/** The home, for council tax (or Northern Ireland's rates). Given to the family liable for the bill only. */
+export interface Dwelling {
+  /** One of the 12 UK regions, FRS spelling ("North East", ..., "Northern Ireland"): England's Band D varies by region. */
+  area: string;
+  /** No band in Northern Ireland. */
+  band?: CouncilTaxBand;
+  /** Northern Ireland: the capital value at 1 January 2005 that rates are charged on. */
+  capitalValue?: number;
+  /** Adults living in the home, in every family: one alone gets the single person discount. */
+  adultsInHome: number;
+  /** A fixed number from 0 to 1 for the household, compared with take-up rates to decide whether it claims Council Tax Reduction. */
+  takeUpDraw?: number;
+}
+
 export interface Household {
   region: Region;
+  /** The home, if this family pays the council tax on it. Without one, no council tax is worked out. */
+  home?: Dwelling;
   adults: [Adult] | [Adult, Adult];
   children: Child[];
   rentMonthly: number;

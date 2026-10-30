@@ -81,6 +81,36 @@ A test of the size: HMRC's payroll records show 30.3 million people on a payroll
 
 `test/homes.test.ts` checks the shipped file and holds these gaps where they are.
 
+## Council tax
+
+The engine works out each home's council tax, or in Northern Ireland its domestic rates, and takes it off the household's income, as HBAI does. Rules and sources are in `rules/2026-27/council_tax.yaml`; the family with the home (each household's first) pays the bill.
+
+- **The charge.** The home's band, times its region's average Band D for 2026-27, including police, fire and parish precepts (England, by region, from MHCLG's council-by-council table; Wales and Scotland, their governments' averages, Scotland's without water and sewerage). We don't know a household's council, so a home pays its region's average. Northern Ireland: the home's 2005 capital value, capped at £400,000, times the regional rate plus the average of the 11 councils' district rates.
+- **Discounts.** 25% off when one adult lives in the home (counting every family in it). Northern Ireland: 20% off for someone 70 or over living alone (the Lone Pensioner Allowance), and no single person discount. Other discounts and exemptions (students, carers, the disabled band reduction) are left out.
+- **Council Tax Reduction** (Northern Ireland: rate rebate), approximate, grade C. One simplified scheme: the bill, less 20p per £1 of the liable family's income above an applicable amount.
+  - **Pensioners**: England's national scheme's applicable amounts for 2026-27 (£256 a week single, £383.35 a couple, for those 72 or over, who reached pension age before April 2021; £238 and £363.25 for younger pensioners). A pensioner below the applicable amount would get Pension Credit's guarantee credit, so the £16,000 savings limit doesn't apply to them.
+  - **Working age**: the applicable amount is the family's Universal Credit maximum, so a family living on Universal Credit alone gets the full reduction, and earnings up to Universal Credit's work allowance are ignored (standing in for schemes' own earnings disregards). Only families claiming Universal Credit claim it. English councils' schemes all differ and most make working-age families pay part of the bill: the stand-in scheme pays at most 75%, calibrated to MHCLG's spending. Scotland, Wales and Northern Ireland pay up to all of it, as their national schemes do.
+  - **Who claims.** Each household has a fixed draw (a hash of its number). A pensioner household claims if its draw is under the take-up rate. Calibrating to MHCLG's spending on pensioners needs **a take-up rate of 100%**, which can't be right: real take-up is lower. So our pensioners are more often entitled than real ones, or for more. Likely causes, none confirmed: pensioners' incomes too low at the bottom (Pension Credit, disability benefits and others aren't modelled), or MHCLG's "pensioners" covering couples where only one partner is over pension age (ours are working-age families).
+  - The scheme looks only at the liable family's income: other adults in the home don't reduce it (real schemes take a "non-dependant deduction").
+
+### Council tax against published figures
+
+| Check | Ours | Published | Source |
+|---|---:|---:|---|
+| Council Tax Reduction, England, pensioners | £1.90bn | £1.91bn | MHCLG council taxbase 2025, £1,816m in 2025-26, grown 4.9% with Band D (calibrated) |
+| Council Tax Reduction, England, working age | £2.65bn | £2.63bn | MHCLG, £2,506m in 2025-26, grown 4.9% (calibrated) |
+| Council Tax Reduction, Scotland | £0.44bn | £0.46bn | Scottish Government, £425.1m in 2025-26, grown 7.2% with Band D |
+| Council Tax Reduction, Wales | £0.37bn | £0.37bn | Welsh Government, £347.4m in 2025-26, grown 5.2% with Band D |
+| Council tax receipts, England | £45.1bn | £46.8bn | OBR October 2026, Table 5.1, 2026-27 |
+| Council tax receipts, Wales | £2.49bn | £2.58bn | same |
+| Council tax receipts, Scotland | £3.46bn | £3.17bn | same |
+| Northern Ireland regional rate on homes | £0.50bn | £0.52bn | OBR October 2026, Table 4.2 |
+
+- **England 4% and Wales 3% under the OBR; Scotland 9% over.** The OBR's figures are what councils budget to collect, after every discount and exemption and with second-home and empty-home premiums added, which ours don't cover. Why Scotland comes out over isn't known: its bands match the Scottish Government's counts, so either the number of homes or the share with one adult differs. Not tuned away.
+- **Exchequer costings don't yet count council tax.** A change that moves incomes also moves Council Tax Reduction, and so council tax receipts (a rise in income tax means slightly more reduction). Those changes show in households' incomes (winners and losers) but not yet in the costing. Step 4's second half decides how council tax enters the costing.
+
+`test/council_tax.test.ts` checks hand-worked households and holds these totals where they are.
+
 ## Assumptions in the seed
 
 These are starting values. Calibration corrects the totals, but guesses about *how things combine* partly survive it. Where a value was tuned to bring a published figure into line, the table says so.
@@ -198,7 +228,7 @@ Everything below has been looked into. Each is either a disagreement between pub
 - **Income tax is within 0.2% of HMRC's 2026-27 liabilities** (£346.5bn against £347.0bn). Getting there needed three things that cut tax, all from HMRC's figures: other deductions (about £3bn), Marriage Allowance (£0.5bn) and tax reductions (£4.8bn). HMRC's model treats pension contributions the same way as ours (its documentation: income after deductions is "total income minus contributions to occupational and private pensions" and charities, which "implies 100% tax relief"), so the comparison is like for like.
 - **Child Benefit spending matches within 1%; Universal Credit comes out 2.6% over the OBR's October 2026 forecast.** Ours includes Northern Ireland and the OBR's doesn't, which accounts for roughly that. (Against March's forecast it was 1% under: the OBR has since lowered its forecast, while October's higher social rent growth raised ours.) The costs of the NICs thresholds and the working-pensioner NICs exemption match within 4%.
 - **Self-employed NICs 6% under the OBR's October 2026 figure** (£3.12bn against £3.32bn). The OBR's figure also includes voluntary Class 2 contributions, which we don't model, and it rose from £3.16bn in March.
-- **Household incomes match HBAI** (below), which was never a target.
+- **Household incomes come within 0–6% of HBAI** (below), which was never a target; ours are under now that council tax is taken off.
 
 **Disagreements between sources:**
 - **Employee NICs 7% and employer NICs 8% over the OBR** (October 2026). Employees' pay matches ASHE, and employees in households alone pay more employee NICs than the OBR's total for everyone. HMRC's own ready-reckoner base implies employer NICs of about £159bn, already above the OBR's £153bn. Likely reasons, none confirmable without payroll data: NICs are charged each pay period (bonus months pay less), many people work part of the year, and the OBR's forecast allows for employers responding to the April 2025 rise. **Costings of the employee main rate and thresholds are likely 10–17% too high.**
@@ -215,18 +245,17 @@ Everything below has been looked into. Each is either a disagreement between pub
 
 ## The income distribution, against HBAI (held back)
 
-HBAI ("Households below average income") is DWP's official measure of household incomes. Its incomes were never calibration targets (only its count of children is), so they test whether the population's *spread* of incomes is right. Income is net household income before housing costs, after pension contributions, equivalised the way HBAI does it (modified OECD scale), counted per person, with HBAI's 2024-25 figures uprated to 2026-27 with OBR earnings growth. People outside private households are left out, as they are from HBAI.
+HBAI ("Households below average income") is DWP's official measure of household incomes. Its incomes were never calibration targets (only its count of children is), so they test whether the population's *spread* of incomes is right. Income is net household income before housing costs, after pension contributions and council tax, equivalised the way HBAI does it (modified OECD scale), counted per person, with HBAI's 2024-25 figures uprated to 2026-27 with OBR earnings growth. People outside private households are left out, as they are from HBAI.
 
 | Group | Median, ours | Median, HBAI | Mean, ours | Mean, HBAI | People, ours | People, HBAI |
 |---|---:|---:|---:|---:|---:|---:|
-| Children | £700 | £677 | £862 | £822 | 14.3m | 14.7m |
-| Working-age adults | £828 | £832 | £997 | £978 | 40.7m | 41.4m |
-| Pensioners | £691 | £699 | £820 | £825 | 12.2m | 12.2m |
+| Children | £677 | £677 | £837 | £822 | 14.3m | 14.7m |
+| Working-age adults | £796 | £832 | £964 | £978 | 40.7m | 41.4m |
+| Pensioners | £655 | £699 | £786 | £825 | 12.2m | 12.2m |
 
-(£ a week, equivalised; HBAI uprated with the OBR's October 2026 earnings forecast.)
+(£ a week, equivalised; HBAI uprated with the OBR's October 2026 earnings forecast. Before council tax was taken off, 30 October 2026, ours were £700, £828 and £691.)
 
-- **Medians are within 1–3% and means within 1–5% for all three groups.** Children's mean is the furthest out: 5% over, against 3% when uprated with March's forecast.
-- **Two differences roughly cancel, and we can't yet separate them.** HBAI's net income takes off council tax, which we don't model (ours too high), and adds disability benefits, Carer's Allowance, Pension Credit and others, which we don't model either (ours too low).
+- **With council tax taken off, ours are now under HBAI: working-age adults' median 4% and pensioners' 6%.** Children's matches. That's the expected direction: HBAI also counts disability benefits, Carer's Allowance, Pension Credit and others, which we don't model yet, and they matter most for pensioners. Before council tax, the two gaps roughly cancelled.
 
 ## Stability
 

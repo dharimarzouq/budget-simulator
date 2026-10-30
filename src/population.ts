@@ -1,9 +1,9 @@
 // The synthetic population: made-up households weighted to match published UK totals (see POPULATION.md).
 // Loaded from public/data/population-2026-27.json, written by data/export_population.py.
-import { calculate, type Household, type Region, type RuleSet } from "./engine";
+import { calculate, type CouncilTaxBand, type Household, type Region, type RuleSet } from "./engine";
 
+export type { CouncilTaxBand };
 export type Tenure = "owned_outright" | "mortgage" | "private_rent" | "social_rent";
-export type CouncilTaxBand = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
 
 /**
  * A household's home (synthetic, grade C: POPULATION.md, "Homes"). Money in £, at the population's house price date,
@@ -69,29 +69,52 @@ const decodeHome = ([t, value, land, valuation, band]: RawHome, bands: CouncilTa
   ...(band >= 0 ? { band: bands[band]! } : {}),
 });
 
+/**
+ * A fixed number from 0 to 1 for a household, the same on every load, used to decide who claims Council Tax Reduction
+ * (rules/2026-27/council_tax.yaml). A hash of the household's number, so it doesn't follow income or anything else.
+ */
+export function takeUpDraw(household: number): number {
+  let x = (household + 0x9e3779b9) | 0;
+  x = Math.imul(x ^ (x >>> 16), 0x85ebca6b);
+  x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
+  return ((x ^ (x >>> 16)) >>> 0) / 2 ** 32;
+}
+
 export function decodePopulation(raw: RawPopulation): Population {
   const { region, health, disability } = raw.codes;
-  const units = raw.units.map(([weight, hh, reg, rentMonthly, childcareMonthly, savings, flags, adults, children, reg12, home]) => ({
-    weight,
-    household: hh,
-    regionDetail: reg12 === undefined ? undefined : raw.codes.regionDetail?.[reg12],
-    outside: (flags & 8) !== 0,
-    ...(home ? { home: decodeHome(home, raw.codes.band ?? []) } : {}),
-    data: {
-      region: region[reg]!,
-      rentMonthly,
-      childcareMonthly,
-      savings,
-      claimsUniversalCredit: (flags & 1) !== 0,
-      claimsChildBenefit: (flags & 2) !== 0,
-      claimsMarriageAllowance: (flags & 4) !== 0,
-      adults: adults.map(([age, employment, secondJob, selfEmployment, pension, h, carer, propertyIncome, savingsInterest, dividends, pensionContributions, otherDeductions, taxReductions]) => ({
-        age, employment, secondJob, selfEmployment, pension, propertyIncome, savingsInterest, dividends,
-        pensionContributions, otherDeductions, taxReductions, health: health[h]!, carer: carer === 1,
-      })) as Household["adults"],
-      children: children.map(([age, pre, d]) => ({ age, bornBefore2017: pre === 1, disability: disability[d]! })),
-    },
-  }));
+  // Adults in each household, across its families, for the single person discount.
+  const adultsIn = new Map<number, number>();
+  for (const u of raw.units) adultsIn.set(u[1], (adultsIn.get(u[1]) ?? 0) + u[7].length);
+  const units = raw.units.map(([weight, hh, reg, rentMonthly, childcareMonthly, savings, flags, adults, children, reg12, rawHome]) => {
+    const regionDetail = reg12 === undefined ? undefined : raw.codes.regionDetail?.[reg12];
+    const home = rawHome ? decodeHome(rawHome, raw.codes.band ?? []) : undefined;
+    // The family with the home pays its council tax (the export puts the home on each household's first family).
+    const dwelling = home && regionDetail
+      ? { area: regionDetail, ...(home.band ? { band: home.band } : { capitalValue: home.valuation }), adultsInHome: adultsIn.get(hh)!, takeUpDraw: takeUpDraw(hh) }
+      : undefined;
+    return {
+      weight,
+      household: hh,
+      regionDetail,
+      outside: (flags & 8) !== 0,
+      ...(home ? { home } : {}),
+      data: {
+        region: region[reg]!,
+        ...(dwelling ? { home: dwelling } : {}),
+        rentMonthly,
+        childcareMonthly,
+        savings,
+        claimsUniversalCredit: (flags & 1) !== 0,
+        claimsChildBenefit: (flags & 2) !== 0,
+        claimsMarriageAllowance: (flags & 4) !== 0,
+        adults: adults.map(([age, employment, secondJob, selfEmployment, pension, h, carer, propertyIncome, savingsInterest, dividends, pensionContributions, otherDeductions, taxReductions]) => ({
+          age, employment, secondJob, selfEmployment, pension, propertyIncome, savingsInterest, dividends,
+          pensionContributions, otherDeductions, taxReductions, health: health[h]!, carer: carer === 1,
+        })) as Household["adults"],
+        children: children.map(([age, pre, d]) => ({ age, bornBefore2017: pre === 1, disability: disability[d]! })),
+      },
+    };
+  });
   return { about: raw.about, year: raw.year, units, published: raw.published };
 }
 

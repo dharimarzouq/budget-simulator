@@ -42,6 +42,13 @@ FILES = {
     "sg_ctaxbase_2025_chargeable_dwellings.xlsx": "https://www.gov.scot/binaries/content/documents/govscot/publications/statistics/2019/04/council-tax-datasets/documents/number-of-chargeable-dwellings/chargeable-dwellings---september-2025-data/chargeable-dwellings---september-2025-data/govscot%3Adocument/CTAXBASE%2B2025%2B-%2BTables%2B-%2BChargeable%2BDwellings.xlsx",
     "ons_nbs_2025_reference_tables.xlsx": "https://www.ons.gov.uk/file?uri=/economy/nationalaccounts/uksectoraccounts/datasets/thenationalbalancesheetestimates/current/nbsreferencetables2025.xlsx",
     "mhclg_ehs_2019_20_headline_report.pdf": "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/945013/2019-20_EHS_Headline_Report.pdf",
+    # Council tax and Council Tax Reduction (rules/2026-27/council_tax.yaml is read off these by hand).
+    "mhclg_ctl_2026_27_tables_1_9.ods": "https://assets.publishing.service.gov.uk/media/69de1fa63e81003ae0422508/Tables_1-9_2026-27.ods",
+    "mhclg_ctl_2026_27_table_10.ods": "https://assets.publishing.service.gov.uk/media/6a02eeeccd2e0e8b5b20b449/Table_10_2026-27.ods",
+    "sg_ctas_2026_27_band_d.xlsx": "https://www.gov.scot/binaries/content/documents/govscot/publications/statistics/2019/04/council-tax-datasets/documents/band-d/band-d-council-tax-1996-97-to-2019-20-data/band-d-council-tax-1996-97-to-2019-20-data/govscot%3Adocument/CTAS%2B2026%2B-%2BCouncil%2BTax%2BAssumptions%2B-%2BBand%2BD%2BCouncil%2BTax%2Brates%2Bby%2Byear%2B-%2B1996-97%2Bto%2B2026-27.xlsx",
+    "sg_ctas_2026_27_by_band.xlsx": "https://www.gov.scot/binaries/content/documents/govscot/publications/statistics/2019/04/council-tax-datasets/documents/average-council-tax-per-dwelling/council-tax-by-band-2026-27/council-tax-by-band-2026-27/govscot%3Adocument/CTAS%2B2026%2B-%2BCouncil%2BTax%2BAssumptions%2B-%2BCouncil%2BTax%2Bby%2BBand%2B-%2B2026-27.xlsx",
+    "mhclg_ctb_2025_tables_1_5.ods": "https://assets.publishing.service.gov.uk/media/6a7eef0b0ad4bc475be7de98/Tables_1_-_5_2025.ods",
+    "mhclg_ctb_2025_local_authority.xlsx": "https://assets.publishing.service.gov.uk/media/696f605ff6aa424b452e3359/2025_Local_Authority_Drop_Down.xlsx",
     "ons_ashe_table6_2026_provisional.zip":"https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2026provisional/ashetable62026provisional.zip",
 }
 

@@ -62,11 +62,25 @@ export interface BenefitCapResult {
   working: string;
 }
 
+/** A year. All zero when the family has no home given (it doesn't pay the bill). */
+export interface CouncilTaxResult {
+  /** The bill before discounts and Council Tax Reduction (Northern Ireland: rates). */
+  charge: number;
+  /** Single person discount, or Northern Ireland's Lone Pensioner Allowance. */
+  discount: number;
+  /** Council Tax Reduction (Northern Ireland: rate rebate). */
+  reduction: number;
+  /** What's left to pay. */
+  net: number;
+  lines: Line[];
+}
+
 export interface Result {
   adults: AdultResult[];
   childBenefit: number;
   childBenefitCharge: number;
   universalCredit: UniversalCreditResult;
+  councilTax: CouncilTaxResult;
   grossIncome: number;
   netIncome: number;
   /** The household's lines: income, taxes and benefits, a year. */
@@ -392,6 +406,72 @@ function applyBenefitCap(
 }
 
 /**
+ * Council tax on the home, or Northern Ireland's domestic rates, less discounts and Council Tax Reduction
+ * (rules/2026-27/council_tax.yaml says what's simplified). `income` is the family's income after tax with benefits,
+ * Child Benefit left out (it's disregarded), a year.
+ */
+function councilTax(h: Household, r: RuleSet, uc: UniversalCreditResult, income: number): CouncilTaxResult {
+  const none: CouncilTaxResult = { charge: 0, discount: 0, reduction: 0, net: 0, lines: [] };
+  const home = h.home;
+  if (!home) return none;
+  const ct = r.councilTax;
+  const lines: Line[] = [];
+  const alone = home.adultsInHome <= 1;
+  let charge: number, discount: number;
+  if (h.region === "northern_ireland") {
+    const value = Math.min(home.capitalValue ?? 0, ct.niCapitalValueCap);
+    const rate = ct.niRegionalRate + ct.niDistrictRate;
+    charge = value * rate;
+    lines.push({ label: "Domestic rates", amount: charge, working: `Capital value ${gbp(value)}` + ((home.capitalValue ?? 0) > ct.niCapitalValueCap ? ` (capped)` : "") +
+      ` × ${+(rate * 100).toFixed(4)}p in the pound (regional rate plus the average district rate).` });
+    discount = alone && h.adults[0].age >= 70 ? charge * ct.niLonePensionerAllowance : 0;
+    if (discount) lines.push({ label: "Lone Pensioner Allowance", amount: -discount, working: `${pct(ct.niLonePensionerAllowance)} off: 70 or over and living alone.` });
+  } else {
+    const band = home.band ?? "D";
+    const bandD = ct.bandD[home.area] ?? ct.bandD[h.region === "wales" ? "Wales" : h.region === "scotland" ? "Scotland" : "London"]!;
+    const ratio = (h.region === "scotland" ? ct.scotlandRatios : ct.ratios)[band] ?? 1;
+    charge = bandD * ratio;
+    lines.push({ label: "Council tax", amount: charge, working: `Band ${band}: ${+ratio.toFixed(4)} × the average Band D for ${home.area} (${gbp(bandD)}).` });
+    discount = alone ? charge * ct.singlePersonDiscount : 0;
+    if (discount) lines.push({ label: "Single person discount", amount: -discount, working: `${pct(ct.singlePersonDiscount)} off: one adult in the home.` });
+  }
+  const bill = charge - discount;
+
+  // Council Tax Reduction: the bill (up to a cap for England's working-age scheme), less 20% of income above an
+  // applicable amount. Pensioners: the national scheme's amounts, higher for those who reached pension age before
+  // April 2021 (taken as 72 or over now). Working age: Universal Credit's maximum award, so a family living on
+  // Universal Credit alone gets the full reduction, and earnings reduce it as they reduce Universal Credit.
+  const c = ct.ctr;
+  const pensioners = h.adults.every((a) => a.age >= r.ni.statePensionAge);
+  const older = h.adults.some((a) => a.age >= 72);
+  const applicable = pensioners
+    ? 52 * ((h.adults.length === 2 ? (older ? c.pensionerCoupleBefore2021 : c.pensionerCouple) : older ? c.pensionerSingleBefore2021 : c.pensionerSingle) +
+      h.children.length * c.child + (h.children.length ? c.familyPremium : 0))
+    : 12 * uc.maximum;
+  // Pensioners whose income is below the applicable amount would get Pension Credit's guarantee credit, and then
+  // there's no savings limit (SI 2012/2885 Sch 1).
+  const guarantee = pensioners && income <= applicable;
+  let reduction = 0;
+  let working: string;
+  if (h.savings > c.capitalLimit && !guarantee) working = `None: savings over ${gbp(c.capitalLimit)}.`;
+  else if (pensioners ? (home.takeUpDraw ?? 0) >= c.pensionerTakeUp : h.claimsUniversalCredit === false || !!uc.notEligible) {
+    working = "Not claimed (not everyone entitled claims it).";
+  } else {
+    const max = !pensioners && h.region !== "wales" && h.region !== "scotland" && h.region !== "northern_ireland" ? c.englandWorkingAgeMax : 1;
+    // Working age: earnings up to Universal Credit's work allowance are ignored, as Universal Credit ignores them
+    // (real schemes have their own earnings disregards; this stands in for them).
+    const disregard = pensioners ? 0 : 12 * Math.min(Math.max(0, uc.earnings), uc.workAllowance);
+    const excess = Math.max(0, income - disregard - applicable);
+    reduction = Math.min(bill, Math.max(0, max * bill - c.taper * excess));
+    working = `${max < 1 ? `${pct(max)} of the bill` : "The bill"} less ${pct(c.taper)} of income (${gbp(income)}` +
+      (disregard ? `, ignoring ${gbp(disregard)} of earnings` : "") + `) above ${gbp(applicable)}` +
+      ` (${pensioners ? "pensioner applicable amount" : "Universal Credit's maximum award"}).`;
+  }
+  if (reduction || h.region !== "northern_ireland") lines.push({ label: h.region === "northern_ireland" ? "Rate rebate" : "Council Tax Reduction", amount: -reduction, working });
+  return { charge, discount, reduction, net: bill - reduction, lines };
+}
+
+/**
  * Marriage Allowance (Income Tax Act 2007 ss55A to 55E). A partner with income below the personal allowance can
  * transfer part of it to a partner who pays no more than the basic rate (no more than the intermediate rate in
  * Scotland). The receiving partner's tax falls by the amount transferred at the basic rate: for a Scottish taxpayer
@@ -442,7 +522,10 @@ export function calculate(h: Household, r: RuleSet): Result {
   const ni = sum((a) => a.employeeNI + a.selfEmployedNI);
   const pensionContributions = h.adults.reduce((s, a) => s + a.pensionContributions, 0);
 
-  const netIncome = grossIncome + cb.amount + ucYear - incomeTax - ni - charge.amount - pensionContributions;
+  const beforeCouncilTax = grossIncome + cb.amount + ucYear - incomeTax - ni - charge.amount - pensionContributions;
+  const ct = councilTax(h, r, uc, beforeCouncilTax - cb.amount);
+  // Net of council tax, as HBAI measures income (before housing costs).
+  const netIncome = beforeCouncilTax - ct.net;
 
   const lines: Line[] = [
     { label: "Gross income", amount: grossIncome, working: "Earnings, self-employment profits, pensions, property income, savings interest and dividends, before tax." },
@@ -462,8 +545,12 @@ export function calculate(h: Household, r: RuleSet): Result {
       (uc.benefitCap.reduction ? `, less ${gbp(uc.benefitCap.reduction)} for the benefit cap` : "") +
       ` = ${gbp(uc.award)} a month, × 12.`,
   });
+  if (h.home) {
+    lines.push({ label: h.region === "northern_ireland" ? "Rates" : "Council tax", amount: -ct.net,
+      working: ct.lines.map((l) => `${l.label} ${gbp(Math.abs(l.amount))}`).join("; ") + "." });
+  }
 
-  return { adults, childBenefit: cb.amount, childBenefitCharge: charge.amount, universalCredit: uc, grossIncome, netIncome, lines };
+  return { adults, childBenefit: cb.amount, childBenefitCharge: charge.amount, universalCredit: uc, councilTax: ct, grossIncome, netIncome, lines };
 }
 
 /**

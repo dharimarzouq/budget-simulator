@@ -85,6 +85,31 @@ export interface RuleSet {
     rangeLow: number;
     rangeHigh: number;
   };
+  councilTax: {
+    /** Average Band D, a year, by FRS region name (England's nine regions, Wales, Scotland). */
+    bandD: Record<string, number>;
+    /** Each band as a share of Band D: England and Wales, and Scotland. */
+    ratios: Record<string, number>;
+    scotlandRatios: Record<string, number>;
+    singlePersonDiscount: number;
+    niRegionalRate: number;
+    niDistrictRate: number;
+    niCapitalValueCap: number;
+    niLonePensionerAllowance: number;
+    ctr: {
+      /** Weekly applicable amounts, pensioner scheme: higher for those who reached pension age before April 2021. */
+      pensionerSingleBefore2021: number;
+      pensionerCoupleBefore2021: number;
+      pensionerSingle: number;
+      pensionerCouple: number;
+      child: number;
+      familyPremium: number;
+      taper: number;
+      capitalLimit: number;
+      pensionerTakeUp: number;
+      englandWorkingAgeMax: number;
+    };
+  };
   uc: {
     // Monthly amounts
     singleUnder25: number;
@@ -117,6 +142,13 @@ export interface RuleSet {
     nationalLivingWage: number;
   };
 }
+
+/** FRS region names against the rules file's Band D parameters. */
+const BAND_D: Record<string, string> = {
+  "North East": "band_d_north_east", "North West": "band_d_north_west", "Yorkshire and The Humber": "band_d_yorkshire",
+  "East Midlands": "band_d_east_midlands", "West Midlands": "band_d_west_midlands", East: "band_d_east", London: "band_d_london",
+  "South East": "band_d_south_east", "South West": "band_d_south_west", Wales: "band_d_wales", Scotland: "band_d_scotland",
+};
 
 export function ruleSet(year: string): RuleSet {
   const n = (area: string, name: string) => {
@@ -202,6 +234,28 @@ export function ruleSet(year: string): RuleSet {
       taxableIncomeElasticity: b("behaviour", "taxable_income_elasticity"),
       rangeLow: n("behaviour", "elasticity_range_low"),
       rangeHigh: n("behaviour", "elasticity_range_high"),
+    },
+    councilTax: {
+      bandD: Object.fromEntries(Object.entries(BAND_D).map(([area, name]) => [area, n("council_tax", name)])),
+      ratios: Object.fromEntries("ABCDEFGHI".split("").map((b) => [b, n("council_tax", `ratio_${b.toLowerCase()}`)])),
+      scotlandRatios: Object.fromEntries("ABCDEFGH".split("").map((b) => [b, n("council_tax", "EFGH".includes(b) ? `scotland_ratio_${b.toLowerCase()}` : `ratio_${b.toLowerCase()}`)])),
+      singlePersonDiscount: n("council_tax", "single_person_discount"),
+      niRegionalRate: n("council_tax", "ni_regional_rate"),
+      niDistrictRate: n("council_tax", "ni_district_rate"),
+      niCapitalValueCap: n("council_tax", "ni_capital_value_cap"),
+      niLonePensionerAllowance: n("council_tax", "ni_lone_pensioner_allowance"),
+      ctr: {
+        pensionerSingleBefore2021: n("council_tax", "ctr_pensioner_single_before_2021"),
+        pensionerCoupleBefore2021: n("council_tax", "ctr_pensioner_couple_before_2021"),
+        pensionerSingle: n("council_tax", "ctr_pensioner_single"),
+        pensionerCouple: n("council_tax", "ctr_pensioner_couple"),
+        child: n("council_tax", "ctr_child"),
+        familyPremium: n("council_tax", "ctr_family_premium"),
+        taper: n("council_tax", "ctr_taper"),
+        capitalLimit: n("council_tax", "ctr_capital_limit"),
+        pensionerTakeUp: n("council_tax", "ctr_pensioner_take_up"),
+        englandWorkingAgeMax: n("council_tax", "ctr_england_working_age_max"),
+      },
     },
     uc: {
       singleUnder25: n("universal_credit", "standard_allowance_single_under_25"),

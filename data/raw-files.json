@@ -90,5 +90,29 @@
  "ons_nbs_2025_reference_tables.xlsx": {
   "url": "https://www.ons.gov.uk/file?uri=/economy/nationalaccounts/uksectoraccounts/datasets/thenationalbalancesheetestimates/current/nbsreferencetables2025.xlsx",
   "sha256": "8bec0fbbaf474c76daf721100f1cbda6bda57957ff370f85d36fca4e310d3a79"
+ },
+ "mhclg_ctl_2026_27_tables_1_9.ods": {
+  "url": "https://assets.publishing.service.gov.uk/media/69de1fa63e81003ae0422508/Tables_1-9_2026-27.ods",
+  "sha256": "66b7c20f70c804038c0a392ff2b7249fd09e83f4e88ac87d0278ce7e19da5537"
+ },
+ "mhclg_ctl_2026_27_table_10.ods": {
+  "url": "https://assets.publishing.service.gov.uk/media/6a02eeeccd2e0e8b5b20b449/Table_10_2026-27.ods",
+  "sha256": "b5b8345743fb722e48699243d1654a3e35b96c89a14c6eb26888035c3e38feb0"
+ },
+ "sg_ctas_2026_27_band_d.xlsx": {
+  "url": "https://www.gov.scot/binaries/content/documents/govscot/publications/statistics/2019/04/council-tax-datasets/documents/band-d/band-d-council-tax-1996-97-to-2019-20-data/band-d-council-tax-1996-97-to-2019-20-data/govscot%3Adocument/CTAS%2B2026%2B-%2BCouncil%2BTax%2BAssumptions%2B-%2BBand%2BD%2BCouncil%2BTax%2Brates%2Bby%2Byear%2B-%2B1996-97%2Bto%2B2026-27.xlsx",
+  "sha256": "4e56c333178733c63d8729608740fbf7bf3b3d62ae58c3ad9ea297ad8188cf16"
+ },
+ "sg_ctas_2026_27_by_band.xlsx": {
+  "url": "https://www.gov.scot/binaries/content/documents/govscot/publications/statistics/2019/04/council-tax-datasets/documents/average-council-tax-per-dwelling/council-tax-by-band-2026-27/council-tax-by-band-2026-27/govscot%3Adocument/CTAS%2B2026%2B-%2BCouncil%2BTax%2BAssumptions%2B-%2BCouncil%2BTax%2Bby%2BBand%2B-%2B2026-27.xlsx",
+  "sha256": "fa3f5ed1b3261293bb4603d0a3f5dff5d76ca65c10583af754c7701f7443b1ad"
+ },
+ "mhclg_ctb_2025_tables_1_5.ods": {
+  "url": "https://assets.publishing.service.gov.uk/media/6a7eef0b0ad4bc475be7de98/Tables_1_-_5_2025.ods",
+  "sha256": "424cf07dac390a88abf7dda95cdf34de15ad9ff8416fe87cfd46ce1c1f99492d"
+ },
+ "mhclg_ctb_2025_local_authority.xlsx": {
+  "url": "https://assets.publishing.service.gov.uk/media/696f605ff6aa424b452e3359/2025_Local_Authority_Drop_Down.xlsx",
+  "sha256": "9fd74444f25278b53f7666dc23ff060d1996adcfe27e74caf63aef2b5b19af06"
  }
 }

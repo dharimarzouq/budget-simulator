@@ -172,7 +172,7 @@ describe("costing over the population", { timeout: 30000 }, () => {
 
   it("£1 a week more for the eldest child costs about £52 for each family paid, less the extra charge", () => {
     const c = costPolicy(pop, r, [{ lever: "cb_eldest", value: LEVER.cb_eldest!.get(r) as number + 1 }], base);
-    const families = pop.units.reduce((s, u, i) => s + (base.netIncome[i]! >= 0 && calculate(u.data, r).childBenefit > 0 ? u.weight : 0), 0);
+    const families = pop.units.reduce((s, u) => s + (calculate(u.data, r).childBenefit > 0 ? u.weight : 0), 0);
     expect(c.change.childBenefit).toBeCloseTo(families * 52, -5);
     expect(c.change.childBenefitCharge).toBeGreaterThan(0);
     expect(c.netRevenue).toBeLessThan(0);

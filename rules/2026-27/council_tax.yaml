@@ -1,0 +1,258 @@
+year: 2026-27
+area: council_tax
+label: Council tax, Northern Ireland's domestic rates, and Council Tax Reduction
+limits:
+  - Council tax is set by each council; we don't know which council a household is in, so every home pays its region's average Band D (England) or its nation's (Wales, Scotland), including police, fire and parish or community council precepts. Scotland's excludes water and sewerage charges, which aren't council tax.
+  - Discounts other than the single person discount (students, carers, disabled band reduction and so on) are left out.
+  - Northern Ireland's district rate is the average of its 11 councils' rates, not weighted by homes.
+  - Council Tax Reduction is one simplified scheme, worked out on the liable family's own income only, ignoring other adults in the home (non-dependant deductions). Pensioners everywhere follow England's national pensioner scheme. Working-age schemes differ by council in England; one stand-in scheme is calibrated to England's total spending. Scotland, Wales and Northern Ireland (rate rebate) use the same rules with nothing held back.
+  - Not every household entitled to Council Tax Reduction claims it. Each household has a fixed draw; pensioners claim if the draw is under the take-up rate, and working-age families claim if they claim Universal Credit.
+  - Working-age families' earnings up to Universal Credit's work allowance are ignored, standing in for schemes' own earnings disregards.
+  - Pension Credit isn't modelled. Pensioners whose income is under the applicable amount are treated as getting its guarantee credit, which lifts the savings limit, as the scheme does.
+parameters:
+  # Average Band D, 2026-27, a year (MHCLG Table 10, line 17, weighted by tax base; Wales and Scotland as published).
+  band_d_north_east:
+    label: Average Band D council tax, North East
+    unit: gbp_per_year
+    value: 2534.67
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_north_west:
+    label: Average Band D council tax, North West
+    unit: gbp_per_year
+    value: 2478.62
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_yorkshire:
+    label: Average Band D council tax, Yorkshire and The Humber
+    unit: gbp_per_year
+    value: 2389.55
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_east_midlands:
+    label: Average Band D council tax, East Midlands
+    unit: gbp_per_year
+    value: 2460.34
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_west_midlands:
+    label: Average Band D council tax, West Midlands
+    unit: gbp_per_year
+    value: 2392.62
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_east:
+    label: Average Band D council tax, East of England
+    unit: gbp_per_year
+    value: 2393.99
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_london:
+    label: Average Band D council tax, London
+    unit: gbp_per_year
+    value: 2068.47
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_south_east:
+    label: Average Band D council tax, South East
+    unit: gbp_per_year
+    value: 2472.41
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_south_west:
+    label: Average Band D council tax, South West
+    unit: gbp_per_year
+    value: 2550.04
+    source: mhclg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+  band_d_wales:
+    label: Average Band D council tax, Wales
+    unit: gbp_per_year
+    value: 2283
+    source: wg-ctl-2026-27
+    legal: Local Government Finance Act 1992 s30
+    note: County councils £1,831, police £400, community councils £52.
+  band_d_scotland:
+    label: Average Band D council tax, Scotland
+    unit: gbp_per_year
+    value: 1653.44
+    source: sg-ctas-2026-27
+    legal: Local Government Finance Act 1992 s74
+
+  # What each band pays as a share of Band D.
+  ratio_a:
+    label: Band A as a share of Band D (6/9)
+    unit: multiplier
+    value: 0.6666666667
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1) (England), s5(1A) (Wales), s74(1) (Scotland)
+  ratio_b:
+    label: Band B as a share of Band D (7/9)
+    unit: multiplier
+    value: 0.7777777778
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1), s5(1A), s74(1)
+  ratio_c:
+    label: Band C as a share of Band D (8/9)
+    unit: multiplier
+    value: 0.8888888889
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1), s5(1A), s74(1)
+  ratio_d:
+    label: Band D (9/9)
+    unit: multiplier
+    value: 1
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1)
+  ratio_e:
+    label: Band E as a share of Band D, England and Wales (11/9)
+    unit: multiplier
+    value: 1.2222222222
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1), s5(1A)
+  ratio_f:
+    label: Band F as a share of Band D, England and Wales (13/9)
+    unit: multiplier
+    value: 1.4444444444
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1), s5(1A)
+  ratio_g:
+    label: Band G as a share of Band D, England and Wales (15/9)
+    unit: multiplier
+    value: 1.6666666667
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1), s5(1A)
+  ratio_h:
+    label: Band H as a share of Band D, England and Wales (18/9)
+    unit: multiplier
+    value: 2
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1), s5(1A)
+  ratio_i:
+    label: Band I as a share of Band D, Wales only (21/9)
+    unit: multiplier
+    value: 2.3333333333
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s5(1A)
+  scotland_ratio_e:
+    label: Band E as a share of Band D, Scotland (473/360)
+    unit: multiplier
+    value: 1.3138888889
+    source: sg-ctas-2026-27
+    legal: Council Tax (Substitution of Proportion) (Scotland) Order 2016
+  scotland_ratio_f:
+    label: Band F as a share of Band D, Scotland (585/360)
+    unit: multiplier
+    value: 1.625
+    source: sg-ctas-2026-27
+    legal: Council Tax (Substitution of Proportion) (Scotland) Order 2016
+  scotland_ratio_g:
+    label: Band G as a share of Band D, Scotland (705/360)
+    unit: multiplier
+    value: 1.9583333333
+    source: sg-ctas-2026-27
+    legal: Council Tax (Substitution of Proportion) (Scotland) Order 2016
+  scotland_ratio_h:
+    label: Band H as a share of Band D, Scotland (882/360)
+    unit: multiplier
+    value: 2.45
+    source: sg-ctas-2026-27
+    legal: Council Tax (Substitution of Proportion) (Scotland) Order 2016
+
+  single_person_discount:
+    label: Discount when only one adult lives in the home
+    unit: rate
+    value: 0.25
+    source: lgfa-1992
+    legal: Local Government Finance Act 1992 s11 (England and Wales), s79 (Scotland)
+
+  # Northern Ireland: domestic rates on the home's capital value at 1 January 2005.
+  ni_regional_rate:
+    label: Northern Ireland domestic regional rate, per £ of capital value
+    unit: rate
+    value: 0.005559
+    source: dof-ni-rate-poundages-2026-27
+    legal: Rates (Northern Ireland) Order 1977
+  ni_district_rate:
+    label: Northern Ireland domestic district rate, average of the 11 councils, per £ of capital value
+    unit: rate
+    value: 0.004905
+    source: dof-ni-rate-poundages-2026-27
+    legal: Rates (Northern Ireland) Order 1977
+    note: Simple average of the 11 councils' rates (0.003966 to 0.006655).
+  ni_capital_value_cap:
+    label: Northern Ireland maximum capital value for rates
+    unit: gbp
+    value: 400000
+    source: nidirect-rates
+    legal: Rates (Northern Ireland) Order 1977, as amended (maximum capital value)
+  ni_lone_pensioner_allowance:
+    label: Northern Ireland Lone Pensioner Allowance, off the bill for someone 70 or over living alone
+    unit: rate
+    value: 0.2
+    source: nidirect-rates
+    legal: Rates (Northern Ireland) Order 1977, as amended (lone pensioner allowance)
+
+  # Council Tax Reduction (Northern Ireland: rate rebate).
+  ctr_pensioner_single_before_2021:
+    label: Council Tax Reduction applicable amount, single pensioner who reached pension age before April 2021
+    unit: gbp_per_week
+    value: 256.00
+    source: uksi-2026-27
+    legal: SI 2012/2885 Sch 2 para 1(1), as amended by SI 2026/27
+    note: We take everyone 72 or over in 2026-27 to have reached pension age before April 2021.
+  ctr_pensioner_couple_before_2021:
+    label: Council Tax Reduction applicable amount, pensioner couple, one reached pension age before April 2021
+    unit: gbp_per_week
+    value: 383.35
+    source: uksi-2026-27
+    legal: SI 2012/2885 Sch 2 para 1(2), as amended by SI 2026/27
+  ctr_pensioner_single:
+    label: Council Tax Reduction applicable amount, single pensioner
+    unit: gbp_per_week
+    value: 238.00
+    source: uksi-2026-27
+    legal: Council Tax Reduction Schemes (Prescribed Requirements) (England) Regulations 2012 Sch 2 para 1(4), as amended by SI 2026/27
+  ctr_pensioner_couple:
+    label: Council Tax Reduction applicable amount, pensioner couple
+    unit: gbp_per_week
+    value: 363.25
+    source: uksi-2026-27
+    legal: SI 2012/2885 Sch 2 para 1(5), as amended by SI 2026/27
+  ctr_child:
+    label: Council Tax Reduction applicable amount, each child (pensioner scheme)
+    unit: gbp_per_week
+    value: 87.88
+    source: uksi-2026-27
+    legal: SI 2012/2885 Sch 2 para 2(1), as amended by SI 2026/27
+  ctr_family_premium:
+    label: Council Tax Reduction family premium (pensioner scheme)
+    unit: gbp_per_week
+    value: 20.22
+    source: uksi-2026-27
+    legal: SI 2012/2885 Sch 2 para 3(a), as amended by SI 2026/27
+  ctr_taper:
+    label: Council Tax Reduction withdrawn per £1 of income above the applicable amount
+    unit: rate
+    value: 0.2
+    source: uksi-2026-27
+    legal: SI 2012/2885 Schedule 1 (pensioners); Scotland's and Wales's schemes use 20% too
+  ctr_capital_limit:
+    label: Savings above which there is no Council Tax Reduction
+    unit: gbp
+    value: 16000
+    source: uksi-2026-27
+    legal: SI 2012/2885 Schedule 1
+    note: Pensioners on the guarantee credit of Pension Credit have no limit; Pension Credit isn't modelled, so the limit applies to everyone.
+  ctr_pensioner_take_up:
+    label: Share of entitled pensioner households that claim Council Tax Reduction
+    unit: rate
+    value: 1
+    source: ours-ctr-calibration
+    note: Calibrated to MHCLG's spending on pensioners in England (£1,816m in 2025-26, grown with Band D to £1,905m), which needs every entitled pensioner to claim (we get £1,898m). Real take-up is surely lower, so our pensioners are probably more often entitled than real ones; see POPULATION.md.
+  ctr_england_working_age_max:
+    label: Most of the bill England's stand-in working-age scheme will pay
+    unit: rate
+    value: 0.75
+    source: ours-ctr-calibration
+    note: Many English councils make working-age households pay at least part of the bill. Calibrated to MHCLG's spending on working-age people in England (£2,506m in 2025-26, grown with Band D to £2,629m).

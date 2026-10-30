@@ -130,7 +130,7 @@ All three are 4–6% low. HMRC's lines here are after tax reductions (EIS relief
 
 **How it's worked out:**
 - **Households,** not families: the families (benefit units) in a household are added together. People outside private households are left out, as they are from DWP's household statistics (HBAI).
-- **Income** is net household income before housing costs: earnings, pensions, other income and benefits, less income tax, National Insurance, pension contributions and the Child Benefit charge. That's HBAI's measure, except that council tax, disability benefits and some others aren't modelled yet (see POPULATION.md).
+- **Income** is net household income before housing costs: earnings, pensions, other income and benefits, less income tax, National Insurance, pension contributions, the Child Benefit charge and council tax (after any Council Tax Reduction). That's HBAI's measure, except that disability benefits and some others aren't modelled yet (see POPULATION.md). A change that moves incomes also moves Council Tax Reduction, so that shows here; the costing doesn't count it yet (POPULATION.md, "Council tax").
 - **Ranking** is by income adjusted for household size the way HBAI does it (the modified OECD scale), before the policy. Each tenth ("decile") holds a tenth of households. HBAI ranks people instead; tenths of households are easier to read as "the average household in this tenth".
 - **A gain or loss** is a change of more than £1 a week (£52 a year). Smaller changes count as no real change.
 - **Static:** nobody's behaviour changes. That's the standard for these tables (HM Treasury's and the IFS's are static too); the behavioural costing changes the revenue total, not this picture.

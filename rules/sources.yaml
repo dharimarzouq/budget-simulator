@@ -357,3 +357,88 @@ sg-ctaxbase-2025:
   licence: Open Government Licence v3.0
   published: not stated on the page
   accessed: 2026-10-30
+
+# Council tax, domestic rates and Council Tax Reduction (rules/2026-27/council_tax.yaml).
+mhclg-ctl-2026-27:
+  title: Council Tax levels set by local authorities in England 2026 to 2027 (Table 10, local authority level data)
+  publisher: Ministry of Housing, Communities and Local Government
+  url: https://www.gov.uk/government/statistics/council-tax-levels-set-by-local-authorities-in-england-2026-to-2027
+  licence: Open Government Licence v3.0
+  published: 2026-03-25
+  accessed: 2026-10-30
+  notes: Regional averages are our own, from Table 10 line 17 (area Band D including all precepts) weighted by line 7 (tax base). They reproduce the published England average of £2,391.52 and London's £2,068.
+wg-ctl-2026-27:
+  title: Council tax levels, April 2026 to March 2027
+  publisher: Welsh Government
+  url: https://www.gov.wales/council-tax-levels-april-2026-march-2027-html
+  licence: Open Government Licence v3.0
+  published: 2026-03-24
+  accessed: 2026-10-30
+sg-ctas-2026-27:
+  title: "Council Tax datasets: Council Tax by band 2026-27"
+  publisher: Scottish Government
+  url: https://www.gov.scot/publications/council-tax-datasets/
+  licence: Open Government Licence v3.0
+  published: not stated on the page
+  accessed: 2026-10-30
+  notes: Scotland average Band D £1,653.44, excluding water and sewerage charges; band ratios to Band D.
+lgfa-1992:
+  title: Local Government Finance Act 1992, section 5 (proportions between bands)
+  publisher: legislation.gov.uk
+  url: https://www.legislation.gov.uk/ukpga/1992/14/section/5
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-30
+dof-ni-rate-poundages-2026-27:
+  title: Rate poundages 2026 to 2027
+  publisher: Department of Finance (Northern Ireland)
+  url: https://www.finance-ni.gov.uk/articles/rate-poundages
+  licence: Open Government Licence v3.0
+  published: not stated on the page
+  accessed: 2026-10-30
+  notes: Domestic regional rate 0.005559 everywhere; district rates 0.003966 (Lisburn & Castlereagh) to 0.006655 (Derry City & Strabane).
+nidirect-rates:
+  title: How rate bills are calculated; Lone Pensioner Allowance
+  publisher: nidirect
+  url: https://www.nidirect.gov.uk/articles/how-rate-bills-are-calculated
+  licence: Open Government Licence v3.0
+  accessed: 2026-10-30
+  notes: Capital values are capped at £400,000. Lone Pensioner Allowance, https://nidirect.gov.uk/lone-pensioner-allowance, is 20% off for ratepayers aged 70 or over living alone.
+uksi-2026-27:
+  title: The Council Tax Reduction Schemes (Prescribed Requirements) (England) (Amendment) Regulations 2026 (SI 2026/27)
+  publisher: legislation.gov.uk
+  url: https://www.legislation.gov.uk/uksi/2026/27/made
+  licence: Open Government Licence v3.0
+  published: 2026-01-15
+  accessed: 2026-10-30
+  notes: Uprates the pensioner scheme's applicable amounts for 2026-27 (Schedule 2).
+mhclg-ctb-2025:
+  title: "Council Taxbase in England 2025: local authority level data (Council Tax Support data, Tables 3.01 to 3.07)"
+  publisher: Ministry of Housing, Communities and Local Government
+  url: https://www.gov.uk/government/statistics/council-taxbase-2025-in-england
+  licence: Open Government Licence v3.0
+  published: 2025-11-06
+  accessed: 2026-10-30
+  notes: Council tax forgone through council tax support in 2025-26, England, £1,816m for pensioners and £2,506m for working-age people.
+sg-ctr-2025-26:
+  title: "Council Tax Reduction in Scotland: 2025-2026"
+  publisher: Scottish Government
+  url: https://www.gov.scot/publications/council-tax-reduction-scotland-2025-2026/
+  licence: Open Government Licence v3.0
+  published: 2026-06-23
+  accessed: 2026-10-30
+  notes: Provisional income forgone £425.1m in 2025-26; 458,950 recipients in March 2026.
+wg-ctrs-2025-26:
+  title: "Council Tax Reduction Scheme: statistical report 2025-26"
+  publisher: Welsh Government
+  url: https://www.gov.wales/sites/default/files/publications/2026-08/council-tax-reduction-scheme-annual-report-2025-to-2026.pdf
+  licence: Open Government Licence v3.0
+  published: 2026-08
+  accessed: 2026-10-30
+  notes: Reductions worth £347.4m in 2025-26; 257,306 households in March 2026 (100,285 pensioner, 157,021 working-age).
+ours-ctr-calibration:
+  title: Our calibration of the simplified Council Tax Reduction scheme to published spending
+  publisher: this project
+  url: https://github.com/dharimarzouq/budget-simulator/blob/main/COSTING.md
+  licence: MIT
+  accessed: 2026-10-30
+  notes: Chosen so the synthetic population's Council Tax Reduction matches MHCLG's 2025-26 totals for England, grown with Band D council tax to 2026-27. See POPULATION.md, "Council tax".
