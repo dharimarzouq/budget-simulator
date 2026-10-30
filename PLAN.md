@@ -1,25 +1,22 @@
-# Handoff: where things stand (29 October 2026)
+# Handoff: where things stand (30 October 2026)
 
 Start here if you're picking this up in a new chat. Then read CLAUDE.md, RESEARCH.md and COSTING.md as needed.
 
 ## State
 - **Live:** https://dharimarzouq.github.io/budget-simulator/ (repo github.com/dharimarzouq/budget-simulator, public, MIT).
   - Pushing to `main` republishes the site through `.github/workflows/pages.yml`.
-  - Last published commit: "Design pass: Budget box look…" (293c7b6).
-  - The working tree was clean after it.
+  - Last published commit: "Keyboard pass and wide screens…" (3114a36), 30 October 2026.
 - **Milestone 1:** done (rules engine, synthetic population, costing, behaviour, borrowing and fiscal rules).
 - **Milestone 2:**
   - Step 1 (taxes and named policies, 1a–1c): done and published. 1d waits on DWP (see below).
   - Step 2 (spending, with Barnett): done and published.
   - Step 3 (history and the impact chart): done and published.
-  - Step 4 (design pass, "Budget box"): done and published 29 October 2026. Details are under "Step 4 in detail" below.
-- **Tests:** 180 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
+  - Step 4 (design pass, "Budget box"): done and published 29 October 2026; the keyboard pass and wide sizes were checked and fixed 30 October. Details are under "Step 4 in detail" below.
+- **Milestone 3** (reform packs, starting with a land value tax): planned 30 October 2026, and Ari's decisions on it are recorded. Waiting for go.
+- **Tests:** 195 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
 
 ## What's next, in order
-1. **Finish checking step 4:**
-   - a keyboard-only pass of the whole page;
-   - the wide three-column layout (≥1600px). The tax chart sits in its own column there, and the scoreboard is pinned at the top of the results column.
-   - Fix anything found, show Ari, and ask before publishing.
+1. **Milestone 3** (see "Milestone 3 plan" below). Step 1, the gov.uk check, is done (30 October 2026). Next: step 2, the reform slot; then homes in the population, council tax and business rates, and the land value tax pack. Show Ari the plan for each step and wait for go.
 2. **1d, the 2027-28 rules,** once DWP publishes the 2027-28 benefit and State Pension rates (usually late November). Show Ari a plan first. What's already known:
    - The income tax and NICs thresholds are frozen to 2031.
    - Budget 2026 adds 2p on property and savings income from April 2027, an income tax exemption for low-income pensioners, and a bigger trading allowance.
@@ -36,12 +33,12 @@ Start here if you're picking this up in a new chat. Then read CLAUDE.md, RESEARC
 - Show a plan before each piece of work and wait for "go". Ask before anything hard to undo. **Ask before every push to main**, because a push publishes the site.
 - Plain language. Say when something is synthetic, approximate or missing. Static and with-responses figures are always shown separately.
 - Ari keeps published-table inputs even when the fit gets worse. Document the gap rather than tuning it away.
-- Commits end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Never put Ari's personal email address in commits.
+- No Co-Authored-By line on commits (Ari, 30 October 2026). Never put Ari's personal email address in commits.
 - `data/statxplore.key` (git-ignored) is an API key: never print, log or commit it.
 
 ## Practical notes
 - **Running it:**
-  - Dev server: `npx vite --port 5174 --strictPort`.
+  - Dev server: `npx vite --port 5174 --strictPort`. In the Claude desktop app, `.claude/launch.json` starts it on port 5173 for the browser pane. If a CSS change doesn't show up, restart the server: Vite once kept serving a stale copy after two quick edits.
   - Build: `npx vite build`.
   - Python data builds: `.venv`, plus `.venv-pe` for the PolicyEngine check.
 - **Windows PowerShell gotchas:**
@@ -60,7 +57,7 @@ Start here if you're picking this up in a new chat. Then read CLAUDE.md, RESEARC
 
 # Milestone 1 plan: income tax, NICs, Universal Credit, Child Benefit
 
-Status: steps 1–4 done (27 October 2026), plus an early household calculator page and the benefit cap. Step 4 covered PolicyEngine UK (all 50 test households match; see tools/README.md); checking against gov.uk worked examples is still to do. Step 5, the synthetic population, is next. I'll check in with results after each step.
+Status: steps 1–4 done (27 October 2026), plus an early household calculator page and the benefit cap. Step 4 covered PolicyEngine UK (all 50 test households match; see tools/README.md); the gov.uk worked examples followed on 30 October 2026 (milestone 3, step 1). Step 5, the synthetic population, is next. I'll check in with results after each step.
 
 Tax year: 2026/27, the current year. Every rate and threshold is stored as data with its source and legal basis, not hard-coded. That matters because the rules change. For example, the Universal Credit two-child limit was removed from 6 April 2026 by the Universal Credit (Removal of Two Child Limit) Act 2026.
 
@@ -245,6 +242,88 @@ Progress, 29 October 2026: 4a–4g done and published.
 - The picture is a 1200×630 PNG.
 - Assumptions are kept in the link (`respond=`, `economy=1`).
 - Keyboard pass and wide sizes checked 30 October 2026, in both themes and at 1440, 1600, 1920 and 2560 wide. Fixed: focus now stays in place after Add, Take out, reset, Remove and Bring back (before, it dropped to the top of the page); a "Skip to results" link; the header comes first after the guide closes on a first visit; day-to-day and investment sliders (and the UK and Scottish income tax ones) have different names for screen readers, and spending boxes say £bn; the page stops at 1840px wide, centred, and charts at 800px.
+
+# Milestone 3 plan: reform packs, starting with a land value tax (proposed 30 October 2026, waiting for go)
+
+The simulator so far changes taxes and spending that already exist. A **reform pack** is a structural change: a new tax base, or a new way of funding something, that may replace existing taxes. A land value tax (LVT) was meant to be the first one in milestone 2 (RESEARCH.md); it slipped while taxes, spending and the design took priority. 1d (the 2027-28 rules) is blocked until DWP publishes in late November, so there's room now.
+
+An LVT is a big step because it needs three things the simulator doesn't have yet: a place for reforms to plug in, homes in the population (who owns, what their home and its land are worth), and the taxes most LVT proposals replace (council tax, business rates, stamp duty). The steps below build those in order, then the LVT on top.
+
+## Step 1: check the engine against gov.uk (before anything else)
+
+CLAUDE.md asks for checks against PolicyEngine UK *and* gov.uk; only PolicyEngine is done (milestone 1, step 4). Step 4 below changes the engine, so this goes first.
+
+- Collect worked examples published on gov.uk by HMRC and DWP (income tax, National Insurance, the High Income Child Benefit Charge, Universal Credit, the benefit cap), each recorded with its URL and date.
+- Run each through the engine as a test. A mismatch is a bug until explained (CLAUDE.md).
+- Where gov.uk has a calculator but no published worked example, a handful of households run by hand through the calculator, with the inputs and answers saved.
+
+Check: every example matches to the penny, or the difference is written down with its reason.
+
+Progress, 30 October 2026: done, in `test/govuk.test.ts` (15 tests, all passing first time; no engine changes needed).
+- **HMRC on gov.uk:** dividends at 2026-27 rates; the starting rate for savings; the Personal Savings Allowance; Marriage Allowance (the couple saves £214); the Child Benefit charge under today's rules and the pre-2024 ones (from HMRC's PAYE manual, run on a copy of the rules with that year's figures).
+- **DWP:** three Universal Credit awards at 2026-27 rates from the decision makers' guide (ADM chapter E2): Bella (no work allowance, £232.40), Roy (lower work allowance, £1,052.76) and Ben (pay under the work allowance, £1,150.91).
+- **Rates as gov.uk states them for 2026-27:** income tax in the rest of the UK and in Scotland, employee and self-employed National Insurance, Universal Credit's work allowances and taper, and the benefit cap.
+- **One difference, explained:** HMRC's manual (PAYE14015) gives the charge on £1,331.20 at 40% as £453; 40% of £1,331.20 is £532.48, so the manual has a slip. Its older example rounds £700.80 down to £700; we keep the pence.
+- **Not found:** gov.uk publishes no worked examples for the benefit cap, the childcare element or Universal Credit with tax and National Insurance taken off pay. Gov.uk's benefits calculators are run by outside companies, so they're not used as a check.
+
+## Step 2: the reform slot
+
+How every structural reform plugs in, so the LVT is the first of many rather than a one-off.
+
+- **2a. A reform pack** is data plus a costing function, like the named policies. It has a plain-English name and description; its options (rates, what it covers, what it replaces, how fast it's phased in); and the existing taxes it replaces, which are switched off through the levers and removals that already exist, so their costings come from the same place as everywhere else.
+- **2b. What each pack reports,** in the same shape as every other measure: what it raises or costs each year (static and with responses, separately); who gains and loses, where it reaches households; the effect on the economy; sources; and a grade for each part, not one grade for the whole. Most reforms have no official costing, so most parts will be B, C or D, and the page says so.
+- **2c. On the page:** a fifth tab, Reforms, beside Policies, Taxes, Spending and Assumptions. A pack's options open in place. The pack is one row in the scorecard, with the taxes it replaces shown as rows under it, so the net figure can be traced. The pack and its options go in the link like everything else.
+
+Check: a test pack that "replaces" a tax with an identical tax costs exactly zero in every year, with nobody gaining or losing.
+
+## Step 3: homes in the population
+
+- **3a. Tenure in the browser.** The population build already gives each household a tenure from the FRS (owned outright, mortgaged, social rent, private rent), but it isn't exported. Export it.
+- **3b. What owners' homes are worth.** A home value for each owner-occupier household, drawn to match published figures by region and by income: the ONS House Price Index (average prices by region) and the ONS Wealth and Assets Survey (property wealth by income and region). Labelled synthetic, grade C.
+- **3c. How much of that is land.** The ONS national balance sheet splits land from buildings for the whole country (land was about £7.0 trillion in 2021; get the latest edition). How that varies by region needs our own estimate, because the ONS says it doesn't publish small-area residential land values. Candidate source: MHCLG's land value estimates for policy appraisal, if there's a recent edition. Grade C.
+- **3d. A council tax band for each home,** from its value deflated back to the valuation date (1 April 1991 in England and Scotland; 2003 in Wales, which has nine bands), using the regional House Price Index.
+
+Checks: owner numbers by region match the FRS; band counts match the Valuation Office Agency's council tax stock of properties by region; the population's total owner-occupied land value is close to the ONS balance sheet's figure for household land, with any gap written down rather than tuned away.
+
+## Step 4: the taxes an LVT would replace
+
+- **4a. Council tax in the engine.** Each household pays its band's charge, from published Band D levels for 2026-27 (by region in England; Scotland's and Wales's own figures), with the 25% single-person discount. Northern Ireland has domestic rates on capital values instead: modelled the same way from its own rate. This also fixes a known gap: household incomes currently leave out council tax, which HBAI takes off (POPULATION.md).
+- **4b. Council Tax Reduction,** approximated. It's a local scheme in England (most councils' schemes are different) and a national one in Scotland and Wales, with a national scheme for pensioners everywhere. One simplified scheme per nation, labelled approximate. Without it, an LVT replacing council tax would look harsher on low-income households than it is.
+- **4c. A council tax lever and named policies** follow for free: "Revalue council tax", "Add bands above H" and so on can come later as named policies.
+- **4d. Business rates** as a national total from the OBR's receipts forecast, not modelled firm by firm. Like corporation tax, not shared out to households; the page says so.
+- **4e. Stamp duty** is already a slider (HMRC's ready reckoner); the pack switches it off through that.
+
+Checks: council tax receipts from the population against the OBR's forecast, and against MHCLG's published total for England; HBAI income match rechecked with council tax taken off; existing tests keep passing.
+
+## Step 5: the land value tax pack
+
+- **5a. Options:** the rate (% of land value a year); what it covers (homes, commercial land, farmland, each on or off); an allowance (the first £X of land value per home tax-free, optional); what it replaces (council tax, business rates, stamp duty, each on or off); phasing (in full at once, or over a number of years); and, for owners with low incomes, the option to defer payment until the home is sold.
+- **5b. The base:** the ONS balance sheet land values, split by type, carried forward with the OBR's house price forecast.
+- **5c. Land prices respond.** The textbook result is that a tax on land is "capitalised": land prices fall by roughly the present value of the tax, which shrinks the base. An option shows the costing with and without this, using a published net rental yield to value land. This is the main behavioural effect, and it is shown separately from the static figure, as with every other tax.
+- **5d. Who pays:**
+  - Owner-occupiers pay on their home's land and stop paying whatever the pack replaces.
+  - Private renters stop paying council tax if it's replaced. Standard theory says landlords can't pass an LVT on in rents; an option sets how much they pass on (0% by default), labelled as an assumption.
+  - Social landlords, commercial land and farmland: not shared out to households. The page says where the money comes from rather than guessing who bears it.
+- **5e. The effect on the economy:** there is no OBR multiplier for an LVT and little direct evidence. With the economy switch on, it gets the OBR's general tax multiplier as a placeholder, grade D (decided below).
+- **5f. Devolution:** council tax and business rates are devolved. The pack covers the whole UK by default and the page says that would need the devolved governments to agree; an option limits it to England. Council tax is local government money, but the OBR counts the public sector as a whole, so the swap is scored that way; who gets the money (councils or the Treasury) is noted, not modelled.
+
+Checks: with the rate set to raise exactly what council tax raises and council tax replaced, receipts net to zero; hand-worked households (an owner in London, an owner in the North East, a private renter, a pensioner on Council Tax Reduction); gains and losses add up to the pack's total for households; our figures compared with published LVT estimates where their assumptions can be matched, with differences explained rather than tuned away.
+
+## Step 6: on the page and in How we know
+
+The Reforms tab, the scorecard rows, the household calculator (home value and tenure as new inputs, with council tax and LVT lines in the working), and a How we know section for each new source, with its grade.
+
+## Decisions for milestone 3 (Ari, 30 October 2026)
+
+- **What the LVT replaces by default:** council tax, business rates *and* stamp duty. Each stays a switch.
+- **Farmland:** out by default, with a switch to bring it in.
+- **Land prices falling (5c):** counted like other taxes' responses: the scoreboard follows the Assumptions tab (on unless "Nobody responds" is picked), and the static figure is always shown under it.
+- **The effect on the economy (5e):** when the economy switch is on, the OBR's general tax multiplier, labelled a placeholder, grade D.
+- **Northern Ireland:** its domestic rates are modelled in step 4, so the LVT covers the whole UK consistently.
+
+## Not in milestone 3
+
+Revaluing or reforming council tax itself (easy to add as named policies once 4a exists); a proportional property tax on whole home values rather than land (a second pack on the same groundwork); modelling individual firms or farms; second homes and empty homes premiums.
 
 ## Decisions I'll need from you along the way
 

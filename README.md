@@ -12,8 +12,8 @@ for the method, the checks against official figures, and where they fall short.
 ## What's in it
 
 - **The engine** (`src/engine`): income tax (including Scotland's bands, savings and dividends), National Insurance,
-  Universal Credit, Child Benefit and its charge, and the benefit cap, for 2026-27. Checked against PolicyEngine UK and
-  hand-worked examples.
+  Universal Credit, Child Benefit and its charge, and the benefit cap, for 2026-27. Checked against PolicyEngine UK,
+  worked examples published on gov.uk by HMRC and DWP (`test/govuk.test.ts`), and hand-worked examples.
 - **The rules** (`rules/`): every rate and threshold as data, each with its source and the law or guidance behind it.
 - **The population** (`data/`, built into `public/data/`): about 32,600 synthetic households, calibrated to around 800
   published totals from HMRC, DWP, the Family Resources Survey's published tables, ONS and the OBR.
