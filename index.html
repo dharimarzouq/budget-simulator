@@ -12,6 +12,21 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body class="bench-page">
+    <!-- First in the page, so that after the guide closes on a first visit, Tab carries on from the top. -->
+    <dialog id="guide" aria-labelledby="guide-title">
+      <h2 id="guide-title">How to use the budget simulator</h2>
+      <ol>
+        <li><strong>Make your budget.</strong> Add a ready-made policy, or move the sliders under Taxes and Spending. Each change shows today's value beside it.</li>
+        <li><strong>Watch the scoreboard.</strong> The strip at the top shows what your budget raises or costs a year, whether the government's two fiscal rules are still met in 2029-30, and how many households lose or gain.</li>
+        <li><strong>Read down the page.</strong> Borrowing and debt since 1948 with your budget added; who gains and loses by income, family and region; a scorecard of each measure year by year; tax on one person; and a household like yours.</li>
+        <li><strong>Choose your assumptions.</strong> Under Assumptions, pick how strongly people respond to tax changes, and whether to include the effect on the economy.</li>
+        <li><strong>Share it.</strong> The link keeps every change. You can also copy a summary or save a picture.</li>
+      </ol>
+      <p class="small">Every figure is an estimate: made-up households weighted to match published UK totals, HMRC's and the OBR's published figures, and grades and checks that say how far to trust each one. How it's all worked out is under How we know.</p>
+      <form method="dialog"><button type="submit" class="primary">Start</button></form>
+    </dialog>
+
+    <a class="skip" href="#results">Skip to results</a>
     <header class="top">
       <div>
         <h1>UK budget simulator</h1>
@@ -26,19 +41,6 @@
         <a href="./how.html">How we know</a>
       </nav>
     </header>
-
-    <dialog id="guide" aria-labelledby="guide-title">
-      <h2 id="guide-title">How to use the budget simulator</h2>
-      <ol>
-        <li><strong>Make your budget.</strong> Add a ready-made policy, or move the sliders under Taxes and Spending. Each change shows today's value beside it.</li>
-        <li><strong>Watch the scoreboard.</strong> The strip at the top shows what your budget raises or costs a year, whether the government's two fiscal rules are still met in 2029-30, and how many households lose or gain.</li>
-        <li><strong>Read down the page.</strong> Borrowing and debt since 1948 with your budget added; who gains and loses by income, family and region; a scorecard of each measure year by year; tax on one person; and a household like yours.</li>
-        <li><strong>Choose your assumptions.</strong> Under Assumptions, pick how strongly people respond to tax changes, and whether to include the effect on the economy.</li>
-        <li><strong>Share it.</strong> The link keeps every change. You can also copy a summary or save a picture.</li>
-      </ol>
-      <p class="small">Every figure is an estimate: made-up households weighted to match published UK totals, HMRC's and the OBR's published figures, and grades and checks that say how far to trust each one. How it's all worked out is under How we know.</p>
-      <form method="dialog"><button type="submit" class="primary">Start</button></form>
-    </dialog>
 
     <div class="bench">
       <aside id="levers-panel" aria-label="Levers">
@@ -93,7 +95,7 @@
         <div id="tax-chart"></div>
       </section>
 
-      <main id="results">
+      <main id="results" tabindex="-1">
         <!-- The scoreboard: what the budget does, kept in view while the rest scrolls. -->
         <div id="scoreboard" class="scoreboard">
           <section id="headline" class="score" aria-live="polite" aria-label="Your budget at a glance"></section>

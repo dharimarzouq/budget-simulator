@@ -57,6 +57,10 @@ document.addEventListener("click", (ev) => {
 });
 const PER: Record<string, string> = { gbp: "", gbp_per_year: "", gbp_per_month: " a month", gbp_per_week: " a week", change_gbp: "" };
 
+/** A lever's name for screen readers: its label, with its group where another lever shares the label ("Health and Social Care, Investment spending"). */
+const SHARED_LABELS = new Set(LEVERS.map((l) => l.label).filter((label, i, all) => all.indexOf(label) !== i));
+const spokenName = (l: Lever) => (SHARED_LABELS.has(l.label) ? `${l.label}, ${l.group}` : l.label);
+
 /** A slider that is a change from today, either way (so it can go below zero). */
 const isChange = (l: Lever) => l.unit === "change_share" || l.unit === "change_gbp" || l.unit === "change_bn";
 
@@ -163,15 +167,17 @@ function leverRow(l: Lever): string {
       <div class="removed-note"><strong>Removed.</strong> ${esc(removal.means)}</div>
       <button type="button" data-restore="${removal.id}">Bring back</button></div>`;
   }
-  const undo = `<button type="button" class="undo" data-undo="${l.id}" aria-label="Reset ${esc(l.label)}" title="Back to today's value">×</button>`;
+  const spoken = esc(spokenName(l));
+  const undo = `<button type="button" class="undo" data-undo="${l.id}" aria-label="Reset ${spoken}" title="Back to today's value">×</button>`;
   if (l.unit === "flag") {
     return `<div class="lever" data-id="${l.id}">${name}<label class="check flag"><input type="checkbox" data-flag="${l.id}"${v ? " checked" : ""}> ${esc(l.label)} in force</label>${undo}</div>`;
   }
   const { min, max, step, scale } = range(l);
   const shown = +((v as number) * scale).toFixed(4);
+  const unit = scale === 100 ? "%" : l.unit === "change_bn" ? "£bn" : "£";
   return `<div class="lever" data-id="${l.id}">${name}
-    <input type="range" min="${min}" max="${max}" step="${step}" value="${shown}" data-range="${l.id}" aria-label="${esc(l.label)}" aria-valuetext="${esc(showValue(l, v))}">
-    <input type="number" step="${scale === 100 ? "any" : step}" value="${shown}" data-number="${l.id}" aria-label="${esc(l.label)}${scale === 100 ? ", %" : ", £"}">
+    <input type="range" min="${min}" max="${max}" step="${step}" value="${shown}" data-range="${l.id}" aria-label="${spoken}" aria-valuetext="${esc(showValue(l, v))}">
+    <input type="number" step="${scale === 100 ? "any" : step}" value="${shown}" data-number="${l.id}" aria-label="${spoken}, ${unit}">
     ${undo}${plan === undefined ? "" : `<div class="plan-bar" aria-hidden="true"><span style="width:${planWidth(l.id, v as number)}"></span></div>`}</div>`;
 }
 
@@ -400,6 +406,11 @@ function hideBubble() {
   bubbleTimer = window.setTimeout(() => ($("bubble").style.display = "none"), 700);
 }
 
+/** Focus the first control matching `selector`, if there is one (after a redraw took the focused one away). */
+function refocus(selector: string) {
+  document.querySelector<HTMLElement>(selector)?.focus();
+}
+
 function wireLevers() {
   const panel = $("levers");
   panel.addEventListener("input", (ev) => {
@@ -419,19 +430,32 @@ function wireLevers() {
     }
     if (t.dataset.flag) setLever(t.dataset.flag, t.checked);
   });
+  // These buttons go once pressed (the row is redrawn, or the reset button hides), so focus moves to what
+  // takes their place in the same row rather than dropping to the top of the page.
   panel.addEventListener("click", (ev) => {
     const d = (ev.target as HTMLElement).dataset;
-    if (d.undo) setLever(d.undo, undefined);
-    if (d.remove) setRemoval(d.remove, true);
-    if (d.restore) setRemoval(d.restore, false);
+    if (d.undo) {
+      setLever(d.undo, undefined);
+      refocus(`[data-range="${d.undo}"], [data-flag="${d.undo}"]`);
+    }
+    if (d.remove) {
+      setRemoval(d.remove, true);
+      refocus(`[data-restore="${d.remove}"]`);
+    }
+    if (d.restore) {
+      setRemoval(d.restore, false);
+      refocus(`[data-remove="${d.restore}"]`);
+    }
   });
   for (const end of ["pointerup", "change", "blur"]) panel.addEventListener(end, hideBubble, true);
   $("lever-search").addEventListener("input", () => (filterLevers(), filterPolicies()));
   $("changed-only").addEventListener("change", () => (filterLevers(), filterPolicies()));
   $("policies").addEventListener("click", (ev) => {
     const d = (ev.target as HTMLElement).dataset;
+    const id = d.addPolicy ?? d.dropPolicy;
     if (d.addPolicy) addPolicy(d.addPolicy);
     if (d.dropPolicy) dropPolicy(d.dropPolicy);
+    if (id) refocus(`[data-policy="${id}"] .policy-actions button`);
   });
   $("reset").addEventListener("click", () => {
     policy.clear();

@@ -244,7 +244,7 @@ Progress, 29 October 2026: 4a–4g done and published.
 - Departments show a bar against their 2027-28 plan.
 - The picture is a 1200×630 PNG.
 - Assumptions are kept in the link (`respond=`, `economy=1`).
-- Not done: a full keyboard pass of the whole page, and the wide (three-column) size.
+- Keyboard pass and wide sizes checked 30 October 2026, in both themes and at 1440, 1600, 1920 and 2560 wide. Fixed: focus now stays in place after Add, Take out, reset, Remove and Bring back (before, it dropped to the top of the page); a "Skip to results" link; the header comes first after the guide closes on a first visit; day-to-day and investment sliders (and the UK and Scottish income tax ones) have different names for screen readers, and spending boxes say £bn; the page stops at 1840px wide, centred, and charts at 800px.
 
 ## Decisions I'll need from you along the way
 

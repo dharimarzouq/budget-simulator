@@ -18,6 +18,12 @@
 * { box-sizing: border-box; }
 body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; padding: 16px; color: var(--ink); background: var(--surface); }
 body:not(.bench-page) { max-width: 1040px; }
+/* Past this the columns just spread out: on big screens the page sits in the middle instead. */
+body.bench-page { max-width: 1840px; }
+/* Skip past the levers: hidden until it has keyboard focus. */
+.skip { position: absolute; left: 16px; top: -100px; z-index: 50; padding: 6px 12px; background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; }
+.skip:focus { top: 8px; }
+#results:focus { outline: none; } /* focused only as the skip link's target */
 a { color: var(--link); }
 h1, h2, h3, legend { font-family: var(--serif); }
 h1 { margin: 0; font-size: 26px; font-weight: 700; color: var(--red); letter-spacing: -0.01em; }
@@ -159,7 +165,8 @@ button.primary:hover { background: var(--red); filter: brightness(1.1); }
 .toggle button { border-radius: 0; } .toggle button:first-child { border-radius: 4px 0 0 4px; } .toggle button:last-child { border-radius: 0 4px 4px 0; }
 .toggle button[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: var(--on-red); }
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-.chart { position: relative; }
+/* Charts are drawn 640 wide and scale with their column; capped so their labels stay near the size of the text. */
+.chart { position: relative; max-width: 800px; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart text { fill: var(--ink-2); font-size: 12px; }
 .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 4px;
