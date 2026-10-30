@@ -3,7 +3,7 @@ import { FORECAST, fiscalPath, interestRates } from "../src/economy/fiscal";
 import type { Effects } from "../src/policy/costing";
 import { sources } from "../src/rules";
 
-const none: Effects = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, childBenefit: 0, universalCredit: 0 };
+const none: Effects = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, councilTax: 0, childBenefit: 0, universalCredit: 0 };
 const with_ = (x: Partial<Effects>): Effects => ({ ...none, ...x });
 
 describe("the OBR forecast data", () => {

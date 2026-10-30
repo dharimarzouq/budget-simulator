@@ -9,7 +9,7 @@ import { BARNETT_SOURCE, DEPARTMENTS, barnett, spendingCosts, spendingInYear } f
 import { sources } from "../src/rules";
 
 const r = ruleSet("2026-27");
-const zero = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, childBenefit: 0, universalCredit: 0 };
+const zero = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, councilTax: 0, childBenefit: 0, universalCredit: 0 };
 const at = (y: string) => FORECAST.years.indexOf(y);
 
 describe("spending", () => {

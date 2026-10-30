@@ -15,11 +15,14 @@ export interface Effects {
   employerNI: number;
   selfEmployedNI: number;
   childBenefitCharge: number;
+  /** Council tax (Northern Ireland: domestic rates) less Council Tax Reduction, as the OBR counts its receipts. Changes
+   * to income tax or benefits move it through Council Tax Reduction. */
+  councilTax: number;
   childBenefit: number;
   universalCredit: number;
 }
 
-export const TAXES: (keyof Effects)[] = ["incomeTax", "employeeNI", "employerNI", "selfEmployedNI", "childBenefitCharge"];
+export const TAXES: (keyof Effects)[] = ["incomeTax", "employeeNI", "employerNI", "selfEmployedNI", "childBenefitCharge", "councilTax"];
 export const BENEFITS: (keyof Effects)[] = ["childBenefit", "universalCredit"];
 
 export interface Run {
@@ -29,7 +32,7 @@ export interface Run {
 }
 
 export function run(pop: Population, r: RuleSet): Run {
-  const totals: Effects = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, childBenefit: 0, universalCredit: 0 };
+  const totals: Effects = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, councilTax: 0, childBenefit: 0, universalCredit: 0 };
   const netIncome = new Float64Array(pop.units.length);
   pop.units.forEach(({ weight: w, data }, i) => {
     const res = calculate(data, r);
@@ -40,6 +43,7 @@ export function run(pop: Population, r: RuleSet): Run {
       totals.selfEmployedNI += w * a.selfEmployedNI;
     }
     totals.childBenefitCharge += w * res.childBenefitCharge;
+    totals.councilTax += w * res.councilTax.net;
     totals.childBenefit += w * res.childBenefit;
     totals.universalCredit += w * res.universalCredit.award * 12;
     netIncome[i] = res.netIncome;

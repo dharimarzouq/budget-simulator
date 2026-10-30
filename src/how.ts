@@ -49,6 +49,14 @@ const GAPS: Record<string, string> = {
   "Child Benefit": "Not a calibration target yet.",
   "Universal Credit spending": "Ours includes Northern Ireland; the published figure is Great Britain only.",
   "Households on Universal Credit": "Ours includes Northern Ireland; the published figure is Great Britain only.",
+  "Council tax, after Council Tax Reduction": "England, Scotland and Wales. The OBR's figure is what councils budget to collect, with second-home and empty-home premiums ours don't cover; England 4% under, Wales 3% under, Scotland 9% over.",
+  "Council Tax Reduction": "England, Scotland and Wales, one simplified scheme. England's pensioner take-up and working-age maximum are calibrated to MHCLG's figure; Scotland and Wales aren't.",
+};
+
+// Published figures that aren't in the population file (POPULATION.md, "Council tax").
+const MORE_PUBLISHED: Record<string, { value: number; source: string }> = {
+  "Council tax, after Council Tax Reduction": { value: 46.806 + 3.17 + 2.578, source: "OBR October 2026, Table 5.1, 2026-27" },
+  "Council Tax Reduction": { value: 1.905 + 2.629 + 0.4251 * 1.072 + 0.3474 * 1.052, source: "MHCLG, Scottish and Welsh Governments, 2025-26, grown with Band D" },
 };
 
 async function renderPopulation(el: HTMLElement, r: ReturnType<typeof ruleSet>) {
@@ -68,11 +76,13 @@ async function renderPopulation(el: HTMLElement, r: ReturnType<typeof ruleSet>) 
       ["Child Benefit", t.childBenefit / 1e9, "£bn"],
       ["Families paid Child Benefit", t.cbFamilies / 1e6, "m"],
       ["Child Benefit charge", t.childBenefitCharge / 1e9, "£bn"],
+      ["Council tax, after Council Tax Reduction", t.councilTax / 1e9, "£bn"],
+      ["Council Tax Reduction", t.councilTaxReduction / 1e9, "£bn"],
     ];
     const fmt = (v: number, unit: string) => (unit === "£bn" ? `£${v.toFixed(v < 10 ? 2 : 1)}bn` : `${v.toFixed(2)}m`);
     let html = `<table><tr><th>A year</th><th class="num">These households</th><th class="num">Published</th><th class="num">Difference</th><th>Source</th></tr>`;
     for (const [name, ours, unit] of rows) {
-      const p = pop.published[name];
+      const p = pop.published[name] ?? MORE_PUBLISHED[name];
       const d = p ? Math.round((ours / p.value - 1) * 100) : 0; // round first, so a tiny gap shows as 0%, not −0%
       const diff = p ? `${d > 0 ? "+" : d < 0 ? "−" : ""}${Math.abs(d)}%` : "";
       html += `<tr><td>${esc(name)}${GAPS[name] ? `<div class="small">${esc(GAPS[name]!)}</div>` : ""}</td>

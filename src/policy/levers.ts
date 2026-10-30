@@ -15,7 +15,7 @@ export interface Lever {
   id: string;
   group:
     | "Income tax" | "Income tax (Scotland)" | "National Insurance" | "Universal Credit" | "Child Benefit"
-    | "VAT and duties" | "Business and wealth taxes" | "Stamp duty"
+    | "VAT and duties" | "Business and wealth taxes" | "Stamp duty" | "Council tax and business rates"
     | "Day-to-day spending" | "Investment spending" | "Benefits outside the household model";
   /** For changes that can go either way: how far the slider reaches each side of no change. */
   limit?: number;
@@ -169,6 +169,16 @@ export const LEVERS: Lever[] = [
   value("cb_other", "Child Benefit", "Each other child", "gbp_per_week", 0.05, "childBenefit", "otherWeekly"),
   value("cb_charge_threshold", "Child Benefit", "High Income Child Benefit Charge starts at", "gbp_per_year", 1000, "childBenefit", "chargeThreshold"),
   value("cb_charge_width", "Child Benefit", "Charge reaches 100% this far above the threshold", "gbp_per_year", 1000, "childBenefit", "chargeTaperWidth"),
+
+  // Council tax: in the household model, through each home's bill and Council Tax Reduction.
+  {
+    id: "council_tax", group: "Council tax and business rates", label: "Council tax, every band", unit: "change_share", step: 0.01, limit: 0.2,
+    get: (r) => r.councilTax.change,
+    set: (r, v) => void (r.councilTax.change = num(v)),
+    note: "A change in every bill, everywhere, as a share of today's; Northern Ireland's domestic rates too. Councils really set council tax (in Northern Ireland, the Executive and councils set rates); this shows what a change across the board would raise.",
+  },
+  other("business_rates", "Council tax and business rates", "Business rates", "change_share", 0.01, "businessRatesChange",
+    "A change in every bill, as a share of today's, across the UK. Costed by scaling the OBR's forecast: static, with no allowance for how businesses or rents respond."),
 
   // Costed from HMRC's ready reckoner, not the household model.
   other("vat_standard", "VAT and duties", "VAT standard rate", "rate", 0.01, "vatStandard", "Most goods and services."),

@@ -1,5 +1,5 @@
 // The household calculator: a form, the result with its working, and a marginal rate chart.
-import { adult, calculate, child, marginalRate, type Household, type Region, type RuleSet } from "./engine";
+import { adult, calculate, child, marginalRate, type CouncilTaxBand, type Dwelling, type Household, type Region, type RuleSet } from "./engine";
 
 const gbp = (n: number, dp = 2) => (n < 0 ? "−" : "") + "£" + Math.abs(n).toLocaleString("en-GB", { minimumFractionDigits: dp, maximumFractionDigits: dp });
 const pct = (r: number) => `${(r * 100).toFixed(1)}%`;
@@ -47,10 +47,41 @@ export function renderForm(form: HTMLFormElement) {
     <fieldset><legend>Children and home</legend>
       ${num("children", "Children", 1, 1)}
       ${check("pre2017", "Eldest born before 6 April 2017")}
-      ${num("rentMonthly", "Rent, a month", 800, 10)}
+      <label>Home<select name="tenure"><option value="rent">Rented</option><option value="own">Owned (outright or with a mortgage)</option></select></label>
+      <div id="rent-field">${num("rentMonthly", "Rent, a month", 800, 10)}</div>
       ${num("childcareMonthly", "Childcare costs, a month", 0, 10)}
       ${num("savings", "Savings", 0, 500)}
+    </fieldset>
+    <fieldset><legend>Council tax</legend>
+      <div id="band-field"><label>Council tax band<select name="band"><option value="">Leave council tax out</option>${"ABCDEFGHI"
+        .split("")
+        .map((b) => `<option value="${b}">Band ${b}</option>`)
+        .join("")}</select></label></div>
+      <div id="area-field" hidden><label>Region (Band D varies)<select name="area">${ENGLISH_REGIONS.map((a) => `<option${a === "South East" ? " selected" : ""}>${a}</option>`).join("")}</select></label></div>
+      <div id="value-field" hidden>${num("capitalValue", "Capital value of the home (rates; 0 leaves them out)", 0, 5000)}</div>
+      <p class="small">Council tax uses the average Band D for your region or nation, not your council's, and Council Tax Reduction a single simplified scheme. Only Wales has a band I (elsewhere it counts as H). In Northern Ireland, rates use the average district rate.</p>
     </fieldset>`;
+}
+
+const ENGLISH_REGIONS = ["North East", "North West", "Yorkshire and The Humber", "East Midlands", "West Midlands", "East", "South East", "South West"];
+
+/** The home for council tax, from the form: none unless a band (or in Northern Ireland, a capital value) is given. */
+function readHome(f: FormData, region: Region, adultsInHome: number): Dwelling | undefined {
+  const show = (id: string, on: boolean) => {
+    const el = document.querySelector<HTMLElement>(`#${id}`);
+    if (el) el.hidden = !on;
+  };
+  const ni = region === "northern_ireland";
+  const band = f.get("band") as CouncilTaxBand | "";
+  show("band-field", !ni);
+  show("area-field", !ni && region === "england" && !!band);
+  show("value-field", ni);
+  const area = region === "england" ? String(f.get("area")) : region === "london" ? "London" : region === "wales" ? "Wales" : region === "scotland" ? "Scotland" : "Northern Ireland";
+  // Only Wales has a band I; elsewhere take it as H, the top band.
+  const fixed = band === "I" && region !== "wales" ? "H" : band;
+  const capitalValue = Math.max(0, Number(f.get("capitalValue")) || 0);
+  if (ni) return capitalValue ? { area, capitalValue, adultsInHome, takeUpDraw: 0 } : undefined;
+  return fixed ? { area, band: fixed, adultsInHome, takeUpDraw: 0 } : undefined;
 }
 
 export function readForm(form: HTMLFormElement): Household {
@@ -75,13 +106,18 @@ export function readForm(form: HTMLFormElement): Household {
   const partner = f.has("partner");
   (form.querySelector("#partner-fields") as HTMLElement).hidden = !partner;
   const kids = Math.min(12, Math.floor(n("children")));
+  const region = f.get("region") as Region;
+  const owned = f.get("tenure") === "own";
+  (form.querySelector("#rent-field") as HTMLElement).hidden = owned;
+  const home = readHome(f, region, partner ? 2 : 1);
   return {
-    region: f.get("region") as Region,
+    region,
     adults: partner ? [readAdult(0), readAdult(1)] : [readAdult(0)],
     children: Array.from({ length: kids }, (_, i) => child({ bornBefore2017: i === 0 && f.has("pre2017") })),
-    rentMonthly: n("rentMonthly"),
+    rentMonthly: owned ? 0 : n("rentMonthly"),
     childcareMonthly: n("childcareMonthly"),
     savings: n("savings"),
+    ...(home ? { home } : {}),
   };
 }
 
@@ -123,8 +159,15 @@ export function renderResult(el: HTMLElement, h: Household, r: RuleSet) {
     html += row("Universal Credit", uc.award, "", "total") + `</table>`;
   }
 
+  const ct = res.councilTax;
+  if (h.home) {
+    html += `<h3>${h.region === "northern_ireland" ? "Rates" : "Council tax"}, a year</h3><table>`;
+    for (const l of ct.lines) html += row(l.label, l.amount, l.working);
+    html += row("To pay", ct.net, "", "total") + `</table>`;
+  }
+
   html += `<h3>Marginal rate as your pay changes</h3>
-    <p class="small">Share of the next £1,000 of pay lost to tax, National Insurance, the Child Benefit charge and Universal Credit withdrawal, with everything else held as entered.</p>
+    <p class="small">Share of the next £1,000 of pay lost to tax, National Insurance, the Child Benefit charge, Universal Credit withdrawal and (with a council tax band) Council Tax Reduction withdrawal, with everything else held as entered.</p>
     <div class="chart" id="mr-chart"></div>`;
   el.innerHTML = html;
   drawChart(el.querySelector("#mr-chart")!, h, r);

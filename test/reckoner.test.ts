@@ -73,7 +73,7 @@ describe("HMRC's ready reckoner", () => {
     expect(leverCheck("vat_standard", "exact").check).toBe("close");
 
     // Borrowing: HMRC's three years are the budget's first three, grown with the OBR's VAT forecast; then the third carries on.
-    const zero = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, childBenefit: 0, universalCredit: 0 };
+    const zero = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, councilTax: 0, childBenefit: 0, universalCredit: 0 };
     const vat = FORECAST.series.vat!.values as number[];
     const at = (y: string) => FORECAST.years.indexOf(y);
     const p = fiscalPath(zero, 0, { start: "2026-27", reckoner: c.reckoner, compound: false });

@@ -2,6 +2,7 @@
 // HMRC costs standard changes (1p on VAT, £5,000 on the inheritance tax threshold, and so on), allowing for how people
 // respond. A change of another size is scaled along the straight lines between HMRC's figures, starting from no change.
 import data from "../../costings/hmrc-ready-reckoner-2025-06.yaml";
+import forecast from "../../forecasts/obr-2026-10.yaml";
 import type { RuleSet } from "../engine";
 import { LEVER } from "./levers";
 
@@ -33,6 +34,8 @@ export interface ReckonerCost {
   fit: Fit;
   /** The OBR forecast line that carries it on (forecasts/obr-2026-10.yaml). */
   receipts: string;
+  /** Scaled from the OBR's forecast with no allowance for responses, rather than HMRC's costing. */
+  static?: boolean;
 }
 
 /** A single-figure line is trusted for up to this many times the change HMRC costs, unless the line says otherwise. */
@@ -66,14 +69,34 @@ export function reckon(id: string, delta: number): ReckonerCost {
   return { lever: id, raises, fit, receipts: line.receipts };
 }
 
-/** Every ready reckoner tax that differs between two sets of rules, costed. */
+/**
+ * Taxes HMRC's ready reckoner doesn't cost, costed instead by scaling the OBR's receipts forecast (the sum of `receipts`)
+ * by the change: static, as nobody's response is allowed for. Carried on by the first series. `trusted_to` is our
+ * judgement of how far a straight scaling holds.
+ */
+const SCALED: Record<string, { receipts: string[]; trusted_to: number }> = {
+  business_rates: { receipts: ["business_rates", "ni_business_rates"], trusted_to: 0.1 },
+};
+const FORECAST_SERIES = forecast as { years: string[]; series: Record<string, { values: number[] }> };
+
+/** What a change of `delta` (a share of today's bills) in a tax costed from the OBR's forecast raises, static. */
+export function scaled(id: string, delta: number): ReckonerCost {
+  const s = SCALED[id]!;
+  const first = FORECAST_SERIES.years.indexOf(RECKONER_YEARS[0]!);
+  const raises = [0, 1, 2].map((y) => delta * s.receipts.reduce((t, name) => t + FORECAST_SERIES.series[name]!.values[first + y]!, 0) * 1e9);
+  return { lever: id, raises, fit: Math.abs(delta) <= s.trusted_to + 1e-9 ? "scaled" : "beyond", receipts: s.receipts[0]!, static: true };
+}
+
+/** Every tax costed outside the household model (HMRC's ready reckoner, or the OBR's forecast scaled) that differs between two sets of rules. */
 export function reckonerCosts(before: RuleSet, after: RuleSet): ReckonerCost[] {
   const out: ReckonerCost[] = [];
-  for (const id of Object.keys(RECKONER)) {
+  for (const id of [...Object.keys(RECKONER), ...Object.keys(SCALED)]) {
     const delta = (LEVER[id]!.get(after) as number) - (LEVER[id]!.get(before) as number);
-    if (Math.abs(delta) > 1e-12) out.push(reckon(id, delta));
+    if (Math.abs(delta) > 1e-12) out.push(id in SCALED ? scaled(id, delta) : reckon(id, delta));
   }
   return out;
 }
 
-export const isReckonerLever = (id: string) => id in RECKONER;
+export const isReckonerLever = (id: string) => id in RECKONER || id in SCALED;
+/** Costed by scaling the OBR's forecast, static (not from HMRC's costings, which allow for responses). */
+export const isScaledLever = (id: string) => id in SCALED;

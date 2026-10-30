@@ -130,7 +130,7 @@ All three are 4–6% low. HMRC's lines here are after tax reductions (EIS relief
 
 **How it's worked out:**
 - **Households,** not families: the families (benefit units) in a household are added together. People outside private households are left out, as they are from DWP's household statistics (HBAI).
-- **Income** is net household income before housing costs: earnings, pensions, other income and benefits, less income tax, National Insurance, pension contributions, the Child Benefit charge and council tax (after any Council Tax Reduction). That's HBAI's measure, except that disability benefits and some others aren't modelled yet (see POPULATION.md). A change that moves incomes also moves Council Tax Reduction, so that shows here; the costing doesn't count it yet (POPULATION.md, "Council tax").
+- **Income** is net household income before housing costs: earnings, pensions, other income and benefits, less income tax, National Insurance, pension contributions, the Child Benefit charge and council tax (after any Council Tax Reduction). That's HBAI's measure, except that disability benefits and some others aren't modelled yet (see POPULATION.md). A change that moves incomes also moves Council Tax Reduction, so that shows here, and in the costing as the council tax knock-on (below, "Council tax and business rates").
 - **Ranking** is by income adjusted for household size the way HBAI does it (the modified OECD scale), before the policy. Each tenth ("decile") holds a tenth of households. HBAI ranks people instead; tenths of households are easier to read as "the average household in this tenth".
 - **A gain or loss** is a change of more than £1 a week (£52 a year). Smaller changes count as no real change.
 - **Static:** nobody's behaviour changes. That's the standard for these tables (HM Treasury's and the IFS's are static too); the behavioural costing changes the revenue total, not this picture.
@@ -188,6 +188,14 @@ HMRC's figures already include responses, so these count the same in both headli
 HMRC's capital gains figures stand out: raising either rate loses money in most years, because people hold on to assets. Stamp duty is similar at the top: raising the 12% rate or the surcharge on additional homes loses money.
 
 Today's rates come from GOV.UK (`rules/2026-27/other_taxes.yaml`). For the duties, vehicle excise duty and air passenger duty, the sliders are a change from today's rates in HMRC's units (a share of today's duty, or pounds), so no rate of our own is needed.
+
+## Council tax and business rates
+
+`src/policy/costing.ts`, `src/policy/reckoner.ts`, `test/council_tax_costing.test.ts`.
+
+- **Council tax counts in every costing, after Council Tax Reduction** (Ari, 30 October 2026: "count the knock on"). The OBR counts council tax receipts net of Council Tax Reduction, so a change that moves families' incomes moves its receipts: a tax rise leaves families poorer, so they get slightly more reduction. Each tax or benefit's own scorecard row leaves this out, so it stays like-for-like with HMRC's costings; the knock-on has its own row, "Council tax: the knock-on". It's carried forward with the OBR's council tax forecast (Table 4.8). Sizes, static, 2026-27: 1p on the basic rate −£15m; a £1,000 higher personal allowance +£65m; a 50% Universal Credit taper +£82m (Universal Credit counts as income for the reduction).
+- **The council tax lever:** a change in every bill, as a share of today's, everywhere (Northern Ireland's domestic rates too). Costed through every home, net of the extra Council Tax Reduction it brings: 1% raises £0.50bn, against 1% of today's £52bn of net council tax. Grade B, check "fair": receipts are 4% under the OBR in England, 3% under in Wales, 9% over in Scotland (POPULATION.md, "Council tax"). Static: nobody moves home. Councils (in Northern Ireland, the Executive and councils) really set these bills; the lever shows what a change across the board would raise.
+- **Business rates:** not modelled firm by firm. A change is that share of the OBR's forecast (£35.4bn in England, Scotland and Wales, Table 4.8, plus £0.4bn of Northern Ireland's non-domestic rates, Table 4.2, in 2026-27), carried forward with the OBR's business rates forecast. Static: there's no published costing of how businesses, or the rents they pay, respond, and it counts the same in both headline figures. Grade B, check "fair" up to 10% either way; beyond that a "known gap" (our judgement). Like corporation tax, it isn't shared out to households.
 
 ## Who pays VAT and duties
 

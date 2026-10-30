@@ -107,7 +107,7 @@ The engine works out each home's council tax, or in Northern Ireland its domesti
 | Northern Ireland regional rate on homes | £0.50bn | £0.52bn | OBR October 2026, Table 4.2 |
 
 - **England 4% and Wales 3% under the OBR; Scotland 9% over.** The OBR's figures are what councils budget to collect, after every discount and exemption and with second-home and empty-home premiums added, which ours don't cover. Why Scotland comes out over isn't known: its bands match the Scottish Government's counts, so either the number of homes or the share with one adult differs. Not tuned away.
-- **Exchequer costings don't yet count council tax.** A change that moves incomes also moves Council Tax Reduction, and so council tax receipts (a rise in income tax means slightly more reduction). Those changes show in households' incomes (winners and losers) but not yet in the costing. Step 4's second half decides how council tax enters the costing.
+- **Costings count council tax after Council Tax Reduction,** so a change that moves incomes moves council tax receipts too (a rise in income tax means slightly more reduction). COSTING.md, "Council tax and business rates", has how and how much.
 
 `test/council_tax.test.ts` checks hand-worked households and holds these totals where they are.
 

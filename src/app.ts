@@ -708,7 +708,8 @@ function renderHeadline(s: Static | undefined, b: BehaviourFigures | undefined) 
   const raisedAbout = info(
     "what it raises",
     "Positive raises money, negative costs it, in the budget's first year. Static: nobody changes what they earn or claim. Allowing for responses: people work, earn and report income differently, using the Scottish Fiscal Commission's elasticities, with a low and high figure." +
-      (s.reckoner.length ? " Other taxes are HMRC's costings, which already allow for responses, so they count the same in both." : "") +
+      (s.reckoner.some((c) => !c.static) ? " Other taxes are HMRC's costings, which already allow for responses, so they count the same in both." : "") +
+      (s.reckoner.some((c) => c.static) ? " Business rates are the OBR's forecast scaled by your change, static, and count the same in both: there's no estimate of how businesses respond." : "") +
       (s.reforms.length ? " A reform's own new tax is costed by the reform, which says whether its figure allows for responses." : "") +
       (s.spending.length ? " Spending changes are for 2027-28 and cost what you set." : ""),
   );
@@ -919,7 +920,7 @@ function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
   table += `</table></div>`;
 
   html += table + `<details class="show-working"><summary>Show working</summary>
-    <p>The starting point is the OBR's forecast published with Budget 2026 on 28 October 2026, which already includes that Budget's policies. Your changes are assumed to start in April 2027, the next tax year, so 2026-27 is unchanged. Each part of the 2026-27 costing (income tax, each kind of National Insurance, Universal Credit, Child Benefit) is carried forward in line with the OBR's forecast for that tax or benefit; the response to tax changes grows with income tax. That's an approximation: it doesn't allow for how your changes would interact with policies announced for later years, or for thresholds the OBR assumes will change.</p>
+    <p>The starting point is the OBR's forecast published with Budget 2026 on 28 October 2026, which already includes that Budget's policies. Your changes are assumed to start in April 2027, the next tax year, so 2026-27 is unchanged. Each part of the 2026-27 costing (income tax, each kind of National Insurance, council tax, Universal Credit, Child Benefit) is carried forward in line with the OBR's forecast for that tax or benefit; the response to tax changes grows with income tax. That's an approximation: it doesn't allow for how your changes would interact with policies announced for later years, or for thresholds the OBR assumes will change.</p>
     <p>Extra borrowing adds to the debt, and that adds to interest costs, at the rates implied by the OBR's debt interest ready reckoner. Taxes, benefits and day-to-day spending change the current budget, which the main rule is about; investment spending adds to borrowing and debt but not to the current budget. Spending changes are set for 2027-28 and grow with each department's plans (after the years the plans cover, with the OBR's total), or with the OBR's forecast for each benefit. England-only budgets carry their Barnett share for Scotland, Wales and Northern Ireland. Debt here is public sector net financial liabilities, the measure the rule uses.</p>
     <p>Grade ${COSTING_GRADE} for the standard figures, which leave the economy as the OBR forecasts it, as official costings do. The lines "with the effect on the economy" use the OBR's published fiscal multipliers (a tax change worth 1% of GDP moves GDP by 0.33% in its first year, fading to nothing by the fifth; benefits 0.60%, departments' day-to-day spending 0.45% and their investment 1.00%), and the OBR's rule that borrowing rises by 0.5% of GDP for each 1% the economy is below its potential, plus 0.2% the year after. The OBR calls its multipliers a highly uncertain starting point, so this part is grade C, with a range from half to one and a half times them (our judgement; the OBR doesn't publish a range). These effects are temporary: by 2031-32 they have all but gone.</p>
     <p>Sources: <a href="https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/">OBR Economic and fiscal outlook, October 2026</a> (Tables 7.1, A.9 and the detailed forecast tables); <a href="https://www.gov.uk/government/publications/forecast-evaluation-report-june-2026/forecast-evaluation-report-june-2026">OBR Forecast evaluation report, June 2026</a> (Table 2.1); <a href="https://obr.uk/working-paper-no-3-cyclically-adjusting-the-public-finances/">OBR Working paper No. 3</a>.</p>
@@ -930,6 +931,7 @@ function renderFiscal(s: Static, b: BehaviourFigures | undefined) {
 const EFFECTS: [keyof Static["change"], string, 1 | -1][] = [
   ["incomeTax", "Income tax", 1], ["employeeNI", "Employee National Insurance", 1], ["employerNI", "Employer National Insurance", 1],
   ["selfEmployedNI", "Self-employed National Insurance", 1], ["childBenefitCharge", "Child Benefit charge", 1],
+  ["councilTax", "Council tax, after Council Tax Reduction", 1],
   ["childBenefit", "Child Benefit (spending)", -1], ["universalCredit", "Universal Credit (spending)", -1],
 ];
 
@@ -971,10 +973,13 @@ function scorecard(s: Static, levers: Levers | undefined): string {
   const fits = fitsOf(s);
   const sum = years.map(() => 0);
   const ours = (p: Parameters<typeof fiscalPath>[2]) => fiscalPath(noChange, 0, p).years.filter((y) => y.year >= START_YEAR).map(raisedBy);
-  // One change on its own, year by year (once the worker has costed it on its own).
+  // One change on its own, year by year (once the worker has costed it on its own). What a change does to council tax
+  // through Council Tax Reduction gets its own row, so a tax or benefit's row stays like-for-like with HMRC's costings.
+  const own = (lever: string) => levers?.perLever.find((p) => p.lever === lever);
   const alone = (lever: string) => {
-    const own = levers?.perLever.find((p) => p.lever === lever);
-    return own && fiscalPath(own.change, 0, { reckoner: own.reckoner, spending: own.spending }).years.filter((y) => y.year >= START_YEAR).map(raisedBy);
+    const o = own(lever);
+    const change = lever === "council_tax" ? o?.change : o && { ...o.change, councilTax: 0 };
+    return o && fiscalPath(change!, 0, { reckoner: o.reckoner, spending: o.spending }).years.filter((y) => y.year >= START_YEAR).map(raisedBy);
   };
   const changeRow = (ch: Policy[number], cls = "") => {
     const xs = alone(ch.lever);
@@ -1005,6 +1010,17 @@ function scorecard(s: Static, levers: Levers | undefined): string {
     for (const c of replaced) html += changeRow(c, "sub");
     rows += parts.length + replaced.length;
   }
+  // The knock-on: the package's change in council tax, less the council tax lever's own.
+  const ctLever = changes.some((c) => c.lever === "council_tax");
+  const ctOwn = ctLever ? own("council_tax")?.change.councilTax : 0;
+  const knockOn = ctOwn === undefined ? undefined : s.change.councilTax - ctOwn;
+  const knockOnRows = knockOn === undefined ? undefined : fiscalPath({ ...noChange, councilTax: knockOn }, 0).years.filter((y) => y.year >= START_YEAR).map(raisedBy);
+  knockOnRows?.forEach((x, i) => (sum[i]! += x));
+  const others = changes.some((c) => c.lever !== "council_tax" && inHouseholdModel(c.lever));
+  if (others && (knockOn === undefined || Math.abs(knockOn) >= 5e5)) {
+    const g = leverCheck("council_tax");
+    html += row(`Council tax: the knock-on<div class="working">more or less Council Tax Reduction as incomes change (council tax is counted after it, as the OBR counts it)</div>`, knockOnRows, checkBadge(g.check, g.why));
+  }
   if (rows > 1) {
     html += row(`Overlap between the changes<div class="working">e.g. a tax rise reduces Universal Credit; a rate rise on a bigger allowance raises less</div>`, levers && years.map((y, i) => raisedBy(y) - sum[i]!));
   }
@@ -1031,7 +1047,7 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
     html += `<tr><td>${label}</td>${signed(sign * s.change[k])}</tr>`;
   }
   for (const c of s.reckoner) {
-    html += `<tr><td>${esc(LEVER[c.lever]!.label)}<div class="working">HMRC's costing, allowing for responses</div></td>${signed(c.raises[0]!)}</tr>`;
+    html += `<tr><td>${esc(LEVER[c.lever]!.label)}<div class="working">${c.static ? "the OBR's forecast scaled, static" : "HMRC's costing, allowing for responses"}</div></td>${signed(c.raises[0]!)}</tr>`;
   }
   for (const p of s.reforms) {
     html += `<tr><td>${esc(p.label)}<div class="working">${esc(PACK[p.pack]!.name)}; ${p.raisesInclude === "responses" ? "allowing for responses" : "static"}</div></td>${signed(p.raises[0]!)}</tr>`;
@@ -1044,14 +1060,16 @@ function renderBreakdown(s: Static, levers: Levers | undefined) {
   if (Math.abs(barnett) >= 5e5) {
     html += `<tr><td>Scotland, Wales and Northern Ireland<div class="working">Their Barnett share of England-only spending changes (HM Treasury's formula)</div></td>${signed(-barnett)}</tr>`;
   }
-  const withResponses = s.reckoner.length || s.reforms.some((p) => p.raisesInclude === "responses");
+  const withResponses = s.reckoner.some((c) => !c.static) || s.reforms.some((p) => p.raisesInclude === "responses");
   html += `<tr class="total"><td>Total${withResponses ? "" : " (static)"}</td>${signed(s.netRevenue)}</tr></table>`;
   const fits = fitsOf(s);
   const packs = activeReforms().map((r) => PACK[r.pack]!);
   html += `<details class="show-working"><summary>Show working</summary>
     <p>Every made-up household is run through the 2026-27 rules twice, as they are and with your changes, and the differences are added up, weighted to stand for the whole UK. "Static" means nobody changes what they earn or claim. The figure allowing for responses uses ${SOURCES.sfc}, rising with income, with a low and high figure at half and one and a half times them. Benefits and employer National Insurance stay static.</p>
     <p>In the scorecard each measure is costed on its own, static, and carried forward the same way as the borrowing figures. Measures overlap, so on their own they don't quite add up to the whole package: the difference is the overlap row. People's responses, the economy (if included in Assumptions) and interest on the extra debt are worked out for the package as a whole. The bottom line is the change in borrowing, the same as in the borrowing section.</p>
-    ${s.reckoner.length ? `<p>VAT, duties, corporation tax, capital gains and inheritance tax, stamp duty and insurance premium tax aren't in the household model. Changes to them are costed from ${SOURCES.rr}: HMRC's own costings of standard changes, which already allow for how people respond, scaled to the size of your change along straight lines between HMRC's figures. They count the same in both headline figures. HMRC gives its first year as 2026-27; later years are in the borrowing section.</p>` : ""}
+    ${s.reckoner.some((c) => c.static) ? `<p>Business rates aren't in HMRC's ready reckoner. A change is costed as that share of the OBR's forecast of business rates (£35.4bn in England, Scotland and Wales in 2026-27, plus £0.4bn of Northern Ireland's non-domestic rates): static, with no allowance for how businesses, or the rents they pay, respond. It isn't shared out to households.</p>` : ""}
+    <p>Council tax is counted after Council Tax Reduction, as the OBR counts its receipts, so a change to income tax or benefits that changes what families can claim moves it too: that's the knock-on row. A change to council tax itself is costed through every home's bill and Council Tax Reduction, and carried forward with the OBR's council tax forecast.</p>
+    ${s.reckoner.some((c) => !c.static) ? `<p>VAT, duties, corporation tax, capital gains and inheritance tax, stamp duty and insurance premium tax aren't in the household model. Changes to them are costed from ${SOURCES.rr}: HMRC's own costings of standard changes, which already allow for how people respond, scaled to the size of your change along straight lines between HMRC's figures. They count the same in both headline figures. HMRC gives its first year as 2026-27; later years are in the borrowing section.</p>` : ""}
     <p>Confidence grade ${COSTING_GRADE}: ${esc(GRADE_MEANING[COSTING_GRADE])} Changes HMRC costs exactly are grade A: ${esc(GRADE_MEANING.A)} (C would be international evidence, D an informed guess.)</p>
     <p>How each change checks against ${SOURCES.rr} and other published figures:</p>
     <ul>${changes.map((ch) => `<li>${esc(changeLabel(ch.lever))}: ${CHECK_LABEL[leverCheck(ch.lever, fits[ch.lever]).check]}. ${esc(leverCheck(ch.lever, fits[ch.lever]).why)}</li>`).join("")}${s.reforms.map((p) => `<li>${esc(p.label)} (${esc(PACK[p.pack]!.name)}): grade ${p.grade}, ${CHECK_LABEL[p.check]}. ${esc(p.why)}</li>`).join("")}</ul>
@@ -1112,7 +1130,7 @@ function renderWinners(deciles: Group[], family: Group[], regions: Group[], all:
     ${table("By tenth", deciles)}
     <div class="two">${table("By family", family)}${table("By region", regions)}</div>
     <details class="show-working"><summary>Show working</summary>
-      <p>Net household income before housing costs: earnings, pensions and other income plus benefits, less income tax, National Insurance, pension contributions and the Child Benefit charge (DWP's HBAI measure, though council tax and some benefits aren't modelled yet). Households are ranked by that income adjusted for their size (the modified OECD scale), before your changes; each tenth holds a tenth of households. Static: nobody's behaviour changes. People outside private households, such as students in halls, are left out, as in DWP's figures. More in ${SOURCES.how}.</p>
+      <p>Net household income before housing costs: earnings, pensions and other income plus benefits, less income tax, National Insurance, pension contributions, the Child Benefit charge and council tax (DWP's HBAI measure, though some benefits aren't modelled yet). Households are ranked by that income adjusted for their size (the modified OECD scale), before your changes; each tenth holds a tenth of households. Static: nobody's behaviour changes. People outside private households, such as students in halls, are left out, as in DWP's figures. More in ${SOURCES.how}.</p>
     </details>`;
   $("winners").querySelectorAll<HTMLButtonElement>("[data-mode]").forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -1132,7 +1150,7 @@ function updateHousehold() {
   const d = after - before;
   $("household-change").innerHTML = hasChanges()
     ? `<div class="headline"><div>Today<strong>${pounds(before)}</strong></div><div>Under your budget<strong>${pounds(after)}</strong></div><div>Change, a year<strong class="${d < 0 ? "neg" : d > 0 ? "pos" : ""}">${pounds(d, true)}</strong></div></div>` +
-      (reforms.size ? `<p class="small">Reforms' new taxes aren't in this calculator yet, nor are VAT and the other taxes outside it; what it shows is income tax, National Insurance and benefits.</p>` : "")
+      (reforms.size ? `<p class="small">Reforms' new taxes aren't in this calculator yet, nor are VAT and the other taxes outside it; what it shows is income tax, National Insurance, benefits and council tax.</p>` : "")
     : "";
   renderResult($("result"), h, reformed);
   redrawTaxChart?.();
@@ -1152,7 +1170,7 @@ wireTabs();
 wireGuide();
 redrawTaxChart = initTaxChart($("tax-chart"), rules, () => applyPolicy(rules, currentPolicy()));
 // The impact chart shows the OBR's forecast until a costing arrives.
-const noChange = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, childBenefit: 0, universalCredit: 0 };
+const noChange = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, councilTax: 0, childBenefit: 0, universalCredit: 0 };
 updateImpact(fiscalPath(noChange, 0), fiscalPath(noChange, 0, { economy: true }), false, assume.economy);
 placeTaxChart();
 updateHousehold();

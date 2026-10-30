@@ -417,21 +417,23 @@ function councilTax(h: Household, r: RuleSet, uc: UniversalCreditResult, income:
   const ct = r.councilTax;
   const lines: Line[] = [];
   const alone = home.adultsInHome <= 1;
+  const scale = 1 + ct.change;
+  const changed = ct.change ? `, ${ct.change > 0 ? "plus" : "less"} ${pct(Math.abs(ct.change))}` : "";
   let charge: number, discount: number;
   if (h.region === "northern_ireland") {
     const value = Math.min(home.capitalValue ?? 0, ct.niCapitalValueCap);
     const rate = ct.niRegionalRate + ct.niDistrictRate;
-    charge = value * rate;
+    charge = value * rate * scale;
     lines.push({ label: "Domestic rates", amount: charge, working: `Capital value ${gbp(value)}` + ((home.capitalValue ?? 0) > ct.niCapitalValueCap ? ` (capped)` : "") +
-      ` × ${+(rate * 100).toFixed(4)}p in the pound (regional rate plus the average district rate).` });
+      ` × ${+(rate * 100).toFixed(4)}p in the pound (regional rate plus the average district rate)${changed}.` });
     discount = alone && h.adults[0].age >= 70 ? charge * ct.niLonePensionerAllowance : 0;
     if (discount) lines.push({ label: "Lone Pensioner Allowance", amount: -discount, working: `${pct(ct.niLonePensionerAllowance)} off: 70 or over and living alone.` });
   } else {
     const band = home.band ?? "D";
     const bandD = ct.bandD[home.area] ?? ct.bandD[h.region === "wales" ? "Wales" : h.region === "scotland" ? "Scotland" : "London"]!;
     const ratio = (h.region === "scotland" ? ct.scotlandRatios : ct.ratios)[band] ?? 1;
-    charge = bandD * ratio;
-    lines.push({ label: "Council tax", amount: charge, working: `Band ${band}: ${+ratio.toFixed(4)} × the average Band D for ${home.area} (${gbp(bandD)}).` });
+    charge = bandD * ratio * scale;
+    lines.push({ label: "Council tax", amount: charge, working: `Band ${band}: ${+ratio.toFixed(4)} × the average Band D for ${home.area} (${gbp(bandD)})${changed}.` });
     discount = alone ? charge * ct.singlePersonDiscount : 0;
     if (discount) lines.push({ label: "Single person discount", amount: -discount, working: `${pct(ct.singlePersonDiscount)} off: one adult in the home.` });
   }

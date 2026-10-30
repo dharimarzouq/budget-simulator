@@ -10,7 +10,7 @@
 //   gap     a known gap with published figures: treat as rough
 import type { Policy } from "./policy";
 import { REMOVAL } from "./removals";
-import { isReckonerLever, type Fit } from "./reckoner";
+import { isReckonerLever, isScaledLever, type Fit } from "./reckoner";
 import { isSpendingLever } from "./spending";
 
 export type Grade = "A" | "B" | "C" | "D";
@@ -69,6 +69,7 @@ const CHECKS: Record<string, { check: Check; why: string }> = {
   cb_other: c("close", "Within 6% of HMRC."),
   cb_charge_threshold: c("gap", "The charge comes out 18–20% above HMRC's figures, uprated."),
   cb_charge_width: c("gap", "The charge comes out 18–20% above HMRC's figures, uprated."),
+  council_tax: c("fair", "No direct check; council tax after Council Tax Reduction is 4% under the OBR's figure for England, 3% under for Wales and 9% over for Scotland, and Council Tax Reduction matches MHCLG's spending. Static: no allowance for people moving home."),
 };
 
 const REMOVED = c("gap", "Removing something altogether is far bigger than the small changes HMRC's ready reckoner checks. The static figure is mechanical; how people respond to a change this big is the least certain part.");
@@ -82,11 +83,18 @@ const RECKONER_CHECK: Record<Fit, { check: Check; why: string }> = {
   beyond: c("gap", "Far bigger than any change HMRC costs: scaled up from its figures, which assume small changes. Treat as rough."),
 };
 
+// Taxes costed by scaling the OBR's forecast (business rates): no HMRC costing to check against.
+const SCALED_CHECK = {
+  scaled: c("fair", "No HMRC costing: the OBR's forecast of what the tax raises, scaled by the change. Static, with no allowance for how businesses or rents respond, which would make a rise raise less."),
+  beyond: c("gap", "No HMRC costing, and a change this big would change rents and where businesses locate: the OBR's forecast scaled by the change is rough. Static."),
+};
+
 const SPENDING = c("close", "A spending change costs exactly what you set (plus the Barnett share for Scotland, Wales and Northern Ireland, by HM Treasury's formula). What's uncertain is its effect on the economy.");
 
 export function leverCheck(lever: string, fit?: Fit): { check: Check; why: string } {
   if (REMOVAL[lever]) return REMOVED;
   if (isSpendingLever(lever)) return SPENDING;
+  if (isScaledLever(lever)) return SCALED_CHECK[fit === "beyond" ? "beyond" : "scaled"];
   if (isReckonerLever(lever)) return RECKONER_CHECK[fit ?? "scaled"];
   return CHECKS[lever] ?? (lever.startsWith("uc_") ? UC_DEFAULT : c("gap", "Not checked."));
 }

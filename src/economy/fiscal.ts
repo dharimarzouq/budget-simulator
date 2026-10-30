@@ -36,10 +36,11 @@ const CARRIED_BY: Record<keyof Effects, string> = {
   employeeNI: "employee_nics",
   employerNI: "employer_nics",
   selfEmployedNI: "self_employed_nics",
+  councilTax: "council_tax",
   universalCredit: "universal_credit",
   childBenefit: "child_benefit",
 };
-const TAXES: (keyof Effects)[] = ["incomeTax", "childBenefitCharge", "employeeNI", "employerNI", "selfEmployedNI"];
+const TAXES: (keyof Effects)[] = ["incomeTax", "childBenefitCharge", "employeeNI", "employerNI", "selfEmployedNI", "councilTax"];
 const BENEFITS: (keyof Effects)[] = ["universalCredit", "childBenefit"];
 
 export interface Year {

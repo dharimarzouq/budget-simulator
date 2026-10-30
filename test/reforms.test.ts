@@ -14,7 +14,7 @@ import { fiscalPath } from "../src/economy/fiscal";
 
 const r = ruleSet("2026-27");
 const packs = { [TEST_SWAP.id]: TEST_SWAP };
-const noChange = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, childBenefit: 0, universalCredit: 0 };
+const noChange = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, councilTax: 0, childBenefit: 0, universalCredit: 0 };
 const swap = (points: number): ActiveReform[] => [{ pack: TEST_SWAP.id, options: withDefaults(TEST_SWAP, { points }) }];
 
 /** Cost a set of packs the way the worker does, for the taxes outside the household model. */

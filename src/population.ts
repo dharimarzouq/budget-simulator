@@ -136,10 +136,16 @@ export interface Totals {
   universalCredit: number;
   ucHouseholds: number;
   cbFamilies: number;
+  /** England, Scotland and Wales: council tax after Council Tax Reduction, and the reduction itself. */
+  councilTax: number;
+  councilTaxReduction: number;
 }
 
 export function populationTotals(pop: Population, r: RuleSet): Totals {
-  const t: Totals = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefit: 0, childBenefitCharge: 0, universalCredit: 0, ucHouseholds: 0, cbFamilies: 0 };
+  const t: Totals = {
+    incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefit: 0, childBenefitCharge: 0, universalCredit: 0, ucHouseholds: 0, cbFamilies: 0,
+    councilTax: 0, councilTaxReduction: 0,
+  };
   for (const { weight: w, data } of pop.units) {
     const res = calculate(data, r);
     for (const a of res.adults) {
@@ -153,6 +159,10 @@ export function populationTotals(pop: Population, r: RuleSet): Totals {
     t.universalCredit += w * res.universalCredit.award * 12;
     if (res.universalCredit.award > 0) t.ucHouseholds += w;
     if (res.childBenefit > 0) t.cbFamilies += w;
+    if (data.region !== "northern_ireland") {
+      t.councilTax += w * res.councilTax.net;
+      t.councilTaxReduction += w * res.councilTax.reduction;
+    }
   }
   t.employerNI -= r.ni.employmentAllowanceCost + r.ni.apprenticeReliefCost;
   return t;

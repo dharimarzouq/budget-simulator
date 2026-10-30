@@ -163,6 +163,27 @@ series:
     values: [8.87, 9.41, 10.08, 11.74, 12.51, 13.36, 14.24]
     source: obr-efo-2026-10
     table: "Detailed forecast tables, receipts, Table 4.8"
+  # Council tax and business rates. Council tax receipts are net of Council Tax Reduction (England, Scotland and
+  # Wales; Northern Ireland's domestic rates are in the OBR's "other taxes"). Business rates are the UK figure
+  # without Northern Ireland's, which come from Table 4.2 below.
+  council_tax:
+    label: Council tax receipts
+    unit: gbp_bn
+    values: [49.597, 53.091, 55.878, 59.396, 62.673, 66.057, 69.563]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  business_rates:
+    label: Business rates receipts (England, Scotland and Wales)
+    unit: gbp_bn
+    values: [33.930, 35.436, 37.217, 38.665, 41.463, 42.420, 43.447]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.8"
+  ni_business_rates:
+    label: Northern Ireland non-domestic rates
+    unit: gbp_bn
+    values: [0.3955, 0.4060, 0.4146, 0.4227, 0.4310, 0.4394, 0.4478]
+    source: obr-efo-2026-10
+    table: "Detailed forecast tables, receipts, Table 4.2"
   # Spending totals, to carry departmental plans on after the years they're set for (detailed forecast tables,
   # expenditure, Table 5.3: unadjusted aggregate spending series).
   rdel_total:

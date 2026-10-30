@@ -6,7 +6,7 @@ import { applyPolicy } from "../src/policy/policy";
 import { reckonerCosts } from "../src/policy/reckoner";
 import { sources } from "../src/rules";
 
-const zero = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, childBenefit: 0, universalCredit: 0 };
+const zero = { incomeTax: 0, employeeNI: 0, employerNI: 0, selfEmployedNI: 0, childBenefitCharge: 0, councilTax: 0, childBenefit: 0, universalCredit: 0 };
 const series = (n: string) => FORECAST.series[n]!.values as number[];
 const at = (y: string) => FORECAST.years.indexOf(y);
 const value = (m: Parameters<typeof baselineSeries>[0], y: string) => baselineSeries(m).find((p) => p.year === y)!.value!;

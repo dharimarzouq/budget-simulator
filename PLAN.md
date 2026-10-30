@@ -5,18 +5,18 @@ Start here if you're picking this up in a new chat. Then read CLAUDE.md, RESEARC
 ## State
 - **Live:** https://dharimarzouq.github.io/budget-simulator/ (repo github.com/dharimarzouq/budget-simulator, public, MIT).
   - Pushing to `main` republishes the site through `.github/workflows/pages.yml`.
-  - Last published commit: "Milestone 3 step 3: homes in the population" (7a5b3e4), 30 October 2026.
+  - Last published commit: "Milestone 3 step 4, first half: council tax in the engine" (945c649), 30 October 2026.
 - **Milestone 1:** done (rules engine, synthetic population, costing, behaviour, borrowing and fiscal rules).
 - **Milestone 2:**
   - Step 1 (taxes and named policies, 1a–1c): done and published. 1d waits on DWP (see below).
   - Step 2 (spending, with Barnett): done and published.
   - Step 3 (history and the impact chart): done and published.
   - Step 4 (design pass, "Budget box"): done and published 29 October 2026; the keyboard pass and wide sizes were checked and fixed 30 October. Details are under "Step 4 in detail" below.
-- **Milestone 3** (reform packs, starting with a land value tax): planned 30 October 2026, and Ari's decisions on it are recorded. Steps 1 (gov.uk check), 2 (the reform slot) and 3 (homes) done and published; step 4's first half (council tax in the engine) built, not committed.
-- **Tests:** 223 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
+- **Milestone 3** (reform packs, starting with a land value tax): planned 30 October 2026, and Ari's decisions on it are recorded. Steps 1 (gov.uk check), 2 (the reform slot) and 3 (homes) done and published; step 4's first half (council tax in the engine) published; its second half (council tax and business rates levers, the knock-on in costings, calculator boxes) committed, not yet published.
+- **Tests:** 230 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
 
 ## What's next, in order
-1. **Milestone 3** (see "Milestone 3 plan" below). Steps 1 (the gov.uk check) and 2 (the reform slot) are done (30 October 2026). Step 3, homes in the population, is done and published. Step 4 is split in two (Ari, 30 October): first council tax, Northern Ireland's rates and Council Tax Reduction in the engine (built, not committed), then the council tax lever, the calculator's own/rent and band boxes, and business rates. Then council tax and business rates, and the land value tax pack. Show Ari the plan for each step and wait for go.
+1. **Milestone 3** (see "Milestone 3 plan" below). Steps 1 (the gov.uk check) and 2 (the reform slot) are done (30 October 2026). Step 3, homes in the population, is done and published. Step 4 is split in two (Ari, 30 October): first council tax, Northern Ireland's rates and Council Tax Reduction in the engine (published), then the council tax lever, the calculator's own/rent and band boxes, and business rates (committed, not yet published). Next is step 5, the land value tax pack. Show Ari the plan for each step and wait for go.
 2. **1d, the 2027-28 rules,** once DWP publishes the 2027-28 benefit and State Pension rates (usually late November). Show Ari a plan first. What's already known:
    - The income tax and NICs thresholds are frozen to 2031.
    - Budget 2026 adds 2p on property and savings income from April 2027, an income tax exemption for low-income pensioners, and a bigger trading allowance.
@@ -308,13 +308,19 @@ Checks: owner numbers by region match the FRS; band counts match the Valuation O
 
 Checks: council tax receipts from the population against the OBR's forecast, and against MHCLG's published total for England; HBAI income match rechecked with council tax taken off; existing tests keep passing.
 
-**First half built 30 October 2026, not yet committed** (POPULATION.md, "Council tax"; `rules/2026-27/council_tax.yaml`; `test/council_tax.test.ts`, 13 tests):
-- The engine works out council tax (region's average Band D × band ratio, 25% single person discount) or Northern Ireland's rates (capped capital value × regional plus average district rate, Lone Pensioner Allowance), and Council Tax Reduction, and takes the net bill off income. Only families given a home pay (`Household.home`), so the calculator is unchanged until the second half adds the boxes.
+**First half done and published 30 October 2026 (945c649)** (POPULATION.md, "Council tax"; `rules/2026-27/council_tax.yaml`; `test/council_tax.test.ts`, 13 tests):
+- The engine works out council tax (region's average Band D × band ratio, 25% single person discount) or Northern Ireland's rates (capped capital value × regional plus average district rate, Lone Pensioner Allowance), and Council Tax Reduction, and takes the net bill off income. Only families given a home pay (`Household.home`).
 - Council Tax Reduction calibrated to MHCLG's England spending: pensioner take-up comes out at 100% (implausible; documented), England's working-age stand-in scheme pays at most 75%. Scotland and Wales, not calibrated, land within 5%.
 - Receipts against the OBR: England 4% and Wales 3% under, Scotland 9% over, Northern Ireland's regional rate 2% under.
 - HBAI rechecked: ours now 0–6% under (medians), as expected with disability benefits and Pension Credit still missing.
-- Exchequer costings are unchanged: council tax and Council Tax Reduction aren't in the costing's totals yet. Open question for Ari in the second half: should a policy's knock-on effect on Council Tax Reduction count in its costing (it's local government money, but in the OBR's receipts)?
 - Vitest caches `import.meta.glob`: after adding a rules file, delete `node_modules/.vitest-cache` or the new file isn't seen.
+
+**Second half committed 30 October 2026, not yet published** (COSTING.md, "Council tax and business rates"; `test/council_tax_costing.test.ts`, 7 tests):
+- **The knock-on counts** (Ari: "count the knock on"). Council tax after Council Tax Reduction is in the costing's totals (`Effects.councilTax`), as the OBR counts its receipts, carried forward with the OBR's council tax forecast. A tax or benefit's own scorecard row leaves it out, so it stays like-for-like with HMRC; the knock-on has its own row. Sizes are small: 1p on the basic rate loses £15m of council tax; a £1,000 higher personal allowance gains £65m; a 50% Universal Credit taper gains £82m.
+- **Council tax lever:** a % change in every bill, everywhere (Northern Ireland's rates too), costed through every home net of the extra Council Tax Reduction (grade B, check "fair"). 1% raises £0.50bn. The lever's note says councils really set it.
+- **Business rates lever:** a % change, costed as that share of the OBR's forecast (£35.4bn in Great Britain plus £0.4bn Northern Ireland in 2026-27), static, not shared out to households; "fair" up to 10%, a known gap beyond.
+- **Calculator:** rented or owned (owned leaves out rent), council tax band (default: left out, as before), English region for Band D, and Northern Ireland capital value. A council tax table shows the working.
+- **How we know:** council tax after reduction (−3% against the OBR, Great Britain) and Council Tax Reduction (0%) in the whole-country table.
 
 ## Step 5: the land value tax pack
 

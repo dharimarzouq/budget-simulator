@@ -73,6 +73,8 @@ export interface RuleSet {
     /** Changes in £: vehicle excise duty (£5 a year a car, £1 a motorbike, per HMRC's line) and air passenger duty's reduced rate. */
     vedChange: number;
     apdReducedChange: number;
+    /** Business rates, as a share of today's bills (0.01 is 1% higher): costed by scaling the OBR's forecast, not HMRC's. */
+    businessRatesChange: number;
   };
   /**
    * Spending changes, by lever id (src/policy/spending.ts): departments' budgets in £bn a year more than planned, and
@@ -96,6 +98,9 @@ export interface RuleSet {
     niDistrictRate: number;
     niCapitalValueCap: number;
     niLonePensionerAllowance: number;
+    /** A change in every bill before discounts, as a share of today's (0.01 is 1% higher); zero in the rules. Councils
+     * (in Northern Ireland, the Executive and councils) really set these. */
+    change: number;
     ctr: {
       /** Weekly applicable amounts, pensioner scheme: higher for those who reached pension age before April 2021. */
       pensionerSingleBefore2021: number;
@@ -228,6 +233,7 @@ export function ruleSet(year: string): RuleSet {
       tobaccoDutyChange: 0,
       vedChange: 0,
       apdReducedChange: 0,
+      businessRatesChange: 0,
     },
     spending: {},
     behaviour: {
@@ -244,6 +250,7 @@ export function ruleSet(year: string): RuleSet {
       niDistrictRate: n("council_tax", "ni_district_rate"),
       niCapitalValueCap: n("council_tax", "ni_capital_value_cap"),
       niLonePensionerAllowance: n("council_tax", "ni_lone_pensioner_allowance"),
+      change: 0,
       ctr: {
         pensionerSingleBefore2021: n("council_tax", "ctr_pensioner_single_before_2021"),
         pensionerCoupleBefore2021: n("council_tax", "ctr_pensioner_couple_before_2021"),
