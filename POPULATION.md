@@ -53,6 +53,34 @@ The population includes a separate group of single adults for them. They count i
 
 A test of the size: HMRC's payroll records show 30.3 million people on a payroll in September 2026, and the population has 31.3 million people paid during the year. The payroll figure is one month, and more people than that are paid at some point in a year, so a gap is expected; no published figure confirms its size.
 
+## Homes
+
+**Made up, grade C.** Each private household has a home: what it's worth, how much of that is land, and its council tax band (in Northern Ireland, its capital value for domestic rates instead). `data/build_homes.py` adds them after calibration and changes no weights, so nothing else in the population moves. Tenure (owned outright, mortgaged, private rent, social rent) comes from the seed, which follows the FRS. Values are at August 2026 prices, the latest UK House Price Index month.
+
+- **Value.** In England, the Market Value Survey's mean value for the household's region and tenure (surveyors' valuations of English Housing Survey homes at 1 July 2024; Table 1.3), grown to August 2026 with the region's House Price Index. The survey doesn't split owners with and without a mortgage, so they share a mean. Wales, Scotland and Northern Ireland have no such survey: England's mean for the tenure, scaled by the nation's average price against England's.
+- **Spread.** Around that mean, values follow a lognormal whose width for each tenure (owners 0.46, private renters 0.48, social renters 0.40) is fitted to the survey's count of England's homes in each value band (Table 1.2a). The fit is close: every band within 5 points, most within 1.
+- **Income.** Households with higher incomes have dearer homes, but only partly: a correlation (owners 0.6, private renters 0.45, social renters 0.2) fitted to the survey's spread of joint income as a share of value (Table 3.3a). That fit is loose. Our renters have high incomes for their homes' values more often than the survey finds (14% of private renters with income over 40% of value, against 3%). Either our renters' incomes or the survey's income measure differ; we can't tell which from published tables.
+- **Land.** The value less what the building is worth: its floor area times £813 per m². The cost per m² is the ONS balance sheet's value of households' dwellings, the buildings alone and depreciated (£1,961bn at the end of 2024), over the floor area of the homes households own. Floor area is the English Housing Survey's mean for the tenure (owners 108 m², private rented 76, social 66), larger for dearer homes in the same region (area rises with the square root of value against the regional mean: our judgement, as a dearer home is partly bigger and partly on dearer land). Land is never less than a tenth of a home's value. On these figures land is about 78% of the value of owners' and private renters' homes and 75% of social homes'. This is the ONS's own method (land as what's left after the depreciated building), but the share depends heavily on the building cost: with an undepreciated rebuild cost of about £2,000 per m², land would be nearer half.
+- **Council tax band.** Homes are ranked by value within each region, and the bands filled to the published counts: the cheapest homes go in band A until it holds the region's share of homes in band A, then band B, and so on (VOA for English regions and Wales, which has bands A to I; Scottish Government for Scotland). Ari's choice, 30 October 2026, because banding the values directly puts far too many homes in band A (below). The published counts cover all dwellings, empty and second homes included; ours are lived-in homes, so we assume those are banded like the rest.
+- **Value at the valuation date.** Each home also keeps its value taken back with the region's House Price Index (1 April 1991 in England and Scotland, 1 April 2003 in Wales). Regions whose UK HPI series starts later use their own price change back to where their series starts, and England's before that. It's what a revaluation would start from, but it doesn't set the band. Northern Ireland has no bands: there it's the value at 1 January 2005, the date domestic rates' capital values are set at.
+
+### Homes against published figures
+
+| Check | Ours | Published | Source |
+|---|---:|---:|---|
+| Homes households own (owned and privately rented), buildings and land, end of 2024 | £8.5tn | £6.5tn (dwellings £1.96tn plus all land households own £4.56tn) | ONS national balance sheet 2025, Table 9.11 |
+| Land under them | £6.6tn | £4.56tn, all land households own, farmland included | same |
+| England's homes by value band, July 2024 | every band within 5 points | | Market Value Survey 2024, Table 1.2a |
+| Council tax bands, English regions and Wales: share in each band | within 0.3 points (matched by ranking) | | VOA stock of properties, 31 March 2025 |
+| Council tax bands, Scotland | matched by ranking | | Scottish Government, September 2025 |
+| Bands from the deflated values instead, English regions and Wales | median miss 1.7 points, worst 14 | | VOA, as above |
+| Bands from the deflated values instead, Scotland | median miss 3.1 points, worst 6.5 | | Scottish Government, as above |
+
+- **The ONS's figure is about 30% below ours.** Ours rests on surveyors' valuations of a sample of homes (the Market Value Survey); the ONS builds its total differently, with the buildings at depreciated cost and land as what's left of house-price-based values. We haven't yet pinned down which accounts for the gap. Not tuned away: a land value tax costed on these values will say so.
+- **Banding the deflated values directly would put too many homes in band A outside the North East**, and too few in C and D: 8–14 points too many in band A in the North West, West Midlands, East, London, South East and South West. So either the values at the bottom are too low or prices rose less since 1991 for the homes in the stock than for the homes sold (the House Price Index follows sales). That's why bands are matched to the published counts instead. The cost: a home's band and its deflated value can disagree (a home valued at £35,000 in 1991 money may sit in band B), which matters only for a revaluation reform.
+
+`test/homes.test.ts` checks the shipped file and holds these gaps where they are.
+
 ## Assumptions in the seed
 
 These are starting values. Calibration corrects the totals, but guesses about *how things combine* partly survive it. Where a value was tuned to bring a published figure into line, the table says so.
@@ -220,9 +248,10 @@ Differences smaller than these between the population and a published figure are
 node tools\run_population.mjs data\build\seed.json data\build\seed_results.csv
 .venv\Scripts\python.exe -I data\calibrate.py
 .venv\Scripts\python.exe -I data\check_population.py data\build\population.json data\build\seed_results.csv
+.venv\Scripts\python.exe -I data\build_homes.py
 .venv\Scripts\python.exe -I data\export_population.py
 ```
 
 Set `POPULATION_SEED` before `build_seed.py` to rebuild from different random draws. The engine results don't change with calibration (only the weights do), so the seed's results file serves for both.
 
-The last step writes `public/data/population-2026-27.json`, the file the site loads: 3.4 MB. Money is rounded to whole pounds and weights to one decimal place, which moves totals by well under 0.1%. `test/population.test.ts` checks the shipped file still matches the published totals within the gaps explained here.
+`build_homes.py` writes `data/build/homes.json` and its checks, `data/build/homes_check.csv`. The last step writes `public/data/population-2026-27.json`, the file the site loads: 4.0 MB (homes added 0.5 MB, with money in £ thousands). Money is rounded to whole pounds and weights to one decimal place, which moves totals by well under 0.1%. `test/population.test.ts` checks the shipped file still matches the published totals within the gaps explained here.

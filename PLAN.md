@@ -5,18 +5,18 @@ Start here if you're picking this up in a new chat. Then read CLAUDE.md, RESEARC
 ## State
 - **Live:** https://dharimarzouq.github.io/budget-simulator/ (repo github.com/dharimarzouq/budget-simulator, public, MIT).
   - Pushing to `main` republishes the site through `.github/workflows/pages.yml`.
-  - Last published commit: "Keyboard pass and wide screens…" (3114a36), 30 October 2026.
+  - Last published commit: "Milestone 3 step 2: the reform slot" (bed8ab6), 30 October 2026.
 - **Milestone 1:** done (rules engine, synthetic population, costing, behaviour, borrowing and fiscal rules).
 - **Milestone 2:**
   - Step 1 (taxes and named policies, 1a–1c): done and published. 1d waits on DWP (see below).
   - Step 2 (spending, with Barnett): done and published.
   - Step 3 (history and the impact chart): done and published.
   - Step 4 (design pass, "Budget box"): done and published 29 October 2026; the keyboard pass and wide sizes were checked and fixed 30 October. Details are under "Step 4 in detail" below.
-- **Milestone 3** (reform packs, starting with a land value tax): planned 30 October 2026, and Ari's decisions on it are recorded. Steps 1 (gov.uk check) and 2 (the reform slot) done.
-- **Tests:** 202 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
+- **Milestone 3** (reform packs, starting with a land value tax): planned 30 October 2026, and Ari's decisions on it are recorded. Steps 1 (gov.uk check) and 2 (the reform slot) done and published; step 3 (homes) built, not committed.
+- **Tests:** 210 unit tests pass (`npx vitest run`). `npx tsc --noEmit` and `npx vite build` are clean.
 
 ## What's next, in order
-1. **Milestone 3** (see "Milestone 3 plan" below). Steps 1 (the gov.uk check) and 2 (the reform slot) are done (30 October 2026). Next: step 3, homes in the population; then council tax and business rates, and the land value tax pack. Show Ari the plan for each step and wait for go.
+1. **Milestone 3** (see "Milestone 3 plan" below). Steps 1 (the gov.uk check) and 2 (the reform slot) are done (30 October 2026). Step 3, homes in the population, is built, not yet committed. Then council tax and business rates, and the land value tax pack. Show Ari the plan for each step and wait for go.
 2. **1d, the 2027-28 rules,** once DWP publishes the 2027-28 benefit and State Pension rates (usually late November). Show Ari a plan first. What's already known:
    - The income tax and NICs thresholds are frozen to 2031.
    - Budget 2026 adds 2p on property and savings income from April 2027, an income tax exemption for low-income pensioners, and a bigger trading allowance.
@@ -291,6 +291,12 @@ Progress, 30 October 2026: done, not yet committed or published.
 - **3d. A council tax band for each home,** from its value deflated back to the valuation date (1 April 1991 in England and Scotland; 2003 in Wales, which has nine bands), using the regional House Price Index.
 
 Checks: owner numbers by region match the FRS; band counts match the Valuation Office Agency's council tax stock of properties by region; the population's total owner-occupied land value is close to the ONS balance sheet's figure for household land, with any gap written down rather than tuned away.
+
+**Built 30 October 2026, not yet committed** (method and checks in POPULATION.md, "Homes"):
+- `data/build_homes.py`, run after calibration (it changes no weights). Every private household gets a home, renters included, since an LVT and council tax fall on rented homes too. Values follow the Market Value Survey 2024 (not the Wealth and Assets Survey: the MVS gives values by region and tenure, with spread and income tables to fit to), grown with the UK HPI to August 2026. Land by the residual method with the ONS's depreciated building cost (£813/m²).
+- Exported in the population file (now 4.0 MB, was 3.5 MB); `src/population.ts` decodes it (`PopulationUnit.home`). Nothing on the page uses it yet; the calculator's tenure box waits for step 4, where it changes something.
+- `test/homes.test.ts` (8 tests).
+- Gaps, written down not tuned away: homes 30% above the ONS balance sheet; land share about 77%, and much lower with an undepreciated building cost; renters' incomes high for their homes' values. Bands: Ari chose (30 October) to rank homes by value within each region and fill bands to the VOA's and Scottish Government's counts, since banding deflated values put up to 14 points too many homes in band A.
 
 ## Step 4: the taxes an LVT would replace
 

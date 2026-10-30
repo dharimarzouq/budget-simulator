@@ -2,6 +2,24 @@
 // Loaded from public/data/population-2026-27.json, written by data/export_population.py.
 import { calculate, type Household, type Region, type RuleSet } from "./engine";
 
+export type Tenure = "owned_outright" | "mortgage" | "private_rent" | "social_rent";
+export type CouncilTaxBand = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
+
+/**
+ * A household's home (synthetic, grade C: POPULATION.md, "Homes"). Money in £, at the population's house price date,
+ * rounded to the nearest £1,000.
+ */
+export interface Home {
+  tenure: Tenure;
+  value: number;
+  /** The land under it: the value less the building's depreciated cost. */
+  land: number;
+  /** The value at the council tax valuation date (1991 England and Scotland, 2003 Wales); Northern Ireland's 2005 capital value. */
+  valuation: number;
+  /** No band in Northern Ireland, which has domestic rates on capital values instead. */
+  band?: CouncilTaxBand;
+}
+
 export interface PopulationUnit {
   weight: number;
   household: number;
@@ -10,6 +28,8 @@ export interface PopulationUnit {
   regionDetail?: string;
   /** People outside private households (students in halls, part-year workers...): in tax totals, not in household tables. */
   outside?: boolean;
+  /** The household's home, on its first family only. */
+  home?: Home;
 }
 
 export interface PublishedFigure {
@@ -27,23 +47,36 @@ export interface Population {
 
 type RawAdult = [number, number, number, number, number, number, number, number, number, number, number, number, number];
 type RawChild = [number, number, number];
-type RawUnit = [number, number, number, number, number, number, number, RawAdult[], RawChild[], number?];
+type RawHome = [number, number, number, number, number];
+type RawUnit = [number, number, number, number, number, number, number, RawAdult[], RawChild[], number?, RawHome?];
+
+/** The tenures in the file, in its order (data/export_population.py). */
+const TENURE: Tenure[] = ["owned_outright", "mortgage", "private_rent", "social_rent"];
 
 interface RawPopulation {
   about: string;
   year: string;
-  codes: { region: Region[]; regionDetail?: string[]; health: Household["adults"][number]["health"][]; disability: Household["children"][number]["disability"][] };
+  codes: { region: Region[]; regionDetail?: string[]; health: Household["adults"][number]["health"][]; disability: Household["children"][number]["disability"][]; band?: CouncilTaxBand[] };
   published: Record<string, PublishedFigure>;
   units: RawUnit[];
 }
 
+const decodeHome = ([t, value, land, valuation, band]: RawHome, bands: CouncilTaxBand[]): Home => ({
+  tenure: TENURE[t]!,
+  value: value * 1000,
+  land: land * 1000,
+  valuation: valuation * 1000,
+  ...(band >= 0 ? { band: bands[band]! } : {}),
+});
+
 export function decodePopulation(raw: RawPopulation): Population {
   const { region, health, disability } = raw.codes;
-  const units = raw.units.map(([weight, hh, reg, rentMonthly, childcareMonthly, savings, flags, adults, children, reg12]) => ({
+  const units = raw.units.map(([weight, hh, reg, rentMonthly, childcareMonthly, savings, flags, adults, children, reg12, home]) => ({
     weight,
     household: hh,
     regionDetail: reg12 === undefined ? undefined : raw.codes.regionDetail?.[reg12],
     outside: (flags & 8) !== 0,
+    ...(home ? { home: decodeHome(home, raw.codes.band ?? []) } : {}),
     data: {
       region: region[reg]!,
       rentMonthly,

@@ -1,7 +1,7 @@
 """Step 5e: write the calibrated population as a compact file the page loads.
 
 Usage: .venv/Scripts/python.exe -I data/export_population.py
-Reads data/build/population.json and data/build/seed_results_check.csv.
+Reads data/build/population.json, data/build/homes.json (data/build_homes.py) and data/build/seed_results_check.csv.
 Writes public/data/population-2026-27.json (committed, served with the site).
 
 Money is rounded to whole pounds and weights to one decimal place, which keeps the file small;
@@ -29,8 +29,19 @@ CHECKS = ["Income tax", "Income tax liabilities", "Employee NICs", "Employer NIC
           "Child Benefit charge", "Universal Credit spending", "Households on Universal Credit", "Families paid Child Benefit"]
 
 
+TENURES = ["Owned outright", "Buying with a mortgage", "Private rented", "Social rented"]
+BANDS = ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+
+
+def home(h: dict) -> list:
+    """A home as [tenure, value, land, value at the valuation date, band], money in £ thousands (data/build_homes.py)."""
+    k = lambda x: round(x / 1000)
+    return [TENURES.index(h["tenure"]), k(h["value"]), k(h["land"]), k(h["valuation"]), BANDS.index(h["band"]) if h["band"] else -1]
+
+
 def main() -> None:
     pop = json.loads((HERE / "build" / "population.json").read_text(encoding="utf-8"))
+    homes = json.loads((HERE / "build" / "homes.json").read_text(encoding="utf-8"))
     units = []
     for u in pop["units"]:
         d = u["data"]
@@ -46,16 +57,21 @@ def main() -> None:
             [[c["age"], int(c["bornBefore2017"]), DISABILITY.index(c["disability"])] for c in d["children"]],
             REGIONS12.index(u["regionDetail"]),
         ])
+        h = homes["homes"].get(str(u["household"]))
+        if h and u["unit"] == 0:  # the home goes with the household's first family
+            units[-1].append(home(h))
     check = pd.read_csv(HERE / "build" / "seed_results_check.csv").set_index("measure")
     payload = {
         "about": "Synthetic population: made-up households, not real people, weighted to match published UK totals for 2026-27. See POPULATION.md.",
         "year": "2026-27",
         "fields": {
-            "unit": ["weight", "household", "region", "rentMonthly", "childcareMonthly", "savings", "flags (1 claims UC, 2 claims Child Benefit, 4 claims Marriage Allowance, 8 outside private households)", "adults", "children", "regionDetail (one of 12, for breakdowns)"],
+            "unit": ["weight", "household", "region", "rentMonthly", "childcareMonthly", "savings", "flags (1 claims UC, 2 claims Child Benefit, 4 claims Marriage Allowance, 8 outside private households)", "adults", "children", "regionDetail (one of 12, for breakdowns)", "home (first family of each private household only)"],
             "adult": ["age", "employment", "secondJob", "selfEmployment", "pension", "health", "carer", "propertyIncome", "savingsInterest", "dividends", "pensionContributions", "otherDeductions", "taxReductions"],
             "child": ["age", "bornBefore2017", "disability"],
+            "home": ["tenure", f"value (£ thousand, {homes['price_date']} prices)", "land (£ thousand)", "value at the council tax valuation date (£ thousand; Northern Ireland: 1 January 2005 capital value)", "council tax band (-1 in Northern Ireland)"],
         },
-        "codes": {"region": REGIONS, "regionDetail": REGIONS12, "health": HEALTH, "disability": DISABILITY},
+        "codes": {"region": REGIONS, "regionDetail": REGIONS12, "health": HEALTH, "disability": DISABILITY, "tenure": TENURES, "band": BANDS},
+        "homes": {"about": "Synthetic, grade C: see POPULATION.md, Homes.", "price_date": homes["price_date"], "assumptions": homes["assumptions"]},
         "published": {m: {"value": float(check.at[m, "published"]), "unit": check.at[m, "unit"], "source": check.at[m, "source"]} for m in CHECKS},
         "units": units,
     }

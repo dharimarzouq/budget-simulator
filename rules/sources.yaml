@@ -309,3 +309,51 @@ ukpga-2026-13:
   licence: Open Government Licence v3.0
   published: 2026-03-18
   accessed: 2026-10-27
+
+# Homes (data/build_homes.py; POPULATION.md, "Homes").
+mhclg-mvs-2024:
+  title: "Market Value Survey 2024: annex tables (chapters 1 and 3)"
+  publisher: Ministry of Housing, Communities and Local Government
+  url: https://www.gov.uk/government/publications/market-value-survey-2024
+  licence: Open Government Licence v3.0
+  published: 2026-04
+  accessed: 2026-10-30
+  notes: English Housing Survey dwellings valued at 1 July 2024. Tables 1.2a (homes by value band and tenure), 1.3 (mean value by region and tenure), 3.3a (joint income as a share of value). England only.
+mhclg-ehs-2019-20:
+  title: English Housing Survey headline report 2019-20
+  publisher: Ministry of Housing, Communities and Local Government
+  url: https://www.gov.uk/government/statistics/english-housing-survey-2019-to-2020-headline-report
+  licence: Open Government Licence v3.0
+  published: 2020-12-10
+  accessed: 2026-10-30
+  notes: Paragraph 2.10, mean usable floor area by tenure (owner occupied 108 m2, private rented 76, social 66).
+hmlr-ukhpi-2026-08:
+  title: UK House Price Index, August 2026 (average prices download)
+  publisher: HM Land Registry, ONS, Registers of Scotland, Land & Property Services Northern Ireland
+  url: https://www.gov.uk/government/statistical-data-sets/uk-house-price-index-data-downloads-august-2026
+  licence: Open Government Licence v3.0
+  published: 2026-10-21
+  accessed: 2026-10-30
+ons-nbs-2025:
+  title: "National balance sheet estimates for the UK: 2025, reference tables"
+  publisher: Office for National Statistics
+  url: https://www.ons.gov.uk/economy/nationalaccounts/uksectoraccounts/datasets/thenationalbalancesheetestimates
+  licence: Open Government Licence v3.0
+  published: 2025-12-18
+  accessed: 2026-10-30
+  notes: Table 9.11 (households), end of 2024. Dwellings (AN.111) exclude the land beneath; land (AN.211) is all land households own.
+voa-ctsop-2025:
+  title: "Council Tax: stock of properties, 2025 (summary tables)"
+  publisher: Valuation Office Agency
+  url: https://www.gov.uk/government/statistics/council-tax-stock-of-properties-2025
+  licence: Open Government Licence v3.0
+  published: 2025-09-25
+  accessed: 2026-10-30
+  notes: Table CTSOP1.0, properties by band at 31 March 2025, English regions and Wales.
+sg-ctaxbase-2025:
+  title: "Council Tax datasets: number of chargeable dwellings, September 2025"
+  publisher: Scottish Government
+  url: https://www.gov.scot/publications/council-tax-datasets/
+  licence: Open Government Licence v3.0
+  published: not stated on the page
+  accessed: 2026-10-30

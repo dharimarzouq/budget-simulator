@@ -33,6 +33,15 @@ FILES = {
     "hmt_statement_of_funding_policy_2025_06.pdf": "https://assets.publishing.service.gov.uk/media/684859e3d0ca5d7801e4e6f6/Statement_of_Funding_Policy.pdf",
     # Who pays VAT and duties, by income tenth (costings/ons-etb-2023-24.yaml is read off Table 2b by hand).
     "ons_etb_fye2024.xlsx": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/personalandhouseholdfinances/incomeandwealth/datasets/theeffectsoftaxesandbenefitsonhouseholdincomefinancialyearending2014/financialyearending2024/etbreferencetablesfye202324final.xlsx",
+    # Homes: values, floor areas, council tax bands (data/build_homes.py).
+    "mhclg_mvs_2024_ch1.ods": "https://assets.publishing.service.gov.uk/media/69d6752d69de22b2bf86f663/Chapter_1_MVS_-_Annex_Tables.ods",
+    "mhclg_mvs_2024_ch3.ods": "https://assets.publishing.service.gov.uk/media/69d6752169de22b2bf86f662/Chapter_3_MVS_-_Annex_Tables.ods",
+    "mhclg_mvs_2024_ch4.ods": "https://assets.publishing.service.gov.uk/media/69d675373cf9187b7a07ba2d/Chapter_4_MVS_-_Annex_Tables.ods",
+    "voa_ctsop_2025_summary.xlsx": "https://assets.publishing.service.gov.uk/media/6a0c5ee5c510c3913d826863/2025_CT_SoP_Summary_Tables.xlsx",
+    "hmlr_ukhpi_average_prices_2026_08.csv": "https://publicdata.landregistry.gov.uk/market-trend-data/house-price-index-data/Average-prices-2026-08.csv",
+    "sg_ctaxbase_2025_chargeable_dwellings.xlsx": "https://www.gov.scot/binaries/content/documents/govscot/publications/statistics/2019/04/council-tax-datasets/documents/number-of-chargeable-dwellings/chargeable-dwellings---september-2025-data/chargeable-dwellings---september-2025-data/govscot%3Adocument/CTAXBASE%2B2025%2B-%2BTables%2B-%2BChargeable%2BDwellings.xlsx",
+    "ons_nbs_2025_reference_tables.xlsx": "https://www.ons.gov.uk/file?uri=/economy/nationalaccounts/uksectoraccounts/datasets/thenationalbalancesheetestimates/current/nbsreferencetables2025.xlsx",
+    "mhclg_ehs_2019_20_headline_report.pdf": "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/945013/2019-20_EHS_Headline_Report.pdf",
     "ons_ashe_table6_2026_provisional.zip":"https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2026provisional/ashetable62026provisional.zip",
 }
 
